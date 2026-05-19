@@ -13,18 +13,25 @@ function getMissingBackendUrlResponse() {
 }
 
 function buildBackendUrl(pathSegments = [], search = "") {
+  if (!BACKEND_API_URL) return "";
+
   const base = BACKEND_API_URL.replace(/\/$/, "");
   const path = pathSegments.map(encodeURIComponent).join("/");
+
   return `${base}/${path}${search || ""}`;
 }
 
 function copyRequestHeaders(req) {
-  const headers = new Headers(req.headers);
+  const headers = new Headers();
 
-  headers.delete("host");
-  headers.delete("connection");
-  headers.delete("content-length");
-  headers.delete("accept-encoding");
+  const contentType = req.headers.get("content-type");
+  const authorization = req.headers.get("authorization");
+  const accept = req.headers.get("accept");
+
+  if (contentType) headers.set("content-type", contentType);
+  if (authorization) headers.set("authorization", authorization);
+  if (accept) headers.set("accept", accept);
+  else headers.set("accept", "application/json");
 
   return headers;
 }
@@ -45,11 +52,10 @@ async function proxy(req, context) {
     return getMissingBackendUrlResponse();
   }
 
-  const params = await context.params;
-  const targetUrl = buildBackendUrl(
-    params?.path || [],
-    new URL(req.url).search,
-  );
+  const params = context?.params || {};
+  const pathSegments = Array.isArray(params.path) ? params.path : [];
+
+  const targetUrl = buildBackendUrl(pathSegments, new URL(req.url).search);
   const method = req.method.toUpperCase();
 
   const init = {
@@ -57,6 +63,7 @@ async function proxy(req, context) {
     headers: copyRequestHeaders(req),
     redirect: "manual",
     cache: "no-store",
+    signal: AbortSignal.timeout(15000),
   };
 
   if (!["GET", "HEAD"].includes(method)) {
@@ -67,8 +74,10 @@ async function proxy(req, context) {
     const backendRes = await fetch(targetUrl, init);
 
     const headers = new Headers(backendRes.headers);
+
     headers.delete("content-encoding");
     headers.delete("content-length");
+    headers.delete("transfer-encoding");
 
     const rewrittenLocation = rewriteLocationHeader(
       headers.get("location"),
@@ -79,12 +88,20 @@ async function proxy(req, context) {
       headers.set("location", rewrittenLocation);
     }
 
-    return new NextResponse(backendRes.body, {
+    const body = await backendRes.arrayBuffer();
+
+    return new NextResponse(body, {
       status: backendRes.status,
       statusText: backendRes.statusText,
       headers,
     });
   } catch (error) {
+    console.error("API proxy error:", {
+      targetUrl,
+      backendApiUrl: BACKEND_API_URL,
+      error,
+    });
+
     return NextResponse.json(
       {
         success: false,
