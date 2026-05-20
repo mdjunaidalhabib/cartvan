@@ -6,7 +6,8 @@ export async function apiFetch(path, options = {}) {
 
   try {
     const res = await fetch(url, {
-      credentials: "include", // ✅ কুকি সবসময় পাঠাবে
+      credentials: "include",
+      cache: "no-store",
       headers: {
         "Content-Type": "application/json",
         ...(options.headers || {}),
@@ -14,33 +15,50 @@ export async function apiFetch(path, options = {}) {
       ...options,
     });
 
-    // ✅ যদি 401 হয় → auto logout + redirect
+    // 🔒 Unauthorized / token expired
     if (res.status === 401) {
       try {
-        // backend logout কল (cookie clear করার জন্য)
+        // backend logout → cookie clear
         await fetch(`${baseUrl}/admin/logout`, {
           method: "POST",
           credentials: "include",
+          cache: "no-store",
         });
       } catch {
         // ignore
       }
 
-      // client-side clean + redirect
+      // ✅ client-side full cleanup
       if (typeof window !== "undefined") {
+        document.cookie =
+          "admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+
         try {
-          localStorage.removeItem("admin");
+          localStorage.clear();
+          sessionStorage.clear();
         } catch {}
 
-        window.location.href = "/login";
+        try {
+          if ("caches" in window) {
+            const cacheNames = await caches.keys();
+
+            await Promise.all(
+              cacheNames.map((cacheName) => caches.delete(cacheName)),
+            );
+          }
+        } catch {}
+
+        // ✅ hard redirect
+        window.location.replace("/login");
       }
 
-      // error throw যাতে caller বুঝতে পারে
-      throw new Error("Session expired. Redirecting to login.");
+      throw new Error("Session expired");
     }
 
+    // ❌ Other API errors
     if (!res.ok) {
       let errorText = "";
+
       try {
         errorText = await res.text();
       } catch {
@@ -48,11 +66,11 @@ export async function apiFetch(path, options = {}) {
       }
 
       throw new Error(
-        `API error: ${res.status} ${res.statusText} → ${errorText}`
+        `API error: ${res.status} ${res.statusText} → ${errorText}`,
       );
     }
 
-    // ✅ সবসময় JSON ফেরত দেবে
+    // ✅ Success
     return await res.json();
   } catch (err) {
     throw err;

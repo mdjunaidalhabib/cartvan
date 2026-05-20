@@ -5,50 +5,34 @@ import { useState } from "react";
 export default function LogoutButton() {
   const [loading, setLoading] = useState(false);
 
-  const handleLogout = async () => {
-    try {
-      setLoading(true);
+  const clearClientAuth = async () => {
+    document.cookie =
+      "admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 
-      const res = await fetch("/api/admin/logout", {
+    localStorage.clear();
+    sessionStorage.clear();
+
+    if ("caches" in window) {
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.map((name) => caches.delete(name)));
+    }
+  };
+
+  const handleLogout = async () => {
+    setLoading(true);
+
+    try {
+      await fetch("/api/admin/logout", {
         method: "POST",
         credentials: "include",
         cache: "no-store",
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        console.error("❌ Logout failed:", data?.message);
-        alert(data?.message || "Logout failed");
-        return;
-      }
-
-      console.log("✅ Logout successful");
-
-      // ✅ Browser cookie force remove
-      document.cookie =
-        "admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-
-      // ✅ Clear storage/cache
-      localStorage.clear();
-      sessionStorage.clear();
-
-      // ✅ Clear browser cache if supported
-      if ("caches" in window) {
-        const cacheNames = await caches.keys();
-
-        await Promise.all(
-          cacheNames.map((cacheName) => caches.delete(cacheName)),
-        );
-      }
-
-      // ✅ Hard reload + redirect
-      window.location.replace("/login");
     } catch (error) {
-      console.error("❌ Logout Error:", error);
-      alert("Something went wrong during logout");
+      console.error("Logout request failed:", error);
     } finally {
-      setLoading(false);
+      await clearClientAuth();
+
+      window.location.replace("/login");
     }
   };
 
