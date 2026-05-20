@@ -3,24 +3,36 @@
  */
 export const logoutAdmin = async (req, res) => {
   try {
-    const cookieOptions = {
+    const baseOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
     };
 
-    res.clearCookie("admin_token", cookieOptions);
-
+    // 1) host-only cookie clear
+    res.clearCookie("admin_token", baseOptions);
     res.cookie("admin_token", "", {
-      ...cookieOptions,
+      ...baseOptions,
+      expires: new Date(0),
+      maxAge: 0,
+    });
+
+    // 2) old domain cookie clear, if mobile still has previous cookie
+    res.clearCookie("admin_token", {
+      ...baseOptions,
+      domain: ".openupbd.com",
+    });
+    res.cookie("admin_token", "", {
+      ...baseOptions,
+      domain: ".openupbd.com",
       expires: new Date(0),
       maxAge: 0,
     });
 
     return res.status(200).json({
       success: true,
-      message: "✅ Logged out successfully",
+      message: "Logged out successfully",
     });
   } catch (error) {
     console.error("Logout Error:", error);
