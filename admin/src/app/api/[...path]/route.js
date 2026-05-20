@@ -26,6 +26,9 @@ function copyRequestHeaders(req) {
   headers.delete("content-length");
   headers.delete("accept-encoding");
 
+  headers.delete("origin");
+  headers.delete("referer");
+
   if (!headers.get("accept")) {
     headers.set("accept", "application/json");
   }
@@ -51,14 +54,21 @@ async function proxy(req, context) {
 
   const params = await context.params;
   const pathSegments = Array.isArray(params?.path) ? params.path : [];
+  const path = pathSegments.join("/");
 
   const targetUrl = buildBackendUrl(pathSegments, new URL(req.url).search);
   const method = req.method.toUpperCase();
 
   try {
+    const headers = copyRequestHeaders(req);
+
+    if (path === "admin/login") {
+      headers.delete("cookie");
+    }
+
     const init = {
       method,
-      headers: copyRequestHeaders(req),
+      headers,
       redirect: "manual",
       cache: "no-store",
       signal: AbortSignal.timeout(30000),
@@ -69,24 +79,27 @@ async function proxy(req, context) {
     }
 
     const backendRes = await fetch(targetUrl, init);
-    const headers = new Headers(backendRes.headers);
+    const responseHeaders = new Headers(backendRes.headers);
 
-    headers.delete("content-encoding");
-    headers.delete("content-length");
-    headers.delete("transfer-encoding");
+    responseHeaders.delete("content-encoding");
+    responseHeaders.delete("content-length");
+    responseHeaders.delete("transfer-encoding");
 
     const rewrittenLocation = rewriteLocationHeader(
-      headers.get("location"),
+      responseHeaders.get("location"),
       req,
     );
+
     if (rewrittenLocation) {
-      headers.set("location", rewrittenLocation);
+      responseHeaders.set("location", rewrittenLocation);
     }
 
-    return new NextResponse(backendRes.body, {
+    const responseBody = await backendRes.arrayBuffer();
+
+    return new NextResponse(responseBody, {
       status: backendRes.status,
       statusText: backendRes.statusText,
-      headers,
+      headers: responseHeaders,
     });
   } catch (error) {
     console.error("API proxy error:", {
