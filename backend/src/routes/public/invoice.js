@@ -10,10 +10,14 @@ const router = express.Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-let browser;
+let browser = null;
 
-/* ================= INIT PUPPETEER ================= */
-(async () => {
+/* ================= PUPPETEER HELPER ================= */
+async function getBrowser() {
+  if (browser && browser.connected) {
+    return browser;
+  }
+
   browser = await puppeteer.launch({
     headless: "new",
     args: [
@@ -22,11 +26,12 @@ let browser;
       "--disable-dev-shm-usage",
     ],
   });
-})();
+
+  return browser;
+}
 
 /* ================= HELPERS ================= */
 
-// Date format
 function formatDateTime(date) {
   const d = new Date(date);
   return {
@@ -43,14 +48,12 @@ function formatDateTime(date) {
   };
 }
 
-// Truncate long text
 function truncate(text = "", max = 35) {
   return text.length > max ? text.slice(0, max) + "..." : text;
 }
 
-// Currency format
 function formatCurrency(num) {
-  return Number(num).toLocaleString("en-BD");
+  return Number(num || 0).toLocaleString("en-BD");
 }
 
 /* ================= ROUTE ================= */
@@ -65,14 +68,9 @@ router.get("/invoice/:id", async (req, res) => {
     const { datePart, timePart } = formatDateTime(order.createdAt);
 
     const publicPath = path.join(__dirname, "../../../public");
-    const templatePath = path.join(
-      __dirname,
-      "../../../templates/invoice.html",
-    );
+    const templatePath = path.join(__dirname, "../../../templates/invoice.html");
     const cssPath = path.join(publicPath, "invoice.css");
     const imagePath = path.join(publicPath, "invoice-template.png");
-
-    /* ================= LOAD FILES ================= */
 
     const htmlTemplate = fs.readFileSync(templatePath, "utf8");
 
@@ -80,9 +78,7 @@ router.get("/invoice/:id", async (req, res) => {
       .readFileSync(imagePath)
       .toString("base64")}`;
 
-    /* ================= BUILD ITEMS ================= */
-
-    const itemRows = order.items
+    const itemRows = (order.items || [])
       .map((item) => {
         const price = formatCurrency(item.price);
         const total = formatCurrency(item.qty * item.price);
@@ -98,13 +94,11 @@ router.get("/invoice/:id", async (req, res) => {
       })
       .join("");
 
-    /* ================= FINAL HTML ================= */
-
-    let finalHtml = htmlTemplate
+    const finalHtml = htmlTemplate
       .replace("{{orderId}}", order._id.toString())
       .replace("{{date}}", datePart)
       .replace("{{time}}", timePart)
-      .replace("{{payment}}", order.paymentMethod.toUpperCase())
+      .replace("{{payment}}", (order.paymentMethod || "").toUpperCase())
       .replace("{{name}}", order.billing?.name || "")
       .replace("{{phone}}", order.billing?.phone || "")
       .replace("{{address}}", order.billing?.address || "")
@@ -115,35 +109,26 @@ router.get("/invoice/:id", async (req, res) => {
       .replace("{{discount}}", formatCurrency(order.discount || 0))
       .replace("{{total}}", formatCurrency(order.total));
 
-    /* ================= PUPPETEER ================= */
-
-    page = await browser.newPage();
+    const activeBrowser = await getBrowser();
+    page = await activeBrowser.newPage();
 
     await page.setContent(finalHtml, {
       waitUntil: "networkidle0",
     });
 
-    // CSS load
     await page.addStyleTag({ path: cssPath });
 
-    // 🔥🔥🔥 IMPORTANT FIX (body → .page)
     await page.addStyleTag({
       content: `.page { background-image: url("${base64Image}"); }`,
     });
 
-    // Ensure fonts loaded
     await page.evaluateHandle("document.fonts.ready");
-
-    /* ================= PDF ================= */
 
     const pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true,
-
       displayHeaderFooter: true,
-
       headerTemplate: `<div></div>`,
-
       footerTemplate: `
         <div style="
           width: 100%;
@@ -161,7 +146,6 @@ router.get("/invoice/:id", async (req, res) => {
           </span>
         </div>
       `,
-
       margin: {
         top: "20px",
         bottom: "60px",
@@ -171,8 +155,6 @@ router.get("/invoice/:id", async (req, res) => {
     });
 
     await page.close();
-
-    /* ================= RESPONSE ================= */
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
@@ -184,7 +166,9 @@ router.get("/invoice/:id", async (req, res) => {
   } catch (err) {
     console.error("Invoice Error:", err);
 
-    if (page) await page.close();
+    if (page) {
+      await page.close().catch(() => {});
+    }
 
     res.status(500).send("Error generating invoice");
   }
