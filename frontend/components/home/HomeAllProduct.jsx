@@ -1,29 +1,103 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import ProductCard from "./ProductCard";
 import ProductCardSkeleton from "../skeletons/ProductCardSkeleton";
 import { apiFetch } from "../../utils/api";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import OfferBadges from "./OfferBadges";
+import { ChevronLeft, ChevronRight, ArrowRight, ChevronUp } from "lucide-react";
 
+// ── Horizontal scroll row — arrows jump by one item width ─────────────────────
+function HorizontalScrollRow({ children, className = "" }) {
+  const ref = useRef(null);
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(false);
+
+  const update = () => {
+    const el = ref.current;
+    if (!el) return;
+    setCanLeft(el.scrollLeft > 4);
+    setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  };
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // small delay so children render first
+    const t = setTimeout(update, 100);
+    el.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      clearTimeout(t);
+      el.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [children]);
+
+  // scroll by the width of one visible "page" (container width)
+  const scroll = (dir) => {
+    const el = ref.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: "smooth" });
+  };
+
+  return (
+    <div className={`relative flex items-center ${className}`}>
+      {/* Left Arrow */}
+      <button
+        onClick={() => scroll(-1)}
+        aria-label="Scroll left"
+        className={`
+          absolute left-0 z-10 -translate-x-1/2
+          w-8 h-8 flex items-center justify-center
+          rounded-full bg-white border border-gray-200 shadow-md
+          text-gray-600 hover:text-blue-600 hover:border-blue-400 hover:shadow-lg
+          transition-all duration-200
+          ${canLeft ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}
+        `}
+      >
+        <ChevronLeft className="w-4 h-4" />
+      </button>
+
+      {/* Scrollable Track */}
+      <div
+        ref={ref}
+        className="flex gap-3 overflow-x-auto w-full"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
+        {children}
+      </div>
+
+      {/* Right Arrow */}
+      <button
+        onClick={() => scroll(1)}
+        aria-label="Scroll right"
+        className={`
+          absolute right-0 z-10 translate-x-1/2
+          w-8 h-8 flex items-center justify-center
+          rounded-full bg-white border border-gray-200 shadow-md
+          text-gray-600 hover:text-blue-600 hover:border-blue-400 hover:shadow-lg
+          transition-all duration-200
+          ${canRight ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}
+        `}
+      >
+        <ChevronRight className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
+// ── Main Component ─────────────────────────────────────────────────────────────
 export default function CategoryTabsSection() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeCat, setActiveCat] = useState(null);
   const [error, setError] = useState(false);
+  // tracks which categories are expanded (show all products)
+  const [expanded, setExpanded] = useState({});
 
-  /* ================= DRAG SCROLL STATE ================= */
-  const scrollRef = useRef(null);
-  const isDownRef = useRef(false);
-  const startXRef = useRef(0);
-  const scrollLeftRef = useRef(0);
-  const velocityRef = useRef(0);
-  const rafRef = useRef(null);
-
-  /* ================= DATA FETCH ================= */
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -37,12 +111,8 @@ export default function CategoryTabsSection() {
       let pArr = Array.isArray(pRes) ? pRes : [];
       let cArr = Array.isArray(cRes) ? cRes : [];
 
-      // ✅ only active categories + serial sort
       cArr = cArr.filter((c) => c.isActive !== false);
       cArr.sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0));
-
-      // ✅ ✅ ✅ PRODUCT SERIAL SORT (order ASC)
-      // tie হলে newer first
       pArr.sort((a, b) => {
         const ao = Number(a.order ?? 0);
         const bo = Number(b.order ?? 0);
@@ -52,95 +122,29 @@ export default function CategoryTabsSection() {
 
       setProducts(pArr);
       setCategories(cArr);
-
-      if (activeCat && !cArr.find((c) => String(c._id) === String(activeCat))) {
-        setActiveCat(null);
-      }
-
-      setLoading(false);
     } catch (err) {
-      console.log("Error fetching data:", err);
+      console.error("Fetch Error:", err);
       setError(true);
+    } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
-  // ✅ filter + keep serial order stable
-  const filtered = useMemo(() => {
-    const base = !activeCat
-      ? products
-      : products.filter((p) => String(p.category?._id) === String(activeCat));
+  const toggleExpand = (catId) =>
+    setExpanded((prev) => ({ ...prev, [catId]: !prev[catId] }));
 
-    // ensure sorted (in case API order changes later)
-    return [...base].sort((a, b) => {
-      const ao = Number(a.order ?? 0);
-      const bo = Number(b.order ?? 0);
-      if (ao !== bo) return ao - bo;
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    });
-  }, [activeCat, products]);
-
-  const shouldShowSkeleton =
-    loading || (!error && (products.length === 0 || categories.length === 0));
-
-  const startInertia = () => {
-    const el = scrollRef.current;
-    if (!el) return;
-
-    const step = () => {
-      velocityRef.current *= 0.95;
-      if (Math.abs(velocityRef.current) < 0.5) return;
-
-      el.scrollLeft -= velocityRef.current;
-      rafRef.current = requestAnimationFrame(step);
-    };
-
-    rafRef.current = requestAnimationFrame(step);
-  };
-
-  const onMouseDown = (e) => {
-    if (window.innerWidth < 640) return;
-    isDownRef.current = true;
-    scrollRef.current.classList.add("cursor-grabbing");
-    startXRef.current = e.pageX;
-    scrollLeftRef.current = scrollRef.current.scrollLeft;
-    velocityRef.current = 0;
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-  };
-
-  const onMouseMove = (e) => {
-    if (!isDownRef.current) return;
-    e.preventDefault();
-    const dx = e.pageX - startXRef.current;
-    const walk = dx * 1.1;
-    scrollRef.current.scrollLeft = scrollLeftRef.current - walk;
-    velocityRef.current = walk;
-  };
-
-  const stopDrag = () => {
-    if (!isDownRef.current) return;
-    isDownRef.current = false;
-    scrollRef.current.classList.remove("cursor-grabbing");
-    startInertia();
-  };
-
-  /* ================= ERROR UI ================= */
+  /* ── ERROR ── */
   if (error && !loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-4">
         <p className="text-gray-500 text-sm mb-4 text-center">
-          ডেটা লোড করা যায়নি। ইন্টারনেট বা সার্ভার সমস্যা হতে পারে।
+          ডেটা লোড করা যায়নি। ইন্টারনেট বা সার্ভার সমস্যা হতে পারে।
         </p>
         <button
-          type="button"
           onClick={fetchData}
-          className="px-4 py-2 rounded-md text-sm font-medium
-            bg-gradient-to-r from-blue-600 to-purple-600
-            text-white hover:opacity-90 transition"
+          className="px-4 py-2 rounded-md text-sm font-medium bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90 transition"
         >
           🔄 আবার চেষ্টা করুন
         </button>
@@ -148,8 +152,8 @@ export default function CategoryTabsSection() {
     );
   }
 
-  /* ================= SKELETON ================= */
-  if (shouldShowSkeleton) {
+  /* ── LOADING ── */
+  if (loading) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 px-4 py-10">
         {Array.from({ length: 8 }).map((_, i) => (
@@ -159,89 +163,130 @@ export default function CategoryTabsSection() {
     );
   }
 
-  /* ================= UI ================= */
+  /* ── RENDER ── */
   return (
     <motion.section
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="container mx-auto px-4 py-4 sm:px-6 lg:px-8 lg:py-8 "
+      className="container mx-auto px-4 py-4 sm:px-6 lg:px-8 lg:py-8"
     >
-      {/* ================= CATEGORY TABS ================= */}
-      <div
-        ref={scrollRef}
-        onMouseDown={onMouseDown}
-        onMouseMove={onMouseMove}
-        onMouseUp={stopDrag}
-        onMouseLeave={stopDrag}
-        className="
-          w-full
-          overflow-x-auto overflow-y-hidden
-          [&::-webkit-scrollbar]:hidden scrollbar-none
-          sm:cursor-grab
-          select-none
-        "
-      >
-        <div
-          className="
-            /* 📱 MOBILE */
-            grid grid-rows-2 grid-flow-col gap-2 auto-cols-[5rem]
+      {/* Offer Badges */}
+      <div className="mb-6">
+        <OfferBadges />
+      </div>
 
-            /* 🖥 DESKTOP */
-            sm:flex sm:flex-wrap sm:justify-center sm:gap-2
-          "
-        >
+      {/* ── Category Navigation ── */}
+      <div className="mb-8 px-5">
+        <HorizontalScrollRow>
           {categories.map((cat) => (
-            <button
-              type="button"
+            <a
               key={cat._id}
-              onClick={() =>
-                setActiveCat((prev) => (prev === cat._id ? null : cat._id))
-              }
-              className={`flex-none flex flex-col items-center justify-center
-      px-2 py-1 rounded-xl transition-all duration-300
-      border shadow-sm hover:shadow-md
-      min-w-[65px]
-      ${
-        activeCat === cat._id
-          ? "bg-gradient-to-br from-blue-600 to-purple-600 text-white border-blue-600 scale-105"
-          : "bg-pink-100 hover:bg-pink-200 border-pink-300"
-      }`}
+              href={`#category-${cat._id}`}
+              className="flex-shrink-0 flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:border-blue-500 transition-all duration-300 whitespace-nowrap"
             >
-              <div className="relative w-10 h-10 overflow-hidden rounded-lg border border-gray-300 m bg-white">
+              <div className="relative w-10 h-10 overflow-hidden rounded-lg border bg-white">
                 <Image
                   src={cat.image || "/no-image.png"}
                   alt={cat.name}
                   fill
-                  sizes="48px"
-                  loading="lazy"
-                  className="object-cover transition-transform duration-300 hover:scale-110"
+                  sizes="40px"
+                  className="object-cover"
                 />
               </div>
-
-              <span className="text-sm text-[11px] font-medium text-center truncate w-full max-w-[150px]">
+              <span className="text-sm font-medium text-gray-700">
                 {cat.name}
               </span>
-            </button>
+            </a>
           ))}
-        </div>
+        </HorizontalScrollRow>
       </div>
 
-      <div className="p-4">
-        <OfferBadges />
-      </div>
+      {/* ── Category Sections ── */}
+      <div className="space-y-10">
+        {categories.map((cat) => {
+          const catProducts = products.filter(
+            (p) => String(p.category?._id) === String(cat._id)
+          );
+          if (catProducts.length === 0) return null;
 
-      {filtered.length ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-          {filtered.map((prod, i) => (
-            <ProductCard key={prod._id} product={prod} priority={i < 5} />
-          ))}
-        </div>
-      ) : (
-        <p className="text-center text-gray-500 py-10">
-          কোনো প্রোডাক্ট পাওয়া যায়নি।
-        </p>
-      )}
+          const isExpanded = !!expanded[cat._id];
+
+          return (
+            <div
+              key={cat._id}
+              id={`category-${cat._id}`}
+              className="scroll-mt-24"
+            >
+              {/* ── Category Header ── */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="relative w-10 h-10 overflow-hidden rounded-xl border bg-white shadow-sm flex-shrink-0">
+                  <Image
+                    src={cat.image || "/no-image.png"}
+                    alt={cat.name}
+                    fill
+                    sizes="40px"
+                    className="object-cover"
+                  />
+                </div>
+
+                <h2 className="text-base md:text-lg font-bold text-gray-800 whitespace-nowrap">
+                  {cat.name}
+                </h2>
+
+                <div className="flex-1 h-px bg-gray-100" />
+
+                {/* See All / Show Less */}
+                <button
+                  onClick={() => toggleExpand(cat._id)}
+                  className="flex-shrink-0 flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 transition whitespace-nowrap"
+                >
+                  {isExpanded ? (
+                    <>
+                      Show less
+                      <ChevronUp className="w-3 h-3" />
+                    </>
+                  ) : (
+                    <>
+                      See all ({catProducts.length})
+                      <ArrowRight className="w-3 h-3" />
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* ── Products ── */}
+              {isExpanded ? (
+                /* Grid — all products */
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"
+                >
+                  {catProducts.map((prod, i) => (
+                    <ProductCard key={prod._id} product={prod} priority={i < 5} />
+                  ))}
+                </motion.div>
+              ) : (
+                /* Single scrollable row — mobile: 2 cards visible, sm+: fixed 175px */
+                <div className="px-5">
+                  <HorizontalScrollRow>
+                    {catProducts.map((prod, i) => (
+                      <div
+                        key={prod._id}
+                        className="flex-shrink-0 w-[calc(50vw-2.5rem)] sm:w-[175px]"
+                      >
+                        <ProductCard product={prod} priority={i < 4} />
+                      </div>
+                    ))}
+                  </HorizontalScrollRow>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </motion.section>
   );
 }

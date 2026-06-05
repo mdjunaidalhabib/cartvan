@@ -143,18 +143,6 @@ export default function Footer() {
               </li>
             )}
 
-            {contact.phone && (
-              <li className="flex items-center gap-2">
-                <FaPhoneAlt />
-                <a
-                  href={`tel:${contact.phone}`}
-                  className="hover:text-pink-600"
-                >
-                  {contact.phone}
-                </a>
-              </li>
-            )}
-
             {contact.email && (
               <li className="flex items-center gap-2">
                 <FaEnvelope />
@@ -163,6 +151,18 @@ export default function Footer() {
                   className="hover:text-pink-600"
                 >
                   {contact.email}
+                </a>
+              </li>
+            )}
+
+              {contact.phone && (
+              <li className="flex items-center gap-2">
+                <FaPhoneAlt />
+                <a
+                  href={`tel:${contact.phone}`}
+                  className="hover:text-pink-600"
+                >
+                  {contact.phone}
                 </a>
               </li>
             )}
@@ -190,7 +190,7 @@ export default function Footer() {
 
       <hr className="border-t border-gray-400 mt-6" />
 
-      <div className="mt-2 text-center text-xs text-gray-700 px-2 whitespace-normal break-words sm:whitespace-nowrap sm:overflow-hidden sm:text-ellipsis">
+      <div className="my-1 text-center text-xs text-gray-700 px-2 whitespace-normal break-words sm:whitespace-nowrap sm:overflow-hidden sm:text-ellipsis">
         <span className="block sm:inline">
           © {new Date().getFullYear()} All Rights Reserved {brand.title}
         </span>
