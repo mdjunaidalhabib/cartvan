@@ -8,9 +8,9 @@ import FloatingActionButton from "../../components/home/FloatingActionButton";
 
 // ✅ Metadata (UPDATED)
 export const metadata = {
-  title: "openup | Trusted Best Online Shopping Platform in Bangladesh",
+  title: "Cartvan | Trusted Best Online Shopping Platform in Bangladesh",
   description:
-    "openup is a reliable e-commerce platform in Bangladesh offering quality products at competitive prices.",
+    "cartvan is a reliable e-commerce platform in Bangladesh offering quality products at competitive prices.",
 
   manifest: "/manifest.json",
   icons: {
