@@ -3,14 +3,13 @@ import Admin from "../../src/models/Admin.js";
 import { UAParser } from "ua-parser-js";
 import geoip from "geoip-lite";
 
-/**
- * POST /admin/login
- */
 export const loginAdmin = async (req, res) => {
   try {
     const { email, password } = req.body || {};
 
-    console.log("ADMIN LOGIN HIT:", { email });
+    console.log("========== ADMIN LOGIN ==========");
+    console.log("EMAIL:", email);
+    console.log("PASSWORD RECEIVED:", password);
 
     if (!email || !password) {
       return res.status(400).json({
@@ -20,7 +19,11 @@ export const loginAdmin = async (req, res) => {
       });
     }
 
-    const admin = await Admin.findOne({ email });
+    const admin = await Admin.findOne({
+      email: email.toLowerCase().trim(),
+    });
+
+    console.log("ADMIN FOUND:", !!admin);
 
     if (!admin) {
       return res.status(401).json({
@@ -30,7 +33,13 @@ export const loginAdmin = async (req, res) => {
       });
     }
 
+    console.log("ADMIN ID:", admin._id);
+    console.log("ADMIN EMAIL:", admin.email);
+    console.log("DB HASH:", admin.password);
+
     const isMatch = await admin.matchPassword(password);
+
+    console.log("PASSWORD MATCH:", isMatch);
 
     if (!isMatch) {
       return res.status(401).json({
@@ -40,19 +49,18 @@ export const loginAdmin = async (req, res) => {
       });
     }
 
+    console.log("LOGIN SUCCESS");
+
     const token = generateToken(admin);
 
-    const cookieOptions = {
+    res.cookie("admin_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000,
-    };
+    });
 
-    res.cookie("admin_token", token, cookieOptions);
-
-    // Login tracking fail হলেও login fail করবে না
     try {
       const ip =
         req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
@@ -68,42 +76,33 @@ export const loginAdmin = async (req, res) => {
         ua.device.type === "mobile"
           ? "Mobile"
           : ua.device.type === "tablet"
-            ? "Tablet"
-            : "PC";
-
-      const osName = ua.os.name || "Unknown OS";
-      const osVersion = ua.os.version || "";
-      const browserName = ua.browser.name || "Unknown Browser";
-      const browserVersion = ua.browser.version || "";
+          ? "Tablet"
+          : "PC";
 
       const geo = ip ? geoip.lookup(ip) : null;
-      const location = geo
-        ? {
-            country: geo.country,
-            city: geo.city,
-            region: geo.region,
-            lat: geo.ll?.[0],
-            lon: geo.ll?.[1],
-          }
-        : null;
 
       admin.lastLoginAt = new Date();
       admin.lastLoginIp = ip;
       admin.lastLoginDevice = deviceType;
-      admin.lastLoginOS = `${osName} ${osVersion}`.trim();
-      admin.lastLoginBrowser = `${browserName} ${browserVersion}`.trim();
+      admin.lastLoginOS =
+        `${ua.os.name || ""} ${ua.os.version || ""}`.trim();
+      admin.lastLoginBrowser =
+        `${ua.browser.name || ""} ${ua.browser.version || ""}`.trim();
       admin.lastLoginUA = uaString;
 
-      if (location) {
-        admin.lastLoginLocation = location;
+      if (geo) {
+        admin.lastLoginLocation = {
+          country: geo.country,
+          city: geo.city,
+          region: geo.region,
+          lat: geo.ll?.[0],
+          lon: geo.ll?.[1],
+        };
       }
 
       await admin.save();
     } catch (trackingError) {
-      console.error("LOGIN TRACKING SAVE ERROR:", {
-        name: trackingError?.name,
-        message: trackingError?.message,
-      });
+      console.error("TRACKING ERROR:", trackingError);
     }
 
     return res.status(200).json({
@@ -114,51 +113,19 @@ export const loginAdmin = async (req, res) => {
         name: admin.name,
         email: admin.email,
         role: admin.role,
-        lastLoginAt: admin.lastLoginAt,
-        lastLoginIp: admin.lastLoginIp,
-        lastLoginDevice: admin.lastLoginDevice,
-        lastLoginOS: admin.lastLoginOS,
-        lastLoginBrowser: admin.lastLoginBrowser,
-        lastLoginLocation: admin.lastLoginLocation || null,
       },
     });
   } catch (err) {
-    console.error("LOGIN REAL ERROR:", {
-      name: err?.name,
-      message: err?.message,
-      stack: err?.stack,
-    });
-
-    if (
-      err?.message?.toLowerCase().includes("jwt") ||
-      err?.message?.toLowerCase().includes("secret")
-    ) {
-      return res.status(500).json({
-        success: false,
-        message:
-          "লগইন টোকেন তৈরি করতে সমস্যা হয়েছে। Backend JWT_SECRET env check করুন।",
-        errorType: "JWT_ERROR",
-      });
-    }
-
-    if (
-      err?.name === "MongoServerError" ||
-      err?.name === "MongoNetworkError" ||
-      err?.name === "MongooseServerSelectionError"
-    ) {
-      return res.status(500).json({
-        success: false,
-        message:
-          "ডাটাবেজ কানেকশনে সমস্যা হয়েছে। MongoDB env/connection check করুন।",
-        errorType: "DATABASE_ERROR",
-      });
-    }
+    console.error("LOGIN ERROR:", err);
 
     return res.status(500).json({
       success: false,
-      message: "সার্ভারে অপ্রত্যাশিত সমস্যা হয়েছে। Backend logs check করুন।",
+      message: "সার্ভারে অপ্রত্যাশিত সমস্যা হয়েছে।",
       errorType: "SERVER_ERROR",
-      details: process.env.NODE_ENV === "production" ? undefined : err?.message,
+      details:
+        process.env.NODE_ENV === "production"
+          ? undefined
+          : err.message,
     });
   }
 };

@@ -2,14 +2,15 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import ProductCard from "./ProductCard";
-import ProductCardSkeleton from "../skeletons/ProductCardSkeleton";
+import ProductCardSkeleton from "./ProductCardSkeleton";
+import CategoryNavSkeleton from "./CategoryNavSkeleton";
 import { apiFetch } from "../../utils/api";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import OfferBadges from "./OfferBadges";
 import { ChevronLeft, ChevronRight, ArrowRight, ChevronUp } from "lucide-react";
 
-// ── Horizontal scroll row — arrows jump by one item width ─────────────────────
+// ── Horizontal scroll row ──────────────────────────────────────────────────────
 function HorizontalScrollRow({ children, className = "" }) {
   const ref = useRef(null);
   const [canLeft, setCanLeft] = useState(false);
@@ -25,7 +26,6 @@ function HorizontalScrollRow({ children, className = "" }) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    // small delay so children render first
     const t = setTimeout(update, 100);
     el.addEventListener("scroll", update, { passive: true });
     window.addEventListener("resize", update);
@@ -36,7 +36,6 @@ function HorizontalScrollRow({ children, className = "" }) {
     };
   }, [children]);
 
-  // scroll by the width of one visible "page" (container width)
   const scroll = (dir) => {
     const el = ref.current;
     if (!el) return;
@@ -45,7 +44,6 @@ function HorizontalScrollRow({ children, className = "" }) {
 
   return (
     <div className={`relative flex items-center ${className}`}>
-      {/* Left Arrow */}
       <button
         onClick={() => scroll(-1)}
         aria-label="Scroll left"
@@ -61,7 +59,6 @@ function HorizontalScrollRow({ children, className = "" }) {
         <ChevronLeft className="w-4 h-4" />
       </button>
 
-      {/* Scrollable Track */}
       <div
         ref={ref}
         className="flex gap-3 overflow-x-auto w-full"
@@ -70,7 +67,6 @@ function HorizontalScrollRow({ children, className = "" }) {
         {children}
       </div>
 
-      {/* Right Arrow */}
       <button
         onClick={() => scroll(1)}
         aria-label="Scroll right"
@@ -89,13 +85,59 @@ function HorizontalScrollRow({ children, className = "" }) {
   );
 }
 
+// ── Full page skeleton ─────────────────────────────────────────────────────────
+function PageSkeleton() {
+  return (
+    <div className="container mx-auto px-4 py-4 sm:px-6 lg:px-8 lg:py-8">
+      {/* Offer badges placeholder */}
+      <div className="h-12 w-full rounded-xl bg-gray-100 mb-6 overflow-hidden relative">
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200"
+          animate={{ backgroundPosition: ["-200% 0", "200% 0"] }}
+          transition={{ duration: 1.6, repeat: Infinity, ease: "linear" }}
+          style={{ backgroundSize: "200% 100%" }}
+        />
+      </div>
+
+      {/* Category nav skeleton */}
+      <CategoryNavSkeleton />
+
+      {/* Category sections skeleton */}
+      <div className="space-y-10">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="scroll-mt-24">
+            {/* Section header skeleton */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-gray-200 flex-shrink-0" />
+              <div className="h-5 w-28 rounded bg-gray-200" />
+              <div className="flex-1 h-px bg-gray-100" />
+              <div className="h-4 w-20 rounded bg-gray-200" />
+            </div>
+
+            {/* Product row skeleton */}
+            <div className="px-5 flex gap-3 overflow-hidden">
+              {Array.from({ length: 4 }).map((_, j) => (
+                <div
+                  key={j}
+                  className="flex-shrink-0 w-[calc(50vw-2.5rem)] sm:w-[175px]"
+                >
+                  <ProductCardSkeleton />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 export default function CategoryTabsSection() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  // tracks which categories are expanded (show all products)
   const [expanded, setExpanded] = useState({});
 
   const fetchData = async () => {
@@ -135,8 +177,11 @@ export default function CategoryTabsSection() {
   const toggleExpand = (catId) =>
     setExpanded((prev) => ({ ...prev, [catId]: !prev[catId] }));
 
+  /* ── LOADING ── */
+  if (loading) return <PageSkeleton />;
+
   /* ── ERROR ── */
-  if (error && !loading) {
+  if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-4">
         <p className="text-gray-500 text-sm mb-4 text-center">
@@ -152,16 +197,6 @@ export default function CategoryTabsSection() {
     );
   }
 
-  /* ── LOADING ── */
-if (loading || products.length === 0) {
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 px-4 py-10">
-      {Array.from({ length: 8 }).map((_, i) => (
-        <ProductCardSkeleton key={i} />
-      ))}
-    </div>
-  );
-}
   /* ── RENDER ── */
   return (
     <motion.section
@@ -235,7 +270,6 @@ if (loading || products.length === 0) {
 
                 <div className="flex-1 h-px bg-gray-100" />
 
-                {/* See All / Show Less */}
                 <button
                   onClick={() => toggleExpand(cat._id)}
                   className="flex-shrink-0 flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 transition whitespace-nowrap"
@@ -256,7 +290,6 @@ if (loading || products.length === 0) {
 
               {/* ── Products ── */}
               {isExpanded ? (
-                /* Grid — all products */
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -268,7 +301,6 @@ if (loading || products.length === 0) {
                   ))}
                 </motion.div>
               ) : (
-                /* Single scrollable row — mobile: 2 cards visible, sm+: fixed 175px */
                 <div className="px-5">
                   <HorizontalScrollRow>
                     {catProducts.map((prod, i) => (
