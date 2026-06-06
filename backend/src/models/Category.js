@@ -4,8 +4,7 @@ const categorySchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     image: { type: String, default: "" },
-
-    // ✅ NEW
+    imagePublicId: { type: String, default: "" }, // ✅ added
     order: { type: Number, default: 1 },
     isActive: { type: Boolean, default: true },
   },
