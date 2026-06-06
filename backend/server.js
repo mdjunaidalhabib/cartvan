@@ -114,7 +114,7 @@ app.use("/uploads", express.static("uploads"));
 app.get("/health", (req, res) => {
   res.status(200).json({
     status: "ok",
-    message: "✅ API is running",
+    message: "✅ cartvan api is running",
     timestamp: new Date().toISOString(),
   });
 });
