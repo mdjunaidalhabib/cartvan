@@ -13,7 +13,7 @@ const FIELDS = [
     key: "whatsapp",
     label: "WhatsApp Number",
     emoji: "💬",
-    placeholder: "8801XXXXXXXXX (country code সহ, + ছাড়া)",
+    placeholder: "8801XXXXXXXXX (country code সহ + ছাড়া)",
   },
   {
     key: "messenger",
