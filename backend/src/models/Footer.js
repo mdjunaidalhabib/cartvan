@@ -2,9 +2,8 @@ import mongoose from "mongoose";
 
 // Sub-schemas
 const SocialSchema = new mongoose.Schema({
-  name: String,
-  url: String,
-  icon: String,
+  platform: { type: String, required: true },
+  url: { type: String, default: "" },
 });
 
 const QuickLinkSchema = new mongoose.Schema({
@@ -22,7 +21,7 @@ const FooterSchema = new mongoose.Schema({
   brand: {
     title: String,
     logo: String,
-    logoPublicId: String, 
+    logoPublicId: String,
     about: String,
   },
   socials: [SocialSchema],

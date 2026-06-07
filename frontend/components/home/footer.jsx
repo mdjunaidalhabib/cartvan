@@ -15,21 +15,35 @@ import {
   FaGlobe,
   FaMapMarkerAlt,
   FaUserCircle,
+  FaTwitter,
+  FaLinkedinIn,
+  FaPinterest,
+  FaSnapchatGhost,
+  FaWhatsapp,
+  FaTelegram,
 } from "react-icons/fa";
-
-const socialLinksData = [
-  { Icon: FaFacebookF, url: "https://www.facebook.com/openupbd" },
-  { Icon: FaUsers, url: "https://www.facebook.com/share/g/17mB3XsdQR" },
-  { Icon: FaYoutube, url: "https://youtube.com/@openupbd" },
-  { Icon: FaInstagram, url: "https://instagram.com/openupbd" },
-  { Icon: FaTiktok, url: "https://tiktok.com/@openupbd.com" },
-];
 
 const quickLinksData = [
   { label: "Home", href: "/" },
   { label: "Shop", href: "/products" },
   { label: "Categories", href: "/categories" },
 ];
+
+// Icon map — key must match platform values in DB
+// ⚠️ Admin panel এ এই map দরকার নেই — শুধু frontend এ
+const SOCIAL_ICON_MAP = {
+  facebook: FaFacebookF,
+  facebook_group: FaUsers,
+  youtube: FaYoutube,
+  instagram: FaInstagram,
+  tiktok: FaTiktok,
+  twitter: FaTwitter,
+  linkedin: FaLinkedinIn,
+  pinterest: FaPinterest,
+  snapchat: FaSnapchatGhost,
+  whatsapp: FaWhatsapp,
+  telegram: FaTelegram,
+};
 
 export default function Footer() {
   const [data, setData] = useState(null);
@@ -67,7 +81,7 @@ export default function Footer() {
   if (loading) return <FooterSkeleton />;
   if (!data) return null;
 
-  const { brand = {}, contact = {} } = data;
+  const { brand = {}, contact = {}, socialLinks = [] } = data;
 
   return (
     <footer className="bg-pink-100 text-gray-900 pt-10 pb-2 px-4 md:px-12 mb-14 md:mb-0">
@@ -99,17 +113,24 @@ export default function Footer() {
             {brand.about || "Your business destination."}
           </p>
 
-          <div className="flex gap-4 text-xl">
-            {socialLinksData.map(({ Icon, url }, idx) => (
-              <Link
-                key={idx}
-                href={url || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Icon className="hover:text-pink-600" />
-              </Link>
-            ))}
+          {/* Dynamic social links — icon react-icons থেকে */}
+          <div className="flex gap-4 text-xl flex-wrap">
+            {socialLinks
+              .filter((s) => s.url)
+              .map((social, idx) => {
+                const Icon = SOCIAL_ICON_MAP[social.platform];
+                if (!Icon) return null;
+                return (
+                  <Link
+                    key={idx}
+                    href={social.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Icon className="hover:text-pink-600" />
+                  </Link>
+                );
+              })}
           </div>
         </div>
 
@@ -146,22 +167,16 @@ export default function Footer() {
             {contact.email && (
               <li className="flex items-center gap-2">
                 <FaEnvelope />
-                <a
-                  href={`mailto:${contact.email}`}
-                  className="hover:text-pink-600"
-                >
+                <a href={`mailto:${contact.email}`} className="hover:text-pink-600">
                   {contact.email}
                 </a>
               </li>
             )}
 
-              {contact.phone && (
+            {contact.phone && (
               <li className="flex items-center gap-2">
                 <FaPhoneAlt />
-                <a
-                  href={`tel:${contact.phone}`}
-                  className="hover:text-pink-600"
-                >
+                <a href={`tel:${contact.phone}`} className="hover:text-pink-600">
                   {contact.phone}
                 </a>
               </li>

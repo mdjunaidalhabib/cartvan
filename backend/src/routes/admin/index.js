@@ -14,6 +14,8 @@ import deliveryChargeAdmin from "./deliveryCharge.admin.js";
 import orderMailSend from "./order-mail-send.js";
 import courierStatusRouter from "./courierStatus.js";
 import courierLiveRouter from "./courierLive.js";
+import FloatingActionButton from "./FloatingActionButton.admin.route.js";
+
 
 
 
@@ -33,18 +35,7 @@ router.use("/DeliveryCharge", deliveryChargeAdmin);
 router.use("/order-mail-send", orderMailSend);
 router.use("/api/courier", courierStatusRouter);
 router.use("/api/courier", courierLiveRouter);
-
-
-
-
-
-
-
-
-
-
-
-
+router.use("/contact-button", FloatingActionButton);
 
 
 export default router;

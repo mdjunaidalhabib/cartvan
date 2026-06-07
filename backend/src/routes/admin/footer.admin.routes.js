@@ -12,7 +12,18 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
     const footer = await Footer.findOne();
-    res.json(footer || {});
+    if (!footer) return res.json({});
+
+    const footerObj = footer.toObject();
+
+    // ✅ socials → socialLinks নামে পাঠাও (frontend এর সাথে মিলিয়ে)
+    footerObj.socialLinks = (footerObj.socials || []).map((s) => ({
+      platform: s.platform,
+      url: s.url,
+    }));
+    delete footerObj.socials;
+
+    res.json(footerObj);
   } catch (err) {
     console.error("❌ Error fetching footer:", err);
     res.status(500).json({ message: "Server error" });
@@ -25,12 +36,18 @@ router.post("/", upload.single("logo"), async (req, res) => {
   try {
     let data = { ...req.body };
 
-    // Parse brand/contact JSON if sent as string
+    // Parse brand/contact/socialLinks JSON if sent as string
     if (data.brand && typeof data.brand === "string") {
       data.brand = JSON.parse(data.brand);
     }
     if (data.contact && typeof data.contact === "string") {
       data.contact = JSON.parse(data.contact);
+    }
+    if (data.socialLinks && typeof data.socialLinks === "string") {
+      // ✅ frontend পাঠায় socialLinks → DB তে socials হিসেবে save
+      const parsed = JSON.parse(data.socialLinks);
+      data.socials = parsed.map((s) => ({ platform: s.platform, url: s.url }));
+      delete data.socialLinks;
     }
 
     const footer = await Footer.findOne();
@@ -39,7 +56,6 @@ router.post("/", upload.single("logo"), async (req, res) => {
     const removeLogo = data.removeLogo === "true";
     if (removeLogo && footer?.brand?.logoPublicId) {
       await deleteByPublicId(footer.brand.logoPublicId);
-
       data.brand = data.brand || {};
       data.brand.logo = "";
       data.brand.logoPublicId = "";
@@ -48,12 +64,10 @@ router.post("/", upload.single("logo"), async (req, res) => {
 
     // Upload new logo if exists
     if (req.file) {
-      // delete old logo by public id
       if (footer?.brand?.logoPublicId) {
         await deleteByPublicId(footer.brand.logoPublicId);
       }
 
-      // upload new logo to FOOTER folder
       const result = await cloudinary.uploader.upload(req.file.path, {
         folder: "footer_logos",
       });
@@ -64,9 +78,8 @@ router.post("/", upload.single("logo"), async (req, res) => {
       data.brand.logo = result.secure_url;
       data.brand.logoPublicId = result.public_id;
     } else if (footer?.brand) {
-      // file না এলে আগের logo/publicId রেখে দাও
       data.brand = {
-        ...footer.brand,
+        ...footer.brand.toObject?.() ?? footer.brand,
         ...(data.brand || {}),
       };
     }
@@ -81,9 +94,17 @@ router.post("/", upload.single("logo"), async (req, res) => {
       updatedFooter = await footer.save();
     }
 
+    // ✅ Response এ socials → socialLinks হিসেবে পাঠাও
+    const responseObj = updatedFooter.toObject();
+    responseObj.socialLinks = (responseObj.socials || []).map((s) => ({
+      platform: s.platform,
+      url: s.url,
+    }));
+    delete responseObj.socials;
+
     res.json({
       message: "✅ Footer updated successfully",
-      footer: updatedFooter,
+      footer: responseObj,
     });
   } catch (err) {
     console.error("❌ Error updating footer:", err);

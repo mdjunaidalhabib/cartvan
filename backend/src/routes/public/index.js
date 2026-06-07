@@ -13,7 +13,7 @@ import deliveryCharge from "./deliveryCharge.js";
 import profileUploadRoutes from "./profileUpload.routes.js";
 import userRoutes from "./user.routes.js";
 import visitRoutes from "./analytics.js";
-
+import FloatingActionButton from "./FloatingActionButton.route.js";
 
 
 
@@ -32,8 +32,6 @@ router.use("/deliveryCharge", deliveryCharge);
 router.use("/profile", profileUploadRoutes);
 router.use("/users", userRoutes); 
 router.use("/visit", visitRoutes); 
-
-
-
+router.use("/contact-button", FloatingActionButton);
 
 export default router;

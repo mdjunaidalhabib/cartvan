@@ -57,6 +57,11 @@ export const settingsChildren = [
     label: "Footer",
     href: "/admin/footer",
   },
+    {
+    icon: <LayoutDashboard size={16} />,
+    label: "Action Button",
+    href: "/admin/floatingActionButton",
+  },
   {
     icon: <LayoutDashboard size={16} />,
     label: "Delivery Charge",
