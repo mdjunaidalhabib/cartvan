@@ -8,6 +8,13 @@ import {
   FaRegCommentDots,
 } from "react-icons/fa";
 
+const formatWhatsapp = (raw) => {
+  const digits = raw.replace(/\D/g, ""); 
+  if (digits.startsWith("880")) return digits;       // already has country code
+  if (digits.startsWith("0"))   return "88" + digits; // 01X... → 8801X...
+  return "880" + digits;                              // fallback
+};
+
 const FloatingActionButton = () => {
   const [open, setOpen] = useState(false);
   const [config, setConfig] = useState(null);
@@ -47,7 +54,7 @@ const FloatingActionButton = () => {
 
         {whatsapp && (
           <a
-            href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`}
+            href={`https://wa.me/${formatWhatsapp(whatsapp)}`}
             target="_blank"
             rel="noopener noreferrer"
             className={`bg-[#25D366] text-white p-3 rounded-full shadow-lg hover:scale-110 transition-transform ${
