@@ -136,7 +136,7 @@ export default function Footer() {
 
         <div>
           <h2 className="text-xl font-semibold mb-4">Quick Links</h2>
-          <ul className="flex flex-wrap gap-x-4 gap-y-2 text-sm md:flex-col md:gap-x-0 md:space-y-2">
+          <ul className="space-y-2 text-sm">
             {quickLinksData.map((item, i) => (
               <li key={i} className="whitespace-nowrap">
                 <Link href={item.href} className="hover:text-pink-600">
