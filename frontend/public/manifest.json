@@ -1,7 +1,7 @@
 {
-  "name": "openup",
-  "short_name": "openup",
-  "description": "openup is a trusted online shopping platform in Bangladesh with fast delivery and quality products.",
+  "name": "Cartvan Admin",
+  "short_name": "cartvan",
+  "description": "Cartvan is a trusted online shopping platform in Bangladesh with fast delivery and quality products.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

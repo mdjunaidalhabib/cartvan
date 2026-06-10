@@ -1,7 +1,7 @@
 {
-  "name": "openup Admin",
+  "name": "Cartvan Admin",
   "short_name": "Admin panel",
-  "description": "Admin Panel for openup",
+  "description": "Admin Panel for cartvan",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -21,7 +21,5 @@
     }
   ],
 
-  "screenshots": [
-
-  ]
+  "screenshots": []
 }

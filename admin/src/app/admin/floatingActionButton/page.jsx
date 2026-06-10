@@ -13,33 +13,21 @@ const FIELDS = [
     key: "whatsapp",
     label: "WhatsApp Number",
     emoji: "💬",
-    placeholder: "8801XXXXXXXXX (country code সহ + ছাড়া)",
+    placeholder: "8801XXXXXXXXX",
   },
   {
     key: "messenger",
     label: "Messenger URL",
     emoji: "📘",
-    placeholder: "https://www.facebook.com/yourpage",
+    placeholder: "https://facebook.com/...",
   },
 ];
-
-const toastOptions = {
-  duration: 3000,
-  style: {
-    background: "#0f172a", color: "#fff",
-    padding: "12px 14px", borderRadius: "10px",
-    fontSize: "14px", fontWeight: 600,
-    boxShadow: "0 6px 18px rgba(0,0,0,0.25)",
-  },
-  success: { style: { background: "#16a34a" } },
-  error:   { style: { background: "#dc2626" } },
-};
 
 export default function ContactButtonAdmin() {
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [editing, setEditing] = useState(null); // field key
+  const [editing, setEditing] = useState(null);
   const [tempValue, setTempValue] = useState("");
 
   useEffect(() => {
@@ -50,7 +38,7 @@ export default function ContactButtonAdmin() {
         setLoading(false);
       })
       .catch(() => {
-        toast.error("❌ Failed to load config");
+        toast.error("Failed to load");
         setLoading(false);
       });
   }, []);
@@ -64,13 +52,13 @@ export default function ContactButtonAdmin() {
         body: JSON.stringify(updated),
       });
 
-      if (!res.ok) throw new Error("Save failed");
+      if (!res.ok) throw new Error();
 
       const json = await res.json();
       setConfig(json.data || json);
-      toast.success("✅ Saved!");
+      toast.success("Saved!");
     } catch {
-      toast.error("❌ Failed to save");
+      toast.error("Save failed");
     } finally {
       setSaving(false);
     }
@@ -88,7 +76,6 @@ export default function ContactButtonAdmin() {
     const updated = { ...config, [key]: "" };
     setConfig(updated);
     handleSave(updated);
-    toast.success(`🗑 Cleared ${key}`);
   };
 
   const toggleEnabled = () => {
@@ -97,90 +84,109 @@ export default function ContactButtonAdmin() {
     handleSave(updated);
   };
 
-  if (loading) return <p>Loading...</p>;
-  if (!config) return <p>No config found.</p>;
+  if (loading) return <p className="text-center py-10">Loading...</p>;
+  if (!config) return null;
 
   return (
-    <div className="max-w-2xl mx-auto bg-white shadow p-6 rounded-lg space-y-6">
-      <Toaster position="top-right" toastOptions={toastOptions} />
-      <h2 className="text-2xl font-bold">💬 Floating Contact Button</h2>
+    <div className="max-w-2xl mx-auto bg-white shadow p-4 md:p-6 rounded-lg space-y-6">
+      <Toaster position="top-right" />
 
-      {/* Enable / Disable toggle */}
-      <div className="flex items-center justify-between border p-4 rounded-lg">
+      <h2 className="text-xl md:text-2xl font-bold">
+        💬 Floating Contact Button
+      </h2>
+
+      {/* TOGGLE */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border p-4 rounded-lg">
         <div>
           <p className="font-semibold">Button Status</p>
           <p className="text-sm text-gray-500">
-            {config.enabled ? "Frontend এ দেখাচ্ছে ✅" : "Frontend এ লুকানো আছে 🚫"}
+            {config.enabled ? "Visible ✅" : "Hidden 🚫"}
           </p>
         </div>
+
         <button
-          disabled={saving}
           onClick={toggleEnabled}
-          className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-300 disabled:opacity-60 ${
+          className={`relative inline-flex h-7 w-14 items-center rounded-full transition ${
             config.enabled ? "bg-green-500" : "bg-gray-300"
           }`}
         >
           <span
-            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-300 ${
+            className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
               config.enabled ? "translate-x-8" : "translate-x-1"
             }`}
           />
         </button>
       </div>
 
-      {/* Fields */}
-      <div className="space-y-3 border p-4 rounded-lg">
+      {/* FIELDS */}
+      <div className="border p-4 rounded-lg space-y-4">
         <h3 className="font-semibold">Contact Info</h3>
 
-        {FIELDS.map(({ key, label, emoji, placeholder, hint }) => (
+        {FIELDS.map(({ key, label, emoji, placeholder }) => (
           <div key={key} className="border-b pb-3">
-            <p className="text-xs text-gray-400 mb-1">{hint}</p>
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-lg">{emoji}</span>
+            <div className="flex flex-col md:flex-row gap-2 md:items-center">
+              <div className="flex items-center gap-2 md:w-48">
+                <span className="text-lg">{emoji}</span>
+                <span className="text-sm font-medium">{label}</span>
+              </div>
 
               {editing === key ? (
                 <>
                   <input
-                    type="text"
                     value={tempValue}
                     onChange={(e) => setTempValue(e.target.value)}
                     placeholder={placeholder}
-                    className="flex-1 p-2 border rounded text-sm min-w-[180px]"
-                    disabled={saving}
+                    className="w-full md:flex-1 p-2 border rounded text-sm"
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === "Enter") commitEdit(key);
-                      if (e.key === "Escape") { setEditing(null); setTempValue(""); }
+                      if (e.key === "Escape") setEditing(null);
                     }}
                   />
-                  <button disabled={saving} onClick={() => commitEdit(key)}
-                    className="bg-green-500 text-white px-3 py-1.5 rounded text-sm disabled:opacity-60">
-                    Save
-                  </button>
-                  <button disabled={saving} onClick={() => { setEditing(null); setTempValue(""); }}
-                    className="bg-gray-400 text-white px-3 py-1.5 rounded text-sm disabled:opacity-60">
-                    Cancel
-                  </button>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => commitEdit(key)}
+                      className="bg-green-500 text-white px-3 py-1 rounded w-full md:w-auto"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => setEditing(null)}
+                      className="bg-gray-400 text-white px-3 py-1 rounded w-full md:w-auto"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </>
               ) : (
                 <>
-                  <div className="flex-1">
-                    <p className="text-xs font-medium text-gray-500">{label}</p>
-                    <p className="text-sm text-gray-800 truncate">
-                      {config[key] || <span className="italic text-gray-400">Not set</span>}
-                    </p>
-                  </div>
-                  <button disabled={saving}
-                    onClick={() => { setEditing(key); setTempValue(config[key] || ""); }}
-                    className="bg-blue-500 text-white px-3 py-1.5 rounded text-sm disabled:opacity-60">
-                    Edit
-                  </button>
-                  {config[key] && (
-                    <button disabled={saving} onClick={() => clearField(key)}
-                      className="bg-red-500 text-white px-3 py-1.5 rounded text-sm disabled:opacity-60">
-                      Delete
+                  <p className="flex-1 text-sm break-all">
+                    {config[key] || (
+                      <span className="text-gray-400 italic">Not set</span>
+                    )}
+                  </p>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setEditing(key);
+                        setTempValue(config[key] || "");
+                      }}
+                      className="bg-blue-500 text-white px-3 py-1 rounded w-full md:w-auto"
+                    >
+                      Edit
                     </button>
-                  )}
+
+                    {config[key] && (
+                      <button
+                        onClick={() => clearField(key)}
+                        className="bg-red-500 text-white px-3 py-1 rounded w-full md:w-auto"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </>
               )}
             </div>
@@ -188,7 +194,7 @@ export default function ContactButtonAdmin() {
         ))}
       </div>
 
-      {saving && <p className="text-sm text-gray-500 italic">Saving...</p>}
+      {saving && <p className="text-sm text-gray-400">Saving...</p>}
     </div>
   );
 }
