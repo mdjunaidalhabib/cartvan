@@ -4,18 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import Toast from "../components/Toast";
 import CategoriesSkeleton from "../components/Skeleton/CategoriesSkeleton";
 import CategoryModal from "./CategoryModal";
-import ImageUploader from "./ImageUploader";
 
-/* ================== CATEGORY IMAGE RULE ================== */
-const CATEGORY_IMAGE_RULE = {
-  type: "image/webp",
-  width: 300,
-  height: 300,
-  maxBytes: 100 * 1024,
-  startQuality: 0.88,
-  minQuality: 0.3,
-  qualityStep: 0.08,
-};
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState([]);

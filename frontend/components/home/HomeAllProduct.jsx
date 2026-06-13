@@ -9,7 +9,7 @@ import Image from "next/image";
 import OfferBadges from "./OfferBadges";
 import { ChevronLeft, ChevronRight, ArrowRight, ChevronUp } from "lucide-react";
 
-// ── Horizontal scroll row — arrows jump by one item width ─────────────────────
+// ── Horizontal scroll row ─────────────────────────────────
 function HorizontalScrollRow({ children, className = "" }) {
   const ref = useRef(null);
   const [canLeft, setCanLeft] = useState(false);
@@ -25,7 +25,6 @@ function HorizontalScrollRow({ children, className = "" }) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    // small delay so children render first
     const t = setTimeout(update, 100);
     el.addEventListener("scroll", update, { passive: true });
     window.addEventListener("resize", update);
@@ -36,7 +35,6 @@ function HorizontalScrollRow({ children, className = "" }) {
     };
   }, [children]);
 
-  // scroll by the width of one visible "page" (container width)
   const scroll = (dir) => {
     const el = ref.current;
     if (!el) return;
@@ -45,43 +43,31 @@ function HorizontalScrollRow({ children, className = "" }) {
 
   return (
     <div className={`relative flex items-center ${className}`}>
-      {/* Left Arrow */}
+      {/* Left */}
       <button
         onClick={() => scroll(-1)}
-        aria-label="Scroll left"
-        className={`
-          absolute left-0 z-10 -translate-x-1/2
-          w-8 h-8 flex items-center justify-center
-          rounded-full bg-white border border-gray-200 shadow-md
-          text-gray-600 hover:text-blue-600 hover:border-blue-400 hover:shadow-lg
-          transition-all duration-200
-          ${canLeft ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}
-        `}
+        className={`hidden md:flex absolute left-0 z-10 -translate-x-1/2 w-8 h-8 items-center justify-center rounded-full bg-white border shadow ${
+          canLeft ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
       >
         <ChevronLeft className="w-4 h-4" />
       </button>
 
-      {/* Scrollable Track */}
+      {/* Scroll */}
       <div
         ref={ref}
-        className="flex gap-3 overflow-x-auto w-full"
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        className="flex gap-2 sm:gap-3 overflow-x-auto w-full"
+        style={{ scrollbarWidth: "none" }}
       >
         {children}
       </div>
 
-      {/* Right Arrow */}
+      {/* Right */}
       <button
         onClick={() => scroll(1)}
-        aria-label="Scroll right"
-        className={`
-          absolute right-0 z-10 translate-x-1/2
-          w-8 h-8 flex items-center justify-center
-          rounded-full bg-white border border-gray-200 shadow-md
-          text-gray-600 hover:text-blue-600 hover:border-blue-400 hover:shadow-lg
-          transition-all duration-200
-          ${canRight ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}
-        `}
+        className={`hidden md:flex absolute right-0 z-10 translate-x-1/2 w-8 h-8 items-center justify-center rounded-full bg-white border shadow ${
+          canRight ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
       >
         <ChevronRight className="w-4 h-4" />
       </button>
@@ -89,13 +75,12 @@ function HorizontalScrollRow({ children, className = "" }) {
   );
 }
 
-// ── Main Component ─────────────────────────────────────────────────────────────
+// ── MAIN ──────────────────────────────────────────────────
 export default function CategoryTabsSection() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  // tracks which categories are expanded (show all products)
   const [expanded, setExpanded] = useState({});
 
   const fetchData = async () => {
@@ -113,6 +98,7 @@ export default function CategoryTabsSection() {
 
       cArr = cArr.filter((c) => c.isActive !== false);
       cArr.sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0));
+
       pArr.sort((a, b) => {
         const ao = Number(a.order ?? 0);
         const bo = Number(b.order ?? 0);
@@ -123,68 +109,55 @@ export default function CategoryTabsSection() {
       setProducts(pArr);
       setCategories(cArr);
     } catch (err) {
-      console.error("Fetch Error:", err);
+      console.error(err);
       setError(true);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const toggleExpand = (catId) =>
     setExpanded((prev) => ({ ...prev, [catId]: !prev[catId] }));
 
-  /* ── ERROR ── */
-  if (error && !loading) {
+  if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 px-4">
-        <p className="text-gray-500 text-sm mb-4 text-center">
-          ডেটা লোড করা যায়নি। ইন্টারনেট বা সার্ভার সমস্যা হতে পারে।
-        </p>
-        <button
-          onClick={fetchData}
-          className="px-4 py-2 rounded-md text-sm font-medium bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:opacity-90 transition"
-        >
-          🔄 আবার চেষ্টা করুন
-        </button>
+      <div className="grid grid-cols-2 gap-4 px-4 py-10">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <ProductCardSkeleton key={i} />
+        ))}
       </div>
     );
   }
 
-  /* ── LOADING ── */
-if (loading || products.length === 0) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 px-4 py-10">
-      {Array.from({ length: 8 }).map((_, i) => (
-        <ProductCardSkeleton key={i} />
-      ))}
-    </div>
-  );
-}
-  /* ── RENDER ── */
-  return (
-    <motion.section
-      initial={{ opacity: 0, y: 40 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      className="container mx-auto px-4 py-4 sm:px-6 lg:px-8 lg:py-8"
-    >
-      {/* Offer Badges */}
-      <div className="mb-6">
+    <motion.section className="container mx-auto px-3 sm:px-6 py-4">
+      {/* Offers */}
+      <div className="mb-4">
         <OfferBadges />
       </div>
 
-      {/* ── Category Navigation ── */}
-      <div className="mb-8 px-5">
+      {/* 🔥 Compact Category Nav */}
+      <div className="mb-6 px-2">
         <HorizontalScrollRow>
           {categories.map((cat) => (
             <a
               key={cat._id}
               href={`#category-${cat._id}`}
-              className="flex-shrink-0 flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:border-blue-500 transition-all duration-300 whitespace-nowrap"
+              className="
+                flex-shrink-0 flex items-center 
+                gap-1 sm:gap-2
+                px-2 py-1 sm:px-3 sm:py-2
+                bg-white border border-gray-200
+                rounded-lg sm:rounded-xl
+                shadow-sm hover:shadow-md
+                transition whitespace-nowrap
+              "
             >
-              <div className="relative w-10 h-10 overflow-hidden rounded-lg border bg-white">
+              <div className="relative w-8 h-8 sm:w-10 sm:h-10 overflow-hidden rounded-md sm:rounded-lg border bg-white">
                 <Image
                   src={cat.image || "/no-image.png"}
                   alt={cat.name}
@@ -193,7 +166,8 @@ if (loading || products.length === 0) {
                   className="object-cover"
                 />
               </div>
-              <span className="text-sm font-medium text-gray-700">
+
+              <span className="text-xs sm:text-sm font-medium text-gray-700">
                 {cat.name}
               </span>
             </a>
@@ -201,86 +175,69 @@ if (loading || products.length === 0) {
         </HorizontalScrollRow>
       </div>
 
-      {/* ── Category Sections ── */}
-      <div className="space-y-10">
+      {/* Categories */}
+      <div className="space-y-8">
         {categories.map((cat) => {
           const catProducts = products.filter(
-            (p) => String(p.category?._id) === String(cat._id)
+            (p) => String(p.category?._id) === String(cat._id),
           );
-          if (catProducts.length === 0) return null;
+          if (!catProducts.length) return null;
 
-          const isExpanded = !!expanded[cat._id];
+          const isExpanded = expanded[cat._id];
 
           return (
-            <div
-              key={cat._id}
-              id={`category-${cat._id}`}
-              className="scroll-mt-24"
-            >
-              {/* ── Category Header ── */}
-              <div className="flex items-center gap-3 mb-4">
-                <div className="relative w-10 h-10 overflow-hidden rounded-xl border bg-white shadow-sm flex-shrink-0">
+            <div key={cat._id} id={`category-${cat._id}`}>
+              {/* Header */}
+              <div className="flex items-center gap-2 mb-3">
+                <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-lg border overflow-hidden">
                   <Image
                     src={cat.image || "/no-image.png"}
                     alt={cat.name}
                     fill
-                    sizes="40px"
                     className="object-cover"
                   />
                 </div>
 
-                <h2 className="text-base md:text-lg font-bold text-gray-800 whitespace-nowrap">
+                <h2 className="text-sm sm:text-lg font-bold text-gray-800">
                   {cat.name}
                 </h2>
 
-                <div className="flex-1 h-px bg-gray-100" />
+                <div className="flex-1 h-px bg-gray-200" />
 
-                {/* See All / Show Less */}
                 <button
                   onClick={() => toggleExpand(cat._id)}
-                  className="flex-shrink-0 flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 transition whitespace-nowrap"
+                  className="text-xs text-blue-600 flex items-center gap-1"
                 >
                   {isExpanded ? (
                     <>
-                      Show less
-                      <ChevronUp className="w-3 h-3" />
+                      Less <ChevronUp className="w-3 h-3" />
                     </>
                   ) : (
                     <>
-                      See all ({catProducts.length})
-                      <ArrowRight className="w-3 h-3" />
+                      All <ArrowRight className="w-3 h-3" />
                     </>
                   )}
                 </button>
               </div>
 
-              {/* ── Products ── */}
+              {/* Products */}
               {isExpanded ? (
-                /* Grid — all products */
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"
-                >
-                  {catProducts.map((prod, i) => (
-                    <ProductCard key={prod._id} product={prod} priority={i < 5} />
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {catProducts.map((prod) => (
+                    <ProductCard key={prod._id} product={prod} />
                   ))}
-                </motion.div>
-              ) : (
-                /* Single scrollable row — mobile: 2 cards visible, sm+: fixed 175px */
-                <div className="px-5">
-                  <HorizontalScrollRow>
-                    {catProducts.map((prod, i) => (
-                      <div
-                        key={prod._id}
-                        className="flex-shrink-0 w-[calc(50vw-2.5rem)] sm:w-[175px]"
-                      >
-                        <ProductCard product={prod} priority={i < 4} />
-                      </div>
-                    ))}
-                  </HorizontalScrollRow>
                 </div>
+              ) : (
+                <HorizontalScrollRow>
+                  {catProducts.map((prod) => (
+                    <div
+                      key={prod._id}
+                      className="w-[140px] sm:w-[170px] flex-shrink-0"
+                    >
+                      <ProductCard product={prod} />
+                    </div>
+                  ))}
+                </HorizontalScrollRow>
               )}
             </div>
           );

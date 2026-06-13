@@ -31,10 +31,10 @@ const IMAGE_RULE = {
   maxBytes: 100 * 1024,
   width: 600,
   height: 600,
-  // ✅ allowedInputTypes নেই — যেকোনো format চলবে
   startQuality: 0.92,
-  minQuality: 0.3,
-  qualityStep: 0.07,
+  minQuality: 0.2, // ✅ 0.3 → 0.2
+  qualityStep: 0.05, // ✅ 0.07 → 0.05
+  strictLimit: true, // ✅ 100KB এর বেশি হলে error
 };
 
 /* ---------------- Helpers ---------------- */
@@ -164,7 +164,6 @@ export default function VariantSection({
 
   const normalizedOnceRef = useRef(false);
 
-  // ✅ Normalize once on mount
   useEffect(() => {
     if (normalizedOnceRef.current) return;
 
@@ -210,21 +209,18 @@ export default function VariantSection({
     }
   };
 
-  // ✅ Validate AFTER conversion
+  // ✅ iOS এ JPEG output হবে তাই type check সরানো হয়েছে
   const validateFiles = async (fileItems) => {
     for (const it of fileItems) {
       const f = it?.src;
       if (!(f instanceof File)) continue;
-      if (f.type !== IMAGE_RULE.type)
-        return "Auto convert failed (WEBP required)";
       if (f.size > IMAGE_RULE.maxBytes) {
-        return `Max ${Math.floor(IMAGE_RULE.maxBytes / 1024)}KB allowed`;
+        return `এই image টি ${Math.ceil(f.size / 1024)}KB — সর্বোচ্চ ${Math.floor(IMAGE_RULE.maxBytes / 1024)}KB allowed।`;
       }
     }
     return null;
   };
 
-  // ✅ Handle file add — যেকোনো format, clear error messages
   const handleFileChange = async (i, files) => {
     const raw = Array.from(files || []);
     if (raw.length === 0) return;
@@ -236,7 +232,6 @@ export default function VariantSection({
     const key = next[i].isBase ? "baseImages" : `variantImages_${i}`;
 
     try {
-      // ✅ আগের error clear করো
       setErrors((prev) => {
         const n = { ...prev };
         delete n[key];
@@ -247,15 +242,14 @@ export default function VariantSection({
       const converted = [];
 
       for (const f of raw) {
-        // ✅ processing indicator
         setErrors((prev) => ({
           ...prev,
           [`${key}_processing`]: `⏳ "${f.name}" processing...`,
         }));
 
         try {
-          const webpFile = await convertToWebpUnderLimit(f, IMAGE_RULE);
-          converted.push(webpFile);
+          const convertedFile = await convertToWebpUnderLimit(f, IMAGE_RULE);
+          converted.push(convertedFile);
         } catch (err) {
           setErrors((prev) => ({
             ...prev,
@@ -266,7 +260,6 @@ export default function VariantSection({
         }
       }
 
-      // ✅ processing indicator সরাও
       setErrors((prev) => {
         const n = { ...prev };
         delete n[`${key}_processing`];
@@ -464,7 +457,7 @@ export default function VariantSection({
               </div>
             </div>
 
-            {/* ✅ Image Upload Section */}
+            {/* Image Upload Section */}
             <div className="mt-5">
               <label
                 className={`text-xs font-bold uppercase tracking-wide block mb-2 ${
@@ -474,7 +467,7 @@ export default function VariantSection({
                 Variant Images (Required) *
                 <span className="ml-2 text-[10px] font-semibold text-gray-500 normal-case">
                   (যেকোনো image format → Auto {IMAGE_RULE.width}×
-                  {IMAGE_RULE.height} WEBP, max{" "}
+                  {IMAGE_RULE.height}, max{" "}
                   {Math.floor(IMAGE_RULE.maxBytes / 1024)}KB)
                 </span>
               </label>
@@ -527,7 +520,6 @@ export default function VariantSection({
                 </button>
               </div>
 
-              {/* ✅ hidden input — accept="image/*" */}
               <input
                 id={`file-${i}`}
                 type="file"
@@ -540,14 +532,12 @@ export default function VariantSection({
                 }}
               />
 
-              {/* ✅ processing message */}
               {imgProcessing && (
                 <p className="text-[10px] text-orange-500 mt-1 font-bold">
                   {imgProcessing}
                 </p>
               )}
 
-              {/* ✅ error message */}
               {imgErr && (
                 <p className="text-[10px] text-red-500 mt-1 font-bold italic">
                   {imgErr}

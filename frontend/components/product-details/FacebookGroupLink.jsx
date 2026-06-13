@@ -11,13 +11,13 @@ const FacebookGroupLink = () => {
 
       {/* Text */}
       <a
-        href="https://www.facebook.com/share/g/17mB3XsdQR"
+        href="https://www.facebook.com/share/g/18mbUSQjdp/?mibextid=wwXIfr"
         target="_blank"
         rel="noreferrer"
         className="text-xs md:text-sm text-gray-900 hover:underline"
       >
         Visit our Facebook group{" "}
-        <span className="text-pink-500 font-semibold">openup Family</span>
+        <span className="text-pink-500 font-semibold">Cartvan Family</span>
       </a>
     </div>
   );

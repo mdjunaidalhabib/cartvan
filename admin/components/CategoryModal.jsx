@@ -1,14 +1,18 @@
 "use client";
 
 import { useEffect } from "react";
-import ImageUploader from "../components/ImageUploader";
-import { DEFAULT_IMAGE_RULE } from "../components/ImageUploader";
+import ImageUploader from "./ImageUploader";
 
+/* ================== CATEGORY IMAGE RULE ================== */
 const CATEGORY_IMAGE_RULE = {
-  ...DEFAULT_IMAGE_RULE,
+  type: "image/webp",
   width: 300,
   height: 300,
   maxBytes: 100 * 1024,
+  startQuality: 0.88,
+  minQuality: 0.2,
+  qualityStep: 0.05,
+  strictLimit: true,
 };
 
 export default function CategoryModal({
@@ -34,7 +38,7 @@ export default function CategoryModal({
   loading,
   onClose,
   onSubmit,
-  onToast, // ✅ parent এর toast
+  onToast,
 }) {
   const maxSerial = editId ? categoriesLength : categoriesLength + 1;
 

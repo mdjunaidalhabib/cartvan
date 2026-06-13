@@ -138,7 +138,7 @@ export default function ImageSlider({
       aria-label="Image slider"
     >
       {/* ✅ Desktop max width 1080px */}
-      <div className="mx-auto w-full max-w-full  md:max-w-[1024px] xl:max-w-[1536px] md:px-8">
+      <div className="mx-auto w-full max-w-full  md:max-w-[1024px] xl:max-w-[1536px] md:px-8 md:mt-2">
         {error && (
           <p className="text-center text-sm text-red-500 mb-2">{error}</p>
         )}

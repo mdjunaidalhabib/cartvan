@@ -8,9 +8,9 @@ export const DEFAULT_IMAGE_RULE = {
   width: 300,
   height: 300,
   maxBytes: 100 * 1024,
-  startQuality: 0.88,
-  minQuality: 0.3,
-  qualityStep: 0.08,
+  minQuality: 0.2,
+  qualityStep: 0.05,
+  strictLimit: true,
 };
 
 export default function ImageUploader({

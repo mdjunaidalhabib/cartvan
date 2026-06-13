@@ -11,7 +11,7 @@ import ProductInfo from "./ProductInfo";
 import PurchaseActions from "./PurchaseActions";
 import ProductTabs from "./ProductTabs";
 import RelatedProducts from "./RelatedProducts";
-import FacebookGroupLink from "../home/FacebookGroupLink";
+import FacebookGroupLink from "./FacebookGroupLink";
 
 export default function ProductDetailsClient({
   product,
