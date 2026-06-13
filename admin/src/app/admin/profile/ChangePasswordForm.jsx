@@ -12,7 +12,7 @@ export default function ChangePasswordForm({ onSuccess }) {
     confirmPassword: "",
   });
 
-  // ✅ show/hide state for each field
+  // ✅ show or hide state for each field
   const [show, setShow] = useState({
     current: false,
     new: false,
@@ -48,7 +48,7 @@ export default function ChangePasswordForm({ onSuccess }) {
           currentPassword: form.currentPassword,
           newPassword: form.newPassword,
         },
-        { withCredentials: true }
+        { withCredentials: true },
       );
 
       setMsg("✅ Password updated!");
