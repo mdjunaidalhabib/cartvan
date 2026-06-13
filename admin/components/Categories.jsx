@@ -4,105 +4,22 @@ import { useEffect, useState, useMemo } from "react";
 import Toast from "../components/Toast";
 import CategoriesSkeleton from "../components/Skeleton/CategoriesSkeleton";
 import CategoryModal from "./CategoryModal";
+import ImageUploader from "./ImageUploader";
 
-/* ================== ✅ CATEGORY IMAGE RULE ================== */
+/* ================== CATEGORY IMAGE RULE ================== */
 const CATEGORY_IMAGE_RULE = {
   type: "image/webp",
   width: 300,
   height: 300,
-  maxBytes: 100 * 1024, // ✅ 100KB
-  allowedInputTypes: ["image/webp", "image/jpeg", "image/png"],
-  startQuality: 0.88, // ✅ start quality
-  minQuality: 0.3, // ✅ min quality
-  qualityStep: 0.08, // ✅ loop step
-};
-
-/* ================== ✅ HELPERS ================== */
-const loadImageFromFile = (file) =>
-  new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      resolve(img);
-    };
-
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("Invalid image"));
-    };
-
-    img.src = url;
-  });
-
-/**
- * ✅ Auto Convert:
- * - jpeg/png/webp -> webp
- * - 300×300 center crop (square)
- * - quality loop under maxBytes
- */
-const convertToCategoryWebpUnderLimit = async (
-  file,
-  rule = CATEGORY_IMAGE_RULE
-) => {
-  if (!file) throw new Error("No file selected");
-
-  if (!rule.allowedInputTypes.includes(file.type)) {
-    throw new Error("Only jpeg/png/webp allowed");
-  }
-
-  const img = await loadImageFromFile(file);
-
-  const canvas = document.createElement("canvas");
-  canvas.width = rule.width;
-  canvas.height = rule.height;
-
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Canvas not supported");
-
-  // ✅ center crop to square
-  const sw = img.naturalWidth;
-  const sh = img.naturalHeight;
-  const side = Math.min(sw, sh);
-
-  const sx = Math.floor((sw - side) / 2);
-  const sy = Math.floor((sh - side) / 2);
-
-  ctx.clearRect(0, 0, rule.width, rule.height);
-  ctx.drawImage(img, sx, sy, side, side, 0, 0, rule.width, rule.height);
-
-  // ✅ quality loop to keep under maxBytes
-  let quality = rule.startQuality;
-  let blob = await new Promise((res) => canvas.toBlob(res, rule.type, quality));
-  if (!blob) throw new Error("Conversion failed");
-
-  while (blob.size > rule.maxBytes && quality > rule.minQuality) {
-    quality -= rule.qualityStep;
-    blob = await new Promise((res) => canvas.toBlob(res, rule.type, quality));
-    if (!blob) throw new Error("Conversion failed");
-  }
-
-  if (blob.size > rule.maxBytes) {
-    throw new Error(
-      `Could not compress under ${Math.floor(rule.maxBytes / 1024)}KB`
-    );
-  }
-
-  // ✅ blob -> File
-  const newName =
-    (file.name || "category").replace(/\.(png|jpg|jpeg|webp)$/i, "").trim() +
-    ".webp";
-
-  return new File([blob], newName, {
-    type: rule.type,
-    lastModified: Date.now(),
-  });
+  maxBytes: 100 * 1024,
+  startQuality: 0.88,
+  minQuality: 0.3,
+  qualityStep: 0.08,
 };
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState([]);
-  const [filter, setFilter] = useState("all"); // all / active / hidden
+  const [filter, setFilter] = useState("all");
 
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -121,18 +38,14 @@ export default function CategoriesPage() {
   const [deleteModal, setDeleteModal] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
-  // ================== LOAD CATEGORIES ==================
+  // ================== LOAD ==================
   const loadCategories = async () => {
     try {
       setPageLoading(true);
-      const res = await fetch(
-        `/api/admin/categories`
-      );
-
+      const res = await fetch(`/api/admin/categories`);
       const data = await res.json();
       const arr = Array.isArray(data) ? data : [];
       arr.sort((a, b) => (a.order || 0) - (b.order || 0));
-
       setCategories(arr);
     } catch {
       setToast({ message: "⚠ Failed to load categories", type: "error" });
@@ -145,77 +58,32 @@ export default function CategoriesPage() {
     loadCategories();
   }, []);
 
-  // ================== FILTERED LIST ==================
   const filteredCategories =
     filter === "active"
       ? categories.filter((c) => c.isActive)
       : filter === "hidden"
-      ? categories.filter((c) => !c.isActive)
-      : categories;
+        ? categories.filter((c) => !c.isActive)
+        : categories;
 
-  // ✅ Helper: check if any active exists
   const hasAnyActive = useMemo(
     () => categories.some((c) => c.isActive),
-    [categories]
+    [categories],
   );
 
   // ================== CLOSE MODAL ==================
   const closeModal = () => {
     setShowModal(false);
     setEditId(null);
-
     setName("");
     setFile(null);
-
-    // ✅ revoke preview URL if needed
     if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
     setPreview("");
-
     setOrder(1);
     setIsActive(true);
-
     setLoading(false);
   };
 
-  // ================== ✅ FILE CHANGE (Auto Convert to WEBP) ==================
-  const handleFileChange = async (selectedFile) => {
-    if (!selectedFile) return;
-
-    try {
-      // ✅ convert to 300×300 webp under 100KB
-      const converted = await convertToCategoryWebpUnderLimit(
-        selectedFile,
-        CATEGORY_IMAGE_RULE
-      );
-
-      // ✅ preview
-      if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
-      const blobUrl = URL.createObjectURL(converted);
-      setPreview(blobUrl);
-
-      // ✅ set file
-      setFile(converted);
-
-      const maxKB = Math.floor(CATEGORY_IMAGE_RULE.maxBytes / 1024);
-      const currentKB = Math.ceil(converted.size / 1024);
-
-      setToast({
-        message: `✅ Converted: ${CATEGORY_IMAGE_RULE.width}×${CATEGORY_IMAGE_RULE.height} WEBP (≈ ${currentKB}KB / max ${maxKB}KB)`,
-        type: "success",
-      });
-    } catch (err) {
-      console.error(err);
-      setToast({
-        message: err?.message || "❌ Image processing failed",
-        type: "error",
-      });
-      setFile(null);
-      if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
-      setPreview("");
-    }
-  };
-
-  // ================== SUBMIT ADD/EDIT ==================
+  // ================== SUBMIT ==================
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -254,19 +122,15 @@ export default function CategoriesPage() {
     setLoading(false);
   };
 
-  // ================== EDIT OPEN ==================
+  // ================== EDIT ==================
   const handleEdit = (c) => {
     setEditId(c._id);
     setName(c.name);
-
     setOrder(c.order || 1);
     setIsActive(c.isActive ?? true);
-
-    // ✅ show existing url preview
     if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
     setPreview(c.image || "");
     setFile(null);
-
     setShowModal(true);
   };
 
@@ -277,10 +141,9 @@ export default function CategoriesPage() {
     if (!deleteModal) return;
     setDeleting(true);
 
-    const res = await fetch(
-      `/api/admin/categories/${deleteModal._id}`,
-      { method: "DELETE" }
-    );
+    const res = await fetch(`/api/admin/categories/${deleteModal._id}`, {
+      method: "DELETE",
+    });
 
     if (res.ok) {
       setToast({ message: "🗑 Category deleted!", type: "success" });
@@ -296,28 +159,24 @@ export default function CategoriesPage() {
     setDeleting(false);
   };
 
-  // ================== ✅ BULK TOGGLE ALL ==================
+  // ================== BULK TOGGLE ==================
   const toggleAllCategories = async () => {
     try {
       setPageLoading(true);
-
       const newStatus = !hasAnyActive;
 
       await Promise.all(
         categories.map((c) =>
-          fetch(
-            `/api/admin/categories/${c._id}`,
-            {
-              method: "PUT",
-              body: (() => {
-                const d = new FormData();
-                d.append("isActive", newStatus);
-                d.append("order", c.order);
-                return d;
-              })(),
-            }
-          )
-        )
+          fetch(`/api/admin/categories/${c._id}`, {
+            method: "PUT",
+            body: (() => {
+              const d = new FormData();
+              d.append("isActive", newStatus);
+              d.append("order", c.order);
+              return d;
+            })(),
+          }),
+        ),
       );
 
       setToast({
@@ -341,15 +200,7 @@ export default function CategoriesPage() {
       <div className="flex flex-col lg:flex-row lg:items-center gap-3 mb-6">
         <h1 className="text-2xl font-bold">✨ Categories</h1>
 
-        {/* Right side controls */}
-        <div
-          className="
-            flex flex-col items-end gap-2
-            lg:flex-row lg:items-center lg:gap-2
-            lg:ml-auto
-          "
-        >
-          {/* ✅ ADD CATEGORY */}
+        <div className="flex flex-col items-end gap-2 lg:flex-row lg:items-center lg:gap-2 lg:ml-auto">
           <button
             onClick={() => {
               setEditId(null);
@@ -361,58 +212,38 @@ export default function CategoriesPage() {
               setIsActive(true);
               setShowModal(true);
             }}
-            className="
-              order-1 lg:order-last
-              bg-indigo-600 text-white shadow font-semibold
-              px-3 py-1.5 rounded-md text-sm
-              hover:bg-indigo-700 active:scale-[0.98]
-              lg:px-4 lg:py-2 lg:text-sm lg:rounded-lg
-            "
+            className="order-1 lg:order-last bg-indigo-600 text-white shadow font-semibold px-3 py-1.5 rounded-md text-sm hover:bg-indigo-700 active:scale-[0.98] lg:px-4 lg:py-2 lg:rounded-lg"
           >
             + Add Category
           </button>
 
-          {/* FILTER BUTTONS */}
           <div className="order-2 lg:order-first flex flex-wrap justify-end gap-1.5 lg:gap-2">
-            <button
-              className={`px-2.5 py-1.5 rounded-md border text-xs leading-none
-                lg:px-4 lg:py-2.5 lg:text-base lg:rounded-lg ${
-                  filter === "all" ? "bg-indigo-600 text-white" : "bg-white"
+            {["all", "active", "hidden"].map((f) => (
+              <button
+                key={f}
+                className={`px-2.5 py-1.5 rounded-md border text-xs lg:px-4 lg:py-2 lg:text-base lg:rounded-lg capitalize ${
+                  filter === f
+                    ? f === "all"
+                      ? "bg-indigo-600 text-white"
+                      : f === "active"
+                        ? "bg-green-600 text-white"
+                        : "bg-gray-600 text-white"
+                    : "bg-white"
                 }`}
-              onClick={() => setFilter("all")}
-            >
-              All
-            </button>
-
-            <button
-              className={`px-2.5 py-1 rounded-md border text-xs leading-none
-                lg:px-4 lg:py-2 lg:text-base lg:rounded-lg ${
-                  filter === "active" ? "bg-green-600 text-white" : "bg-white"
-                }`}
-              onClick={() => setFilter("active")}
-            >
-              Active
-            </button>
-
-            <button
-              className={`px-2.5 py-1 rounded-md border text-xs leading-none
-                lg:px-4 lg:py-2 lg:text-base lg:rounded-lg ${
-                  filter === "hidden" ? "bg-gray-600 text-white" : "bg-white"
-                }`}
-              onClick={() => setFilter("hidden")}
-            >
-              Hidden
-            </button>
+                onClick={() => setFilter(f)}
+              >
+                {f}
+              </button>
+            ))}
 
             {categories.length > 0 && (
               <button
                 onClick={toggleAllCategories}
-                className={`px-2.5 py-1 rounded-md border text-xs leading-none font-semibold text-white
-                  lg:px-4 lg:py-2 lg:text-base lg:rounded-lg ${
-                    hasAnyActive
-                      ? "bg-gray-700 hover:bg-gray-800"
-                      : "bg-green-600 hover:bg-green-700"
-                  }`}
+                className={`px-2.5 py-1 rounded-md border text-xs font-semibold text-white lg:px-4 lg:py-2 lg:text-base lg:rounded-lg ${
+                  hasAnyActive
+                    ? "bg-gray-700 hover:bg-gray-800"
+                    : "bg-green-600 hover:bg-green-700"
+                }`}
               >
                 {hasAnyActive ? "Hide All" : "Show All"}
               </button>
@@ -421,7 +252,7 @@ export default function CategoriesPage() {
         </div>
       </div>
 
-      {/* CATEGORY GRID */}
+      {/* GRID */}
       {pageLoading ? (
         <CategoriesSkeleton />
       ) : filteredCategories.length === 0 ? (
@@ -433,13 +264,11 @@ export default function CategoriesPage() {
           {filteredCategories.map((c) => (
             <div
               key={c._id}
-              className={`border p-4 rounded-xl flex flex-col items-center shadow-sm
-                ${
-                  c.isActive
-                    ? "bg-white"
-                    : "bg-gray-200 border-gray-400 opacity-80"
-                }
-              `}
+              className={`border p-4 rounded-xl flex flex-col items-center shadow-sm ${
+                c.isActive
+                  ? "bg-white"
+                  : "bg-gray-200 border-gray-400 opacity-80"
+              }`}
             >
               {c.image && (
                 <img
@@ -448,19 +277,14 @@ export default function CategoriesPage() {
                   alt={c.name}
                 />
               )}
-
               <h2
-                className={`font-semibold ${
-                  !c.isActive ? "text-gray-600" : ""
-                }`}
+                className={`font-semibold ${!c.isActive ? "text-gray-600" : ""}`}
               >
                 {c.name}
               </h2>
-
               <div className="text-sm text-gray-700 mt-1">
                 Serial: <b>{c.order}</b>
               </div>
-
               <div className="text-sm mt-1">
                 Status:{" "}
                 {c.isActive ? (
@@ -469,8 +293,6 @@ export default function CategoriesPage() {
                   <span className="text-gray-600 font-semibold">Hidden</span>
                 )}
               </div>
-
-              {/* ✅ Only Edit + Delete */}
               <div className="mt-3 flex gap-2">
                 <button
                   onClick={() => handleEdit(c)}
@@ -478,7 +300,6 @@ export default function CategoriesPage() {
                 >
                   Edit
                 </button>
-
                 <button
                   onClick={() => confirmDelete(c)}
                   className="bg-red-600 text-white px-3 py-1 rounded"
@@ -491,7 +312,6 @@ export default function CategoriesPage() {
         </div>
       )}
 
-      {/* MODAL */}
       <CategoryModal
         show={showModal}
         editId={editId}
@@ -509,7 +329,7 @@ export default function CategoriesPage() {
         loading={loading}
         onClose={closeModal}
         onSubmit={handleSubmit}
-        onFileChange={handleFileChange} // ✅ NEW PROP
+        onToast={setToast}
       />
 
       {/* DELETE MODAL */}
@@ -521,11 +341,9 @@ export default function CategoriesPage() {
               <h2 className="text-xl font-bold text-red-600 mb-3">
                 ⚠ Delete Category
               </h2>
-
               <p className="mb-6">
                 Delete <b>{deleteModal.name}</b>?
               </p>
-
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setDeleteModal(null)}

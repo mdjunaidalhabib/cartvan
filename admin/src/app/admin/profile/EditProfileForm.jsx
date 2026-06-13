@@ -3,6 +3,7 @@
 import { useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
+import ImageUploader from "../../../../components/ImageUploader";
 
 export default function EditProfileForm({ admin, onSuccess }) {
   const API_BASE = "/api";
@@ -17,7 +18,9 @@ export default function EditProfileForm({ admin, onSuccess }) {
 
   const [saving, setSaving] = useState(false);
 
-  // ✅ Save profile + optional avatar (Cloudinary backend handles upload)
+  const [avatarPreview, setAvatarPreview] = useState(admin.avatar || "");
+  const [avatarFile, setAvatarFile] = useState(null);
+
   const handleSave = async (nextForm) => {
     setSaving(true);
     try {
@@ -29,6 +32,11 @@ export default function EditProfileForm({ admin, onSuccess }) {
         delete payload.avatarFile;
       }
 
+      if (payload.removeAvatar) {
+        fd.append("removeAvatar", "true");
+        delete payload.removeAvatar;
+      }
+
       fd.append("profile", JSON.stringify(payload));
 
       const res = await axios.put(`${API_BASE}/admin/me`, fd, {
@@ -37,16 +45,23 @@ export default function EditProfileForm({ admin, onSuccess }) {
       });
 
       const updatedAdmin = res.data?.admin;
+
       if (updatedAdmin) {
-        setForm((f) => ({
-          ...f,
+        const updatedForm = {
+          name: updatedAdmin.name || "",
+          username: updatedAdmin.username || "",
+          phone: updatedAdmin.phone || "",
+          address: updatedAdmin.address || "",
           avatar: updatedAdmin.avatar || "",
-        }));
+        };
+
+        setForm(updatedForm);
+        setAvatarPreview(updatedAdmin.avatar || "");
+        setAvatarFile(null);
       }
 
       toast.success("✅ Profile updated!");
       onSuccess?.();
-      return updatedAdmin;
     } catch (err) {
       console.error(err);
       toast.error(err.response?.data?.message || "❌ Profile update failed");
@@ -55,19 +70,22 @@ export default function EditProfileForm({ admin, onSuccess }) {
     }
   };
 
-  // ✅ File select -> instant upload
-  const handleAvatarPick = (e) => {
-    const file = e.target.files?.[0];
+  const handleAvatarFileReady = (file) => {
+    setAvatarFile(file);
     if (!file) return;
 
-    const updated = { ...form, avatarFile: file };
-    setForm(updated);
-    handleSave(updated);
+    const updated = {
+      ...form,
+      avatarFile: file,
+    };
 
-    e.target.value = "";
+    setForm(updated);
+
+    setTimeout(() => {
+      handleSave(updated);
+    }, 120);
   };
 
-  // ✅ Remove avatar (Navbar removeLogo style)
   const handleRemoveAvatar = async () => {
     const updated = {
       ...form,
@@ -75,7 +93,11 @@ export default function EditProfileForm({ admin, onSuccess }) {
       avatarFile: null,
       avatar: "",
     };
+
     setForm(updated);
+    setAvatarPreview("");
+    setAvatarFile(null);
+
     await handleSave(updated);
     toast("❌ Avatar removed", { icon: "🗑️" });
   };
@@ -89,93 +111,68 @@ export default function EditProfileForm({ admin, onSuccess }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <Field label="Full Name">
         <input
-          name="name"
           value={form.name}
           onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           className="input"
-          required
           disabled={saving}
         />
       </Field>
 
       <Field label="Username">
         <input
-          name="username"
           value={form.username}
           onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
           className="input"
-          placeholder="optional"
           disabled={saving}
         />
       </Field>
 
       <Field label="Phone">
         <input
-          name="phone"
           value={form.phone}
           onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
           className="input"
-          placeholder="+8801XXXXXXXXX"
           disabled={saving}
         />
       </Field>
 
-      {/* ✅ Avatar Upload + Remove */}
       <Field label="Avatar Photo">
-        {form.avatar ? (
+        {avatarPreview && !avatarFile ? (
           <div className="flex items-center gap-3 mb-3">
-            <img
-              src={form.avatar}
-              alt="Profile"
-              className="h-16 w-16 rounded-full border object-cover"
-            />
+            <div className="h-16 w-16 flex items-center justify-center bg-gray-100 rounded-full overflow-hidden border">
+              <img
+                src={avatarPreview}
+                alt="Profile"
+                className="max-w-full max-h-full object-contain"
+              />
+            </div>
 
             <button
               type="button"
               onClick={handleRemoveAvatar}
               disabled={saving}
-              className="bg-red-600 text-white px-3 py-1 rounded disabled:opacity-60 text-sm"
+              className="bg-red-600 text-white px-3 py-1 rounded text-sm disabled:opacity-60"
             >
               Remove
             </button>
           </div>
-        ) : null}
-
-        <input
-          type="file"
-          id="avatarUpload"
-          accept="image/*"
-          onChange={handleAvatarPick}
-          disabled={saving}
-          className="hidden"
-        />
-
-        <button
-          type="button"
-          disabled={saving}
-          onClick={() => document.getElementById("avatarUpload")?.click()}
-          className={`w-full flex items-center justify-center gap-2
-            border border-dashed border-gray-300
-            hover:border-blue-400 hover:bg-blue-50
-            text-gray-700 px-3 py-2 rounded-md transition
-            text-sm disabled:opacity-60`}
-        >
-          🖼️{" "}
-          {saving
-            ? "Uploading..."
-            : form.avatar
-            ? "Change Photo"
-            : "Upload Photo"}
-        </button>
+        ) : (
+          <ImageUploader
+            preview={avatarPreview}
+            onFileReady={handleAvatarFileReady}
+            onPreviewChange={setAvatarPreview}
+            shape="circle"
+            label="Avatar Photo"
+            hint="Avatar Photo (300×300, max 100KB — যেকোনো image format)"
+          />
+        )}
       </Field>
 
       <Field label="Address">
         <textarea
-          name="address"
           value={form.address}
           onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
           className="input min-h-[90px]"
-          placeholder="Dhaka, Bangladesh"
           disabled={saving}
         />
       </Field>

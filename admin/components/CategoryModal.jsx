@@ -1,18 +1,14 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
-import { convertToWebpUnderLimit } from "../utils/imageConvert";
+import { useEffect } from "react";
+import ImageUploader from "../components/ImageUploader";
+import { DEFAULT_IMAGE_RULE } from "../components/ImageUploader";
 
-/* ================== ✅ RULE (Dynamic) ================== */
 const CATEGORY_IMAGE_RULE = {
-  type: "image/webp",
+  ...DEFAULT_IMAGE_RULE,
   width: 300,
   height: 300,
   maxBytes: 100 * 1024,
-  allowedInputTypes: ["image/webp", "image/jpeg", "image/png"],
-  startQuality: 0.88,
-  minQuality: 0.3,
-  qualityStep: 0.08,
 };
 
 export default function CategoryModal({
@@ -38,17 +34,10 @@ export default function CategoryModal({
   loading,
   onClose,
   onSubmit,
+  onToast, // ✅ parent এর toast
 }) {
-  const dropRef = useRef(null);
-
-  // ✅ dropdown limit like slider
   const maxSerial = editId ? categoriesLength : categoriesLength + 1;
 
-  // ✅ image state
-  const [imageError, setImageError] = useState("");
-  const [filesReady, setFilesReady] = useState(true);
-
-  // ✅ New modal open => last serial + active default
   useEffect(() => {
     if (show && !editId) {
       setOrder(categoriesLength + 1);
@@ -56,59 +45,7 @@ export default function CategoryModal({
     }
   }, [show, editId, categoriesLength, setOrder, setIsActive]);
 
-  // ✅ Reset image states on open/close
-  useEffect(() => {
-    if (!show) {
-      setImageError("");
-      setFilesReady(true);
-      return;
-    }
-    setImageError("");
-    setFilesReady(true);
-  }, [show]);
-
   if (!show) return null;
-
-  /* ================== ✅ MAIN FILE PROCESSOR ================== */
-  const processFile = async (incomingFile) => {
-    if (!incomingFile) return;
-
-    setFilesReady(false);
-    setImageError("");
-
-    try {
-      const converted = await convertToWebpUnderLimit(
-        incomingFile,
-        CATEGORY_IMAGE_RULE
-      );
-
-      setFile(converted);
-
-      // ✅ preview (revoke old)
-      if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
-      setPreview(URL.createObjectURL(converted));
-    } catch (e) {
-      console.error(e);
-
-      setImageError(e?.message || "Invalid image file");
-      setFile(null);
-
-      if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
-      setPreview("");
-    } finally {
-      setFilesReady(true);
-    }
-  };
-
-  const handleDrop = async (e) => {
-    e.preventDefault();
-    const dropped = e.dataTransfer.files?.[0];
-    if (!dropped) return;
-
-    processFile(dropped);
-  };
-
-  const maxKB = Math.floor(CATEGORY_IMAGE_RULE.maxBytes / 1024);
 
   return (
     <>
@@ -135,7 +72,7 @@ export default function CategoryModal({
               />
             </div>
 
-            {/* ✅ Serial + Status */}
+            {/* Serial + Status */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium mb-1">
@@ -151,7 +88,7 @@ export default function CategoryModal({
                       <option key={num} value={num}>
                         {num}
                       </option>
-                    )
+                    ),
                   )}
                 </select>
               </div>
@@ -169,64 +106,16 @@ export default function CategoryModal({
               </div>
             </div>
 
-            {/* Image uploader */}
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Category Image{" "}
-                <span className="text-[11px] text-gray-500 font-semibold">
-                  (jpeg/png/webp → Auto WEBP, {CATEGORY_IMAGE_RULE.width}×
-                  {CATEGORY_IMAGE_RULE.height}, max {maxKB}KB)
-                </span>
-              </label>
-
-              <div
-                ref={dropRef}
-                onDrop={handleDrop}
-                onDragOver={(e) => e.preventDefault()}
-                className={`border-2 border-dashed h-32 rounded-lg overflow-hidden flex items-center justify-center cursor-pointer bg-gray-50 ${
-                  imageError ? "border-red-500 bg-red-50" : "border-gray-300"
-                }`}
-                onClick={() =>
-                  dropRef.current?.querySelector("input[type=file]")?.click()
-                }
-              >
-                {preview ? (
-                  <img
-                    src={preview}
-                    alt="preview"
-                    className="w-full h-full object-contain"
-                  />
-                ) : (
-                  <span className="text-gray-500">
-                    Drag & drop or click to upload
-                  </span>
-                )}
-
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const f = e.target.files?.[0];
-                    e.target.value = "";
-                    if (!f) return;
-                    processFile(f);
-                  }}
-                />
-              </div>
-
-              {imageError && (
-                <p className="text-[11px] text-red-600 mt-1 font-semibold">
-                  {imageError}
-                </p>
-              )}
-
-              {!filesReady && (
-                <p className="text-[11px] text-orange-600 mt-1 font-semibold">
-                  Processing image...
-                </p>
-              )}
-            </div>
+            {/* ✅ ImageUploader reuse */}
+            <ImageUploader
+              preview={preview}
+              onFileReady={setFile}
+              onPreviewChange={setPreview}
+              onToast={onToast}
+              rule={CATEGORY_IMAGE_RULE}
+              shape="square"
+              label="Category Image"
+            />
 
             {/* Buttons */}
             <div className="flex justify-end gap-3 pt-2">
@@ -242,11 +131,11 @@ export default function CategoryModal({
               <button
                 type="submit"
                 className={`px-4 py-2 rounded text-white ${
-                  loading || !filesReady || !!imageError
+                  loading
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-green-600 hover:bg-green-700"
                 }`}
-                disabled={loading || !filesReady || !!imageError}
+                disabled={loading}
               >
                 {loading ? "Saving..." : editId ? "Update" : "Save"}
               </button>

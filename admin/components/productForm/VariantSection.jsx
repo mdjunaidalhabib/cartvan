@@ -28,10 +28,10 @@ import { convertToWebpUnderLimit } from "../../utils/imageConvert";
 /* ---------------- RULES ---------------- */
 const IMAGE_RULE = {
   type: "image/webp",
-  maxBytes: 100 * 1024, // ✅ 100KB
+  maxBytes: 100 * 1024,
   width: 600,
   height: 600,
-  allowedInputTypes: ["image/webp", "image/jpeg", "image/png"],
+  // ✅ allowedInputTypes নেই — যেকোনো format চলবে
   startQuality: 0.92,
   minQuality: 0.3,
   qualityStep: 0.07,
@@ -51,25 +51,21 @@ const createUrlId = (u) => `url_${safeUrlId(u)}`;
 
 const normalizeOne = (f) => {
   if (!f) return null;
-
   if (f && typeof f === "object" && "id" in f && "src" in f) {
     return { id: String(f.id), src: f.src };
   }
-
   if (typeof f === "string") {
     return { id: createUrlId(f), src: f };
   }
-
   if (f instanceof File) {
     return { id: createFileId(f), src: f };
   }
-
   return null;
 };
 
 const normalizeList = (files) => {
   const used = new Set();
-  const list = (files || [])
+  return (files || [])
     .map(normalizeOne)
     .filter(Boolean)
     .map((it, idx) => {
@@ -78,7 +74,6 @@ const normalizeList = (files) => {
       used.add(id);
       return { ...it, id };
     });
-  return list;
 };
 
 /* ---------------- Sortable Image Item ---------------- */
@@ -95,18 +90,15 @@ function SortableImage({ item, vIdx, removeFile }) {
 
   useEffect(() => {
     const src = item?.src;
-
     if (typeof src === "string") {
       setImageUrl(src);
       return;
     }
-
     if (src instanceof File) {
       const url = URL.createObjectURL(src);
       setImageUrl(url);
       return () => URL.revokeObjectURL(url);
     }
-
     setImageUrl("");
   }, [item?.src]);
 
@@ -158,7 +150,9 @@ export default function VariantSection({
 }) {
   const sensors = useSensors(
     useSensor(PointerSensor),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
 
   const baseInput =
@@ -168,15 +162,14 @@ export default function VariantSection({
     "bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200";
   const errClass = "border-red-500 bg-red-50 focus:ring-red-100";
 
-  // ✅ prevent normalize loop
   const normalizedOnceRef = useRef(false);
 
-  // ✅ Normalize (only once on mount if needed)
+  // ✅ Normalize once on mount
   useEffect(() => {
     if (normalizedOnceRef.current) return;
 
     const needsNormalize = (variants || []).some((v) =>
-      (v.files || []).some((f) => typeof f === "string" || f instanceof File)
+      (v.files || []).some((f) => typeof f === "string" || f instanceof File),
     );
 
     if (!needsNormalize) {
@@ -204,15 +197,15 @@ export default function VariantSection({
       if (field === "name") errKey = "baseName";
       if (field === "price") errKey = "basePrice";
     } else {
-      const capitalizedField = field.charAt(0).toUpperCase() + field.slice(1);
-      errKey = `variant${capitalizedField}_${i}`;
+      const cap = field.charAt(0).toUpperCase() + field.slice(1);
+      errKey = `variant${cap}_${i}`;
     }
 
     if (errKey && value?.toString().trim() !== "") {
       setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[errKey];
-        return newErrors;
+        const n = { ...prev };
+        delete n[errKey];
+        return n;
       });
     }
   };
@@ -222,10 +215,8 @@ export default function VariantSection({
     for (const it of fileItems) {
       const f = it?.src;
       if (!(f instanceof File)) continue;
-
       if (f.type !== IMAGE_RULE.type)
         return "Auto convert failed (WEBP required)";
-
       if (f.size > IMAGE_RULE.maxBytes) {
         return `Max ${Math.floor(IMAGE_RULE.maxBytes / 1024)}KB allowed`;
       }
@@ -233,7 +224,7 @@ export default function VariantSection({
     return null;
   };
 
-  // ✅ Handle file add (auto convert + normalize + merge)
+  // ✅ Handle file add — যেকোনো format, clear error messages
   const handleFileChange = async (i, files) => {
     const raw = Array.from(files || []);
     if (raw.length === 0) return;
@@ -242,52 +233,75 @@ export default function VariantSection({
 
     const next = [...variants];
     const current = Array.isArray(next[i].files) ? next[i].files : [];
+    const key = next[i].isBase ? "baseImages" : `variantImages_${i}`;
 
     try {
+      // ✅ আগের error clear করো
+      setErrors((prev) => {
+        const n = { ...prev };
+        delete n[key];
+        delete n[`${key}_processing`];
+        return n;
+      });
+
       const converted = [];
 
       for (const f of raw) {
-        if (!IMAGE_RULE.allowedInputTypes.includes(f.type)) {
-          const key = next[i].isBase ? "baseImages" : `variantImages_${i}`;
+        // ✅ processing indicator
+        setErrors((prev) => ({
+          ...prev,
+          [`${key}_processing`]: `⏳ "${f.name}" processing...`,
+        }));
+
+        try {
+          const webpFile = await convertToWebpUnderLimit(f, IMAGE_RULE);
+          converted.push(webpFile);
+        } catch (err) {
           setErrors((prev) => ({
             ...prev,
-            [key]: "Only jpeg/png/webp allowed",
+            [key]: `❌ "${f.name}" — ${err?.message || "Image process করতে সমস্যা হয়েছে।"}`,
           }));
           onFilesReadyChange?.(true);
           return;
         }
-
-        const webpFile = await convertToWebpUnderLimit(f, IMAGE_RULE);
-        converted.push(webpFile);
       }
+
+      // ✅ processing indicator সরাও
+      setErrors((prev) => {
+        const n = { ...prev };
+        delete n[`${key}_processing`];
+        return n;
+      });
 
       const added = normalizeList(converted);
       const merged = [...current, ...added];
 
       const errMsg = await validateFiles(merged);
       if (errMsg) {
-        const key = next[i].isBase ? "baseImages" : `variantImages_${i}`;
-        setErrors((prev) => ({ ...prev, [key]: errMsg }));
+        setErrors((prev) => ({ ...prev, [key]: `❌ ${errMsg}` }));
         onFilesReadyChange?.(true);
         return;
-      } else {
-        const key = next[i].isBase ? "baseImages" : `variantImages_${i}`;
-        setErrors((prev) => {
-          const n = { ...prev };
-          delete n[key];
-          return n;
-        });
       }
+
+      setErrors((prev) => {
+        const n = { ...prev };
+        delete n[key];
+        return n;
+      });
 
       next[i].files = merged;
       setVariants(next);
     } catch (err) {
-      const key = next[i].isBase ? "baseImages" : `variantImages_${i}`;
       setErrors((prev) => ({
         ...prev,
-        [key]: err?.message || "Failed to convert image",
+        [key]: `❌ ${err?.message || "Image process করতে সমস্যা হয়েছে।"}`,
       }));
     } finally {
+      setErrors((prev) => {
+        const n = { ...prev };
+        delete n[`${key}_processing`];
+        return n;
+      });
       onFilesReadyChange?.(true);
     }
   };
@@ -334,6 +348,9 @@ export default function VariantSection({
         const imgErr = v.isBase
           ? errors.baseImages
           : errors[`variantImages_${i}`];
+        const imgProcessing = v.isBase
+          ? errors["baseImages_processing"]
+          : errors[`variantImages_${i}_processing`];
 
         const fileItems = Array.isArray(v.files) ? v.files : [];
 
@@ -371,7 +388,6 @@ export default function VariantSection({
                 <label className="text-xs font-bold text-gray-600 uppercase tracking-wide">
                   Variant Name {v.isBase ? "" : "*"}
                 </label>
-
                 <input
                   value={
                     v.name === "Default Variant" && v.isBase
@@ -385,7 +401,6 @@ export default function VariantSection({
                   }`}
                   placeholder={v.isBase ? "" : "e.g. Red / XL"}
                 />
-
                 {nameErr && (
                   <p className="text-[10px] text-red-500 mt-1 font-semibold">
                     {nameErr}
@@ -397,7 +412,6 @@ export default function VariantSection({
                 <label className="text-xs font-bold text-gray-600 uppercase tracking-wide">
                   Price *
                 </label>
-
                 <input
                   type="number"
                   value={v.price ?? ""}
@@ -405,7 +419,6 @@ export default function VariantSection({
                   className={`${baseInput} ${priceErr ? errClass : okClass}`}
                   placeholder="0.00"
                 />
-
                 {priceErr && (
                   <p className="text-[10px] text-red-500 mt-1 font-semibold">
                     {priceErr}
@@ -417,7 +430,6 @@ export default function VariantSection({
                 <label className="text-xs font-bold text-gray-600 uppercase tracking-wide">
                   Old Price
                 </label>
-
                 <input
                   type="number"
                   value={v.oldPrice ?? ""}
@@ -431,7 +443,6 @@ export default function VariantSection({
                 <label className="text-xs font-bold text-gray-600 uppercase tracking-wide">
                   Stock
                 </label>
-
                 <input
                   type="number"
                   value={v.stock ?? 0}
@@ -444,7 +455,6 @@ export default function VariantSection({
                 <label className="text-xs font-bold text-gray-600 uppercase tracking-wide">
                   Sold
                 </label>
-
                 <input
                   type="number"
                   value={v.sold ?? 0}
@@ -454,6 +464,7 @@ export default function VariantSection({
               </div>
             </div>
 
+            {/* ✅ Image Upload Section */}
             <div className="mt-5">
               <label
                 className={`text-xs font-bold uppercase tracking-wide block mb-2 ${
@@ -462,7 +473,8 @@ export default function VariantSection({
               >
                 Variant Images (Required) *
                 <span className="ml-2 text-[10px] font-semibold text-gray-500 normal-case">
-                  (jpeg/png/webp → Auto 600×600 WEBP, max{" "}
+                  (যেকোনো image format → Auto {IMAGE_RULE.width}×
+                  {IMAGE_RULE.height} WEBP, max{" "}
                   {Math.floor(IMAGE_RULE.maxBytes / 1024)}KB)
                 </span>
               </label>
@@ -494,26 +506,48 @@ export default function VariantSection({
                   className={`w-24 h-24 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all ${
                     imgErr
                       ? "border-red-500 bg-red-50 text-red-500 shadow-inner"
-                      : "border-gray-300 text-gray-400 hover:border-indigo-300 hover:text-indigo-400"
+                      : imgProcessing
+                        ? "border-orange-300 bg-orange-50 text-orange-400"
+                        : "border-gray-300 text-gray-400 hover:border-indigo-300 hover:text-indigo-400"
                   }`}
                 >
-                  <FaImages size={20} />
-                  <span className="text-[10px] mt-1 font-bold">Upload</span>
+                  {imgProcessing ? (
+                    <>
+                      <span className="text-lg animate-spin">⏳</span>
+                      <span className="text-[10px] mt-1 font-bold">
+                        Processing
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <FaImages size={20} />
+                      <span className="text-[10px] mt-1 font-bold">Upload</span>
+                    </>
+                  )}
                 </button>
               </div>
 
+              {/* ✅ hidden input — accept="image/*" */}
               <input
                 id={`file-${i}`}
                 type="file"
                 multiple
                 hidden
-                accept="image/png,image/jpeg,image/webp"
+                accept="image/*"
                 onChange={(e) => {
                   handleFileChange(i, e.target.files);
                   e.target.value = "";
                 }}
               />
 
+              {/* ✅ processing message */}
+              {imgProcessing && (
+                <p className="text-[10px] text-orange-500 mt-1 font-bold">
+                  {imgProcessing}
+                </p>
+              )}
+
+              {/* ✅ error message */}
               {imgErr && (
                 <p className="text-[10px] text-red-500 mt-1 font-bold italic">
                   {imgErr}

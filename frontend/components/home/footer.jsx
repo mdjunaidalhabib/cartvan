@@ -27,10 +27,9 @@ const quickLinksData = [
   { label: "Home", href: "/" },
   { label: "Shop", href: "/products" },
   { label: "Categories", href: "/categories" },
+  { label: "About Us", href: "/about" },
 ];
 
-// Icon map — key must match platform values in DB
-// ⚠️ Admin panel এ এই map দরকার নেই — শুধু frontend এ
 const SOCIAL_ICON_MAP = {
   facebook: FaFacebookF,
   facebook_group: FaUsers,

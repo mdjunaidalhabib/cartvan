@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
+import ImageUploader from "../../../../components/ImageUploader";
 
 const PLATFORM_META = {
   facebook: { emoji: "📘", label: "Facebook" },
@@ -29,6 +30,10 @@ export default function FooterAdminPanel() {
   const [newPlatform, setNewPlatform] = useState("");
   const [newUrl, setNewUrl] = useState("");
 
+  // ✅ logo state
+  const [logoPreview, setLogoPreview] = useState("");
+  const [logoFile, setLogoFile] = useState(null);
+
   const API_URL = "/api";
   const CONTACT_FIELDS = ["email", "phone", "address", "website"];
 
@@ -45,6 +50,7 @@ export default function FooterAdminPanel() {
         });
 
         setFooter({ ...data, brand, contact, socialLinks });
+        setLogoPreview(brand.logo || ""); // ✅ existing logo
         setLoading(false);
       })
       .catch(() => {
@@ -82,12 +88,41 @@ export default function FooterAdminPanel() {
 
       const data = await res.json();
       setFooter(data.footer);
+      setLogoPreview(data.footer?.brand?.logo || "");
+      setLogoFile(null);
       toast.success("Saved!");
     } catch {
       toast.error("Save failed");
     } finally {
       setSaving(false);
     }
+  };
+
+  // ✅ logo file ready হলে auto save
+  const handleLogoFileReady = (file) => {
+    setLogoFile(file);
+    if (!file) return;
+
+    const updated = {
+      ...footer,
+      brand: { ...footer.brand, logoFile: file },
+    };
+    setFooter(updated);
+    handleSave(updated);
+  };
+
+  // ✅ logo remove
+  const handleLogoRemove = () => {
+    const updated = {
+      ...footer,
+      brand: { ...footer.brand, logo: "", logoPublicId: "" },
+      removeLogo: true,
+    };
+    setFooter(updated);
+    setLogoPreview("");
+    setLogoFile(null);
+    handleSave(updated);
+    toast.error("❌ Logo removed");
   };
 
   if (loading) return <p className="text-center py-10">Loading...</p>;
@@ -205,10 +240,47 @@ export default function FooterAdminPanel() {
       <h2 className="text-xl md:text-2xl font-bold">🛠 Footer Admin Panel</h2>
 
       {/* BRAND */}
-      <div className="border p-3 rounded space-y-2">
+      <div className="border p-3 rounded space-y-3">
         <h3 className="font-semibold">Brand</h3>
+
         {renderFieldEditor("brand", "title", footer.brand?.title)}
         {renderFieldEditor("brand", "about", footer.brand?.about)}
+
+        {/* ✅ Logo Section */}
+        <div className="pt-2 border-t">
+          <p className="text-sm font-medium mb-2">Logo</p>
+
+          {/* existing logo আছে এবং নতুন file select হয়নি */}
+          {footer.brand?.logo && !logoFile ? (
+            <div className="flex items-center gap-3">
+              <img
+                src={footer.brand.logo}
+                alt="Footer Logo"
+                className="h-16 rounded border object-contain"
+              />
+              <button
+                disabled={saving}
+                onClick={handleLogoRemove}
+                className="bg-red-600 text-white px-3 py-1 rounded disabled:opacity-60"
+              >
+                Remove
+              </button>
+            </div>
+          ) : (
+            // ✅ ImageUploader reuse
+            <ImageUploader
+              preview={logoPreview}
+              onFileReady={handleLogoFileReady}
+              onPreviewChange={setLogoPreview}
+              onToast={({ message, type }) =>
+                type === "error" ? toast.error(message) : toast.success(message)
+              }
+              shape="square"
+              label="Footer Logo"
+              hint="যেকোনো image format — auto 300×300 WEBP এ convert হবে"
+            />
+          )}
+        </div>
       </div>
 
       {/* SOCIAL */}

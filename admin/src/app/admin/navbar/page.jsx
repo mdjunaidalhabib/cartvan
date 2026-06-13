@@ -1,30 +1,34 @@
 "use client";
 import { useEffect, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
+import ImageUploader from "../../../../components/ImageUploader";
 
 export default function NavbarAdminPanel() {
   const [navbar, setNavbar] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // ✅ Footer-like edit system
   const [editing, setEditing] = useState(null);
   const [tempItem, setTempItem] = useState(null);
 
+  const [logoPreview, setLogoPreview] = useState("");
+  const [logoFile, setLogoFile] = useState(null);
+
   const API_URL = "/api";
 
-  // Fetch Navbar Data
   useEffect(() => {
     const fetchNavbar = async () => {
       try {
         const res = await fetch(`${API_URL}/navbar`);
         const data = await res.json();
 
-        // ✅ ensure brand always exists + name always exists
         const brand = data.brand || {};
         if (!("name" in brand)) brand.name = "";
 
         setNavbar({ ...data, brand });
+
+        // ✅ server এর existing logo preview set করো
+        setLogoPreview(brand.logo || "");
       } catch (err) {
         console.error(err);
         toast.error("❌ Failed to fetch navbar data");
@@ -33,9 +37,8 @@ export default function NavbarAdminPanel() {
       }
     };
     fetchNavbar();
-  }, [API_URL]);
+  }, []);
 
-  // ✅ Save Navbar (brand + removeLogo + optional file)
   const handleSave = async (nextNavbar) => {
     setSaving(true);
     try {
@@ -68,6 +71,9 @@ export default function NavbarAdminPanel() {
       if (!("name" in updatedNavbar.brand)) updatedNavbar.brand.name = "";
 
       setNavbar(updatedNavbar);
+      setLogoPreview(updatedNavbar.brand?.logo || "");
+      setLogoFile(null);
+
       toast.success("✅ Navbar updated successfully");
     } catch (err) {
       console.error(err);
@@ -77,27 +83,36 @@ export default function NavbarAdminPanel() {
     }
   };
 
-  // ✅ Upload Logo (same endpoint)
-  const handleLogoUpload = (e) => {
-    const file = e.target.files?.[0];
+  const handleLogoFileReady = (file) => {
+    setLogoFile(file);
+
     if (!file) return;
 
     const updated = {
       ...navbar,
       brand: { ...navbar.brand, logoFile: file },
     };
-
     setNavbar(updated);
     handleSave(updated);
+  };
 
-    // ✅ reset input so same file triggers onChange again
-    e.target.value = "";
+  // ✅ Logo remove
+  const handleLogoRemove = () => {
+    const updated = {
+      ...navbar,
+      brand: { ...navbar.brand, logo: "", logoPublicId: "" },
+      removeLogo: true,
+    };
+    setNavbar(updated);
+    setLogoPreview("");
+    setLogoFile(null);
+    handleSave(updated);
+    toast.error("❌ Logo removed");
   };
 
   if (loading) return <p>Loading...</p>;
   if (!navbar) return <p>No navbar data</p>;
 
-  // ✅ Footer-style field editor
   const renderFieldEditor = (section, field, value) =>
     editing === `${section}-${field}` ? (
       <>
@@ -116,10 +131,7 @@ export default function NavbarAdminPanel() {
             onClick={() => {
               const updated = {
                 ...navbar,
-                [section]: {
-                  ...navbar[section],
-                  [field]: tempItem,
-                },
+                [section]: { ...navbar[section], [field]: tempItem },
               };
               setNavbar(updated);
               setEditing(null);
@@ -161,16 +173,12 @@ export default function NavbarAdminPanel() {
             Edit
           </button>
 
-          {/* ✅ Delete only clears value, field stays */}
           <button
             disabled={saving}
             onClick={() => {
               const updated = {
                 ...navbar,
-                [section]: {
-                  ...navbar[section],
-                  [field]: "",
-                },
+                [section]: { ...navbar[section], [field]: "" },
               };
               setNavbar(updated);
               handleSave(updated);
@@ -186,7 +194,6 @@ export default function NavbarAdminPanel() {
 
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded shadow space-y-6">
-      {/* ✅ Footer-like Toast Style */}
       <Toaster
         position="top-right"
         toastOptions={{
@@ -213,7 +220,7 @@ export default function NavbarAdminPanel() {
 
       <h2 className="text-xl font-bold">🛠 Navbar Admin Panel</h2>
 
-      {/* ✅ BRAND INFO (always visible) */}
+      {/* BRAND INFO */}
       <div className="space-y-2 border p-3 rounded">
         <h3 className="font-semibold">Brand Info</h3>
 
@@ -221,64 +228,36 @@ export default function NavbarAdminPanel() {
           {renderFieldEditor("brand", "name", navbar.brand?.name || "")}
         </div>
 
-        {/* Logo */}
+        {/* ✅ Logo — ImageUploader reuse */}
         <div className="flex flex-col gap-2 pt-2">
-          <label className="text-sm font-medium">Logo</label>
-
-          {navbar.brand?.logo ? (
+          {/* existing logo আছে — preview + remove */}
+          {navbar.brand?.logo && !logoFile ? (
             <div className="flex items-center gap-3">
               <img
                 src={navbar.brand.logo}
                 alt="Logo"
                 className="h-16 rounded border"
               />
-
               <button
                 disabled={saving}
-                onClick={() => {
-                  const updated = {
-                    ...navbar,
-                    brand: {
-                      ...navbar.brand,
-                      logo: "",
-                      logoPublicId: "",
-                    },
-                    removeLogo: true,
-                  };
-                  setNavbar(updated);
-                  handleSave(updated);
-                  toast.error("❌ Logo removed");
-                }}
+                onClick={handleLogoRemove}
                 className="bg-red-600 text-white px-3 py-1 rounded disabled:opacity-60"
               >
                 Remove
               </button>
             </div>
           ) : (
-            <>
-              <input
-                type="file"
-                id="logoUpload"
-                accept="image/*"
-                onChange={handleLogoUpload}
-                disabled={saving}
-                className="hidden"
-              />
-
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => document.getElementById("logoUpload")?.click()}
-                className="w-full flex items-center justify-center gap-2 
-                           border border-dashed border-gray-300 
-                           hover:border-blue-400 hover:bg-blue-50 
-                           text-gray-700 px-3 py-2 rounded-md transition 
-                           text-sm disabled:opacity-60"
-              >
-                <span className="text-base">🖼️</span>
-                <span className="font-medium">Upload Logo</span>
-              </button>
-            </>
+            <ImageUploader
+              preview={logoPreview}
+              onFileReady={handleLogoFileReady}
+              onPreviewChange={setLogoPreview}
+              onToast={({ message, type }) =>
+                type === "error" ? toast.error(message) : toast.success(message)
+              }
+              shape="square"
+              label="Logo"
+              hint="যেকোনো image format — auto WEBP এ convert হবে"
+            />
           )}
         </div>
       </div>

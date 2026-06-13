@@ -18,6 +18,7 @@ const router = express.Router();
 router.post("/login", loginAdmin);
 router.post("/logout", protect, logoutAdmin);
 
+// ✅ VERIFY
 router.get("/verify", protect, async (req, res) => {
   try {
     const freshAdmin = await Admin.findById(req.admin._id).select("-password");
@@ -36,6 +37,7 @@ router.get("/verify", protect, async (req, res) => {
   }
 });
 
+// ✅ GET PROFILE
 router.get("/me", protect, async (req, res) => {
   try {
     res.json(req.admin);
@@ -45,14 +47,17 @@ router.get("/me", protect, async (req, res) => {
   }
 });
 
+// ✅ UPDATE PROFILE (🔥 FULL FIXED)
 router.put("/me", protect, upload.single("avatar"), async (req, res) => {
   try {
-    let data = { ...req.body };
+    // 🔹 STEP 1: parse profile JSON safely
+    let data = {};
 
-    if (data.profile && typeof data.profile === "string") {
+    if (req.body.profile) {
       try {
-        data = JSON.parse(data.profile);
-      } catch {
+        data = JSON.parse(req.body.profile);
+      } catch (e) {
+        console.error("Profile parse error:", e);
         data = {};
       }
     }
@@ -60,16 +65,20 @@ router.put("/me", protect, upload.single("avatar"), async (req, res) => {
     const admin = await Admin.findById(req.admin._id);
     if (!admin) return res.status(404).json({ message: "Admin not found" });
 
-    const removeAvatar = data.removeAvatar === "true";
+    // 🔥 STEP 2: FIXED removeAvatar (support both places)
+    const removeAvatar =
+      req.body.removeAvatar === "true" || data.removeAvatar === "true";
+
     if (removeAvatar && admin.avatarPublicId) {
       await deleteByPublicId(admin.avatarPublicId);
 
       admin.avatar = "";
       admin.avatarPublicId = "";
-      delete data.removeAvatar;
     }
 
+    // 🔥 STEP 3: upload new avatar
     if (req.file) {
+      // old image delete
       if (admin.avatarPublicId) {
         await deleteByPublicId(admin.avatarPublicId);
       }
@@ -78,16 +87,18 @@ router.put("/me", protect, upload.single("avatar"), async (req, res) => {
         folder: "admin_avatars",
       });
 
+      // remove temp file
       fs.unlinkSync(req.file.path);
 
       admin.avatar = result.secure_url;
       admin.avatarPublicId = result.public_id;
     }
 
-    if (data.name) admin.name = data.name;
-    if (data.username) admin.username = data.username;
-    if (data.phone) admin.phone = data.phone;
-    if (data.address) admin.address = data.address;
+    // 🔹 STEP 4: update fields
+    if (data.name !== undefined) admin.name = data.name;
+    if (data.username !== undefined) admin.username = data.username;
+    if (data.phone !== undefined) admin.phone = data.phone;
+    if (data.address !== undefined) admin.address = data.address;
 
     await admin.save();
 
@@ -96,10 +107,12 @@ router.put("/me", protect, upload.single("avatar"), async (req, res) => {
       admin,
     });
   } catch (err) {
+    console.error("Update Profile Error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
+// ✅ CHANGE PASSWORD
 router.put("/me/password", protect, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -123,6 +136,7 @@ router.put("/me/password", protect, async (req, res) => {
 
     res.json({ message: "✅ Password updated successfully" });
   } catch (err) {
+    console.error("Password Update Error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
