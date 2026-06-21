@@ -100,7 +100,6 @@ export default function AccountMenuMobile({ onOpen }) {
         ) : (
           <FaUser className="w-5 h-5 text-pink-600" />
         )}
-        <span>Account</span>
       </button>
 
       <AnimatePresence>
