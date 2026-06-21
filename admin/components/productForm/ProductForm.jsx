@@ -47,6 +47,9 @@ export default function ProductForm({
     additionalInfo: "",
     order: 1,
     isActive: true,
+    freeDelivery: false,
+    bestDiscount: false,
+    cartvanBox: false,
     variants: [EMPTY_DEFAULT_VARIANT],
     reviews: [],
   });
@@ -67,7 +70,7 @@ export default function ProductForm({
             return `FILE:${src.name}:${src.size}:${src.lastModified}`;
           return `URL:${String(src)}`;
         }),
-      })
+      }),
     );
 
     const safeReviews = (Array.isArray(f?.reviews) ? f.reviews : []).map(
@@ -75,7 +78,7 @@ export default function ProductForm({
         user: r?.user || "",
         rating: Number(r?.rating || 0),
         comment: r?.comment || "",
-      })
+      }),
     );
 
     return {
@@ -85,6 +88,9 @@ export default function ProductForm({
       additionalInfo: f?.additionalInfo || "",
       order: Number(f?.order || 1),
       isActive: !!f?.isActive,
+      freeDelivery: !!f?.freeDelivery,
+      bestDiscount: !!f?.bestDiscount,
+      cartvanBox: !!f?.cartvanBox,
       variants: safeVariants,
       reviews: safeReviews,
     };
@@ -100,9 +106,7 @@ export default function ProductForm({
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await fetch(
-          `/api/admin/categories`
-        );
+        const res = await fetch(`/api/admin/categories`);
         const data = await res.json();
         setCategories(Array.isArray(data) ? data : data.categories || []);
       } catch (err) {
@@ -113,53 +117,90 @@ export default function ProductForm({
   }, []);
 
   /* ---------------- Initialize Form (UPDATED) ---------------- */
-useEffect(() => {
-  setInitDone(false);
+  useEffect(() => {
+    setInitDone(false);
 
-  const safeLen = Number(productsLength ?? 0);
+    const safeLen = Number(productsLength ?? 0);
 
-  if (!product) {
-    const last = safeLen + 1;
+    if (!product) {
+      const last = safeLen + 1;
 
+      setVariantMode("default");
+      setErrors({});
+      setFilesReady(true);
+
+      setBaseDraft({ ...EMPTY_DEFAULT_VARIANT });
+      setVariantDrafts([]);
+
+      setForm({
+        name: "",
+        category: "",
+        description: "",
+        additionalInfo: "",
+        order: last,
+        isActive: true,
+        freeDelivery: false,
+        bestDiscount: false,
+        cartvanBox: false,
+        variants: [{ ...EMPTY_DEFAULT_VARIANT }],
+        reviews: [],
+      });
+
+      setInitDone(true);
+      return;
+    }
+
+    const rawVariants = product.colors || [];
+    const orderValue = Number(product?.order ?? safeLen) || 1;
+
+    if (rawVariants.length > 0) {
+      setVariantMode("variant");
+
+      const mappedVariants = rawVariants.map((v) => ({
+        ...v,
+        price: v.price ?? product.price ?? "",
+        oldPrice: v.oldPrice ?? product.oldPrice ?? "",
+        stock: v.stock ?? product.stock ?? 0,
+        sold: v.sold ?? product.sold ?? 0,
+        files: v.images || [],
+        isBase: false,
+      }));
+
+      setVariantDrafts(mappedVariants);
+
+      const base = {
+        ...EMPTY_DEFAULT_VARIANT,
+        price: product.price || "",
+        oldPrice: product.oldPrice || "",
+        stock: product.stock || 0,
+        sold: product.sold || 0,
+        files: product.images || [],
+        isBase: true,
+      };
+
+      setBaseDraft(base);
+
+      setForm({
+        name: product.name || "",
+        category: product.category?._id || product.category || "",
+        description: product.description || "",
+        additionalInfo: product.additionalInfo || "",
+        order: orderValue,
+        isActive: product.isActive ?? true,
+        freeDelivery: product.freeDelivery ?? false,
+        bestDiscount: product.bestDiscount ?? false,
+        cartvanBox: product.cartvanBox ?? false,
+        variants: mappedVariants,
+        reviews: product.reviews || [],
+      });
+
+      setFilesReady(true);
+      setInitDone(true);
+      return;
+    }
+
+    // default mode
     setVariantMode("default");
-    setErrors({});
-    setFilesReady(true);
-
-    setBaseDraft({ ...EMPTY_DEFAULT_VARIANT });
-    setVariantDrafts([]);
-
-    setForm({
-      name: "",
-      category: "",
-      description: "",
-      additionalInfo: "",
-      order: last,
-      isActive: true,
-      variants: [{ ...EMPTY_DEFAULT_VARIANT }],
-      reviews: [],
-    });
-
-    setInitDone(true);
-    return;
-  }
-
-  const rawVariants = product.colors || [];
-  const orderValue = Number(product?.order ?? safeLen) || 1;
-
-  if (rawVariants.length > 0) {
-    setVariantMode("variant");
-
-    const mappedVariants = rawVariants.map((v) => ({
-      ...v,
-      price: v.price ?? product.price ?? "",
-      oldPrice: v.oldPrice ?? product.oldPrice ?? "",
-      stock: v.stock ?? product.stock ?? 0,
-      sold: v.sold ?? product.sold ?? 0,
-      files: v.images || [],
-      isBase: false,
-    }));
-
-    setVariantDrafts(mappedVariants);
 
     const base = {
       ...EMPTY_DEFAULT_VARIANT,
@@ -172,6 +213,7 @@ useEffect(() => {
     };
 
     setBaseDraft(base);
+    setVariantDrafts([]);
 
     setForm({
       name: product.name || "",
@@ -180,45 +222,16 @@ useEffect(() => {
       additionalInfo: product.additionalInfo || "",
       order: orderValue,
       isActive: product.isActive ?? true,
-      variants: mappedVariants,
+      freeDelivery: product.freeDelivery ?? false,
+      bestDiscount: product.bestDiscount ?? false,
+      cartvanBox: product.cartvanBox ?? false,
+      variants: [base],
       reviews: product.reviews || [],
     });
 
     setFilesReady(true);
     setInitDone(true);
-    return;
-  }
-
-  // default mode
-  setVariantMode("default");
-
-  const base = {
-    ...EMPTY_DEFAULT_VARIANT,
-    price: product.price || "",
-    oldPrice: product.oldPrice || "",
-    stock: product.stock || 0,
-    sold: product.sold || 0,
-    files: product.images || [],
-    isBase: true,
-  };
-
-  setBaseDraft(base);
-  setVariantDrafts([]);
-
-  setForm({
-    name: product.name || "",
-    category: product.category?._id || product.category || "",
-    description: product.description || "",
-    additionalInfo: product.additionalInfo || "",
-    order: orderValue,
-    isActive: product.isActive ?? true,
-    variants: [base],
-    reviews: product.reviews || [],
-  });
-
-  setFilesReady(true);
-  setInitDone(true);
-}, [product, productsLength]);
+  }, [product, productsLength]);
 
   // snapshot once per init
   useEffect(() => {
@@ -232,7 +245,7 @@ useEffect(() => {
     if (!Array.isArray(form.reviews) || form.reviews.length === 0) return 0;
     const total = form.reviews.reduce(
       (sum, r) => sum + Number(r.rating || 0),
-      0
+      0,
     );
     return (total / form.reviews.length).toFixed(1);
   }, [form.reviews]);
@@ -338,6 +351,9 @@ useEffect(() => {
       formData.append("additionalInfo", form.additionalInfo || "");
       formData.append("order", String(form.order));
       formData.append("isActive", form.isActive ? "true" : "false");
+      formData.append("freeDelivery", form.freeDelivery ? "true" : "false");
+      formData.append("bestDiscount", form.bestDiscount ? "true" : "false");
+      formData.append("cartvanBox", form.cartvanBox ? "true" : "false");
       formData.append("rating", String(averageRating));
       formData.append("reviews", JSON.stringify(form.reviews || []));
 
@@ -384,8 +400,8 @@ useEffect(() => {
               images: (files || [])
                 .map((f) => f?.src ?? f)
                 .filter((src) => typeof src === "string"),
-            }))
-          )
+            })),
+          ),
         );
 
         formData.append("price", String(variants[0]?.price || 0));
@@ -471,12 +487,12 @@ useEffect(() => {
                 {processing
                   ? "প্রসেসিং..."
                   : !filesReady
-                  ? "ছবি লোড হচ্ছে..."
-                  : !isDirty
-                  ? "No changes"
-                  : product
-                  ? "💾 আপডেট করুন"
-                  : "💾 সংরক্ষণ করুন"}
+                    ? "ছবি লোড হচ্ছে..."
+                    : !isDirty
+                      ? "No changes"
+                      : product
+                        ? "💾 আপডেট করুন"
+                        : "💾 সংরক্ষণ করুন"}
               </button>
             </div>
           </div>
@@ -489,6 +505,56 @@ useEffect(() => {
             setForm={setForm}
             maxSerial={productsLength}
           />
+
+          {/* ✅ Offer Badge Options */}
+          <div className="bg-gray-50 border rounded-xl p-4">
+            <p className="text-sm font-bold text-gray-700 mb-3">
+              🏷️ Offer Badge
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={!!form.freeDelivery}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, freeDelivery: e.target.checked }))
+                  }
+                  className="w-4 h-4 accent-orange-500"
+                />
+                <span className="text-sm font-medium text-orange-600">
+                  🚚 Free Delivery
+                </span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={!!form.bestDiscount}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, bestDiscount: e.target.checked }))
+                  }
+                  className="w-4 h-4 accent-blue-500"
+                />
+                <span className="text-sm font-medium text-blue-600">
+                  🛍️ Best Discount
+                </span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={!!form.cartvanBox}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, cartvanBox: e.target.checked }))
+                  }
+                  className="w-4 h-4 accent-rose-500"
+                />
+                <span className="text-sm font-medium text-rose-600">
+                  🎁 Cartvan Box
+                </span>
+              </label>
+            </div>
+          </div>
 
           <BasicInfoCategory
             form={form}
@@ -561,7 +627,7 @@ useEffect(() => {
               setForm((p) => ({
                 ...p,
                 reviews: (Array.isArray(p.reviews) ? p.reviews : []).filter(
-                  (_, idx) => idx !== i
+                  (_, idx) => idx !== i,
                 ),
               }))
             }

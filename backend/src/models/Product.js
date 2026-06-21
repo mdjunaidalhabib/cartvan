@@ -16,21 +16,24 @@ const colorSchema = new mongoose.Schema(
     stock: { type: Number, default: 0, min: 0 },
     sold: { type: Number, default: 0, min: 0 },
   },
-  { _id: true }
+  { _id: true },
 );
 
 // --- Review Schema ---
 const reviewSchema = new mongoose.Schema(
   {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null }, // ✅ FIX
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    }, // ✅ FIX
     user: { type: String, default: "" },
     avatar: { type: String, default: "" },
     rating: { type: Number, default: 0, min: 0, max: 5 },
     comment: { type: String, default: "" },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
-
 
 const productSchema = new mongoose.Schema(
   {
@@ -64,8 +67,13 @@ const productSchema = new mongoose.Schema(
 
     order: { type: Number, default: 1 },
     isActive: { type: Boolean, default: true },
+
+    // ✅ OfferBadge fields
+    freeDelivery: { type: Boolean, default: false },
+    bestDiscount: { type: Boolean, default: false },
+    cartvanBox: { type: Boolean, default: false },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 productSchema.index({ name: "text", category: 1 });

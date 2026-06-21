@@ -67,7 +67,7 @@ const convertAndOverwriteProductImage = async (file) => {
     {
       fit: "cover",
       position: "centre",
-    }
+    },
   );
 
   // ✅ compress loop
@@ -88,8 +88,8 @@ const convertAndOverwriteProductImage = async (file) => {
   if (buffer.length > PRODUCT_IMAGE_RULE.maxBytes) {
     throw new Error(
       `Could not compress under ${Math.floor(
-        PRODUCT_IMAGE_RULE.maxBytes / 1024
-      )}KB`
+        PRODUCT_IMAGE_RULE.maxBytes / 1024,
+      )}KB`,
     );
   }
 
@@ -161,6 +161,9 @@ export const createProduct = async (req, res) => {
       order,
       isActive,
       colors,
+      freeDelivery,
+      bestDiscount,
+      cartvanBox,
     } = req.body;
 
     if (!name || price === undefined || !category) {
@@ -214,7 +217,7 @@ export const createProduct = async (req, res) => {
           for (let file of colorFiles) {
             const uploaded = await uploadToCloudinary(
               file,
-              "products/variants"
+              "products/variants",
             );
             urls.push(uploaded.optimizedUrl);
             safeUnlink(file.path);
@@ -246,8 +249,8 @@ export const createProduct = async (req, res) => {
         ? toNumber(parsedColors?.[0]?.oldPrice, 0)
         : null
       : oldPrice && toNumber(oldPrice, 0) > 0
-      ? toNumber(oldPrice, 0)
-      : null;
+        ? toNumber(oldPrice, 0)
+        : null;
 
     const mainSold = hasVariants
       ? toNumber(parsedColors?.[0]?.sold, 0)
@@ -270,6 +273,9 @@ export const createProduct = async (req, res) => {
       reviews: req.body.reviews ? safeJSON(req.body.reviews, []) : [],
       order: serial,
       isActive: isActive === "true",
+      freeDelivery: freeDelivery === "true",
+      bestDiscount: bestDiscount === "true",
+      cartvanBox: cartvanBox === "true",
     });
 
     await product.save();
@@ -310,6 +316,9 @@ export const updateProduct = async (req, res) => {
       isActive,
       existingImages,
       colors,
+      freeDelivery,
+      bestDiscount,
+      cartvanBox,
     } = req.body;
 
     const newOrder = toNumber(order, 0);
@@ -328,8 +337,8 @@ export const updateProduct = async (req, res) => {
           c.price !== undefined && c.price !== null && c.price !== ""
             ? toNumber(c.price, 0)
             : price !== undefined
-            ? toNumber(price, 0)
-            : toNumber(product.price, 0),
+              ? toNumber(price, 0)
+              : toNumber(product.price, 0),
         oldPrice:
           c.oldPrice && toNumber(c.oldPrice, 0) > 0
             ? toNumber(c.oldPrice, 0)
@@ -355,7 +364,7 @@ export const updateProduct = async (req, res) => {
           for (let file of colorFiles) {
             const uploaded = await uploadToCloudinary(
               file,
-              "products/variants"
+              "products/variants",
             );
             urls.push(uploaded.optimizedUrl);
             safeUnlink(file.path);
@@ -391,7 +400,7 @@ export const updateProduct = async (req, res) => {
       keepImages = Array.isArray(keepImages) ? keepImages : [];
 
       const imagesToRemove = product.images.filter(
-        (img) => !keepImages.includes(img)
+        (img) => !keepImages.includes(img),
       );
       for (let url of imagesToRemove) await deleteFromCloudinary(url);
 
@@ -430,6 +439,12 @@ export const updateProduct = async (req, res) => {
 
     product.isActive =
       isActive !== undefined ? isActive === "true" : product.isActive;
+
+    if (freeDelivery !== undefined)
+      product.freeDelivery = freeDelivery === "true";
+    if (bestDiscount !== undefined)
+      product.bestDiscount = bestDiscount === "true";
+    if (cartvanBox !== undefined) product.cartvanBox = cartvanBox === "true";
 
     if (req.body.reviews) product.reviews = safeJSON(req.body.reviews, []);
 

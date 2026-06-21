@@ -16,9 +16,8 @@ export default function AccountMenuMobile({ onOpen }) {
 
   if (loadingUser) {
     return (
-      <button className="flex flex-col items-center text-gray-400" disabled>
+      <button className="flex flex-col items-center text-pink-400" disabled>
         <FaUser className="w-5 h-5" />
-        <span>Account</span>
       </button>
     );
   }
@@ -28,10 +27,9 @@ export default function AccountMenuMobile({ onOpen }) {
       <>
         <button
           onClick={() => setConfirmOpen(true)}
-          className="flex flex-col items-center"
+          className="flex flex-col items-center text-pink-500"
         >
           <FaUser className="w-5 h-5" />
-          <span>Login</span>
         </button>
 
         <ConfirmModal
@@ -100,7 +98,7 @@ export default function AccountMenuMobile({ onOpen }) {
             className="rounded-full"
           />
         ) : (
-          <FaUser className="w-5 h-5" />
+          <FaUser className="w-5 h-5 text-pink-600" />
         )}
         <span>Account</span>
       </button>
