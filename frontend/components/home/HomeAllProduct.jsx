@@ -266,7 +266,7 @@ export default function CategoryTabsSection() {
 
   return (
     <motion.section className="container mx-auto px-3 sm:px-6 py-4">
-      {/* ✅ id="offer-section" — navbar Cartvan Box বাটন এখানে scroll করে আসে */}
+      {/* ✅ id="offer-section" —  navbar Cartvan Box বাটন এখানে scroll করে আসে */}
       <div id="offer-section" className="mb-4">
         <OfferBadges
           activeFilter={activeFilter}
