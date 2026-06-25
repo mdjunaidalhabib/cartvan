@@ -62,7 +62,7 @@ export default function AccountMenuDesktop() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     setMe(null);
-    window.location.href = "/";
+    window.location.replace("/"); // ✅ replace() দিয়ে history stack clean রাখো
   };
 
   return (

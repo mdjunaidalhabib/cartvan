@@ -13,18 +13,21 @@ export default function AuthCallback() {
     const redirect = searchParams.get("redirect") || "/";
 
     if (token) {
-      // ✅ token save করো
+      // ✅ token localStorage এ save করো
       localStorage.setItem("token", token);
 
-      // ✅ context reload (backend থেকে fresh user আনবে)
-      fetchMe(token);
-
-      // ✅ clean redirect (auth/callback URL বাদ দিয়ে আসল পেজে পাঠাবে)
-      router.replace(redirect);
+      // ✅ fetchMe শেষ হওয়ার পর redirect করো (race condition fix)
+      fetchMe(token).then(() => {
+        router.replace(redirect);
+      });
     } else {
-      router.replace("/login");
+      router.replace("/");
     }
   }, []);
 
-  return <p className="text-center">⏳ Logging in...</p>;
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <p className="text-center text-gray-600">⏳ Logging in...</p>
+    </div>
+  );
 }

@@ -49,7 +49,7 @@ export default function AccountMenuMobile({ onOpen }) {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setMe(null);
-    window.location.href = "/";
+    window.location.replace("/"); // ✅ replace() দিয়ে history stack clean রাখো
   };
 
   const isActive = (route) => pathname === route;
