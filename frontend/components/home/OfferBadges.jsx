@@ -64,7 +64,7 @@ export default function OfferBar({ activeFilter, onFilterChange }) {
   };
 
   return (
-    <div className="flex flex-nowrap justify-center items-center gap-1 md:gap-2 w-full px-1">
+    <div className="flex flex-nowrap justify-center items-center gap-1 md:gap-8 lg:gap-14 w-full px-1">
       {badges.map((b) => {
         const isActive = activeFilter === b.key;
 
@@ -158,7 +158,7 @@ export default function OfferBar({ activeFilter, onFilterChange }) {
             </div>
 
             {/* ── Label ── */}
-            <span className="relative text-[11px] md:text-[13px] lg:text-[14px] font-medium whitespace-nowrap">
+            <span className="relative text-[13px] md:text-[18px] lg:text-[20px] font-medium whitespace-nowrap">
               {b.label}
             </span>
           </motion.button>

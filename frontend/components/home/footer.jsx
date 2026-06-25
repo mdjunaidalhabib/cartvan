@@ -29,15 +29,14 @@ import {
 
 const quickLinksData = [
   { label: "Home", href: "/" },
-  { label: "Shop Products", href: "/products" },
-  { label: "Our Categories", href: "/categories" },
+  { label: "All Products", href: "/products" },
+  { label: "All Categories", href: "/categories" },
   { label: "About Our Story", href: "/about" },
 ];
 
 const customerServiceLinks = [
   { label: "Privacy Policy", href: "/privacy-policy" },
   { label: "Terms & Conditions", href: "/terms" },
-  { label: "FAQs", href: "/faqs" },
 ];
 
 const SOCIAL_ICON_MAP = {
@@ -191,23 +190,6 @@ export default function Footer() {
               Contact Us
             </h3>
             <ul className="space-y-3.5 text-sm text-zinc-400">
-              {contact.address && (
-                <li className="flex items-start gap-2.5">
-                  <FaMapMarkerAlt className="text-pink-500 shrink-0 mt-1 text-base" />
-                  <span className="leading-5">{contact.address}</span>
-                </li>
-              )}
-              {contact.email && (
-                <li className="flex items-center gap-2.5">
-                  <FaEnvelope className="text-pink-500 text-base shrink-0" />
-                  <a
-                    href={`mailto:${contact.email}`}
-                    className="hover:text-white transition truncate"
-                  >
-                    {contact.email}
-                  </a>
-                </li>
-              )}
               {contact.phone && (
                 <li className="flex items-center gap-2.5">
                   <FaPhoneAlt className="text-pink-500 text-base shrink-0" />
@@ -234,6 +216,23 @@ export default function Footer() {
                   >
                     {contact.website}
                   </a>
+                </li>
+              )}
+              {contact.email && (
+                <li className="flex items-center gap-2.5">
+                  <FaEnvelope className="text-pink-500 text-base shrink-0" />
+                  <a
+                    href={`mailto:${contact.email}`}
+                    className="hover:text-white transition truncate"
+                  >
+                    {contact.email}
+                  </a>
+                </li>
+              )}
+              {contact.address && (
+                <li className="flex items-start gap-2.5">
+                  <FaMapMarkerAlt className="text-pink-500 shrink-0 mt-1 text-base" />
+                  <span className="leading-5">{contact.address}</span>
                 </li>
               )}
             </ul>

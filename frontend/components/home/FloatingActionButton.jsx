@@ -1,105 +1,85 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   FaPhoneAlt,
   FaWhatsapp,
   FaFacebookMessenger,
   FaTimes,
-  FaHeadset,
+  FaRegCommentDots,
 } from "react-icons/fa";
-
-const formatWhatsapp = (raw) => {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.startsWith("880")) return digits;
-  if (digits.startsWith("0")) return "88" + digits;
-  return "880" + digits;
-};
 
 const FloatingActionButton = () => {
   const [open, setOpen] = useState(false);
-  const [config, setConfig] = useState(null);
-
-  useEffect(() => {
-    fetch("/api/contact-button")
-      .then((res) => res.json())
-      .then((data) => setConfig(data))
-      .catch((err) => console.error("❌ Error loading config", err));
-  }, []);
-
-  if (!config || !config.enabled) return null;
-
-  const { phone, whatsapp, messenger } = config;
 
   return (
-    <div className="fixed bottom-18 right-2 z-[9999] flex flex-col items-center gap-2.5">
-      {/* স্লিম ও ছোট কন্টাক্ট লিস্ট (যা ওপরের দিকে খুলবে) */}
+    <div className="fixed bottom-24 right-4 flex flex-col items-center space-y-3 z-[9999]">
+      {/* সোশ্যাল আইকনগুলো */}
       <div
-        className={`flex flex-col items-center gap-2.5 transition-all duration-300 ease-in-out ${
+        className={`flex flex-col items-center space-y-3 transition-all duration-300 ${
           open
-            ? "opacity-100 translate-y-0 pointer-events-auto"
-            : "opacity-0 translate-y-4 pointer-events-none"
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 translate-y-5 pointer-events-none"
         }`}
       >
-        {phone && (
-          <a
-            href={`tel:${phone}`}
-            style={{ transitionDelay: open ? "150ms" : "0ms" }}
-            className={`w-10 h-10 bg-emerald-500 text-white rounded-xl flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all duration-300 ${
-              open ? "scale-100 translate-y-0" : "scale-75 translate-y-2"
-            }`}
-          >
-            <FaPhoneAlt size={15} />
-          </a>
-        )}
+        {/* ফোন আইকন */}
+        <a
+          href="tel:+8801975579365"
+          className={`bg-green-500 text-white p-3 rounded-full shadow-lg hover:scale-110 transition-transform ${
+            open ? "animate-bounce delay-100" : ""
+          }`}
+        >
+          <FaPhoneAlt size={22} />
+        </a>
 
-        {whatsapp && (
-          <a
-            href={`https://wa.me/${formatWhatsapp(whatsapp)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ transitionDelay: open ? "100ms" : "0ms" }}
-            className={`w-10 h-10 bg-green-500 text-white rounded-xl flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all duration-300 ${
-              open ? "scale-100 translate-y-0" : "scale-75 translate-y-2"
-            }`}
-          >
-            <FaWhatsapp size={18} />
-          </a>
-        )}
+        {/* WhatsApp আইকন */}
+        <a
+          href="https://wa.me/8801975579365"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`bg-[#25D366] text-white p-3 rounded-full shadow-lg hover:scale-110 transition-transform ${
+            open ? "animate-bounce delay-200" : ""
+          }`}
+        >
+          <FaWhatsapp size={22} />
+        </a>
 
-        {messenger && (
-          <a
-            href={messenger}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ transitionDelay: open ? "50ms" : "0ms" }}
-            className={`w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all duration-300 ${
-              open ? "scale-100 translate-y-0" : "scale-75 translate-y-2"
-            }`}
-          >
-            <FaFacebookMessenger size={17} />
-          </a>
-        )}
+        {/* Messenger আইকন */}
+        <a
+          href="https://www.facebook.com/openupbd"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`bg-[#0084FF] text-white p-3 rounded-full shadow-lg hover:scale-110 transition-transform ${
+            open ? "animate-bounce delay-300" : ""
+          }`}
+        >
+          <FaFacebookMessenger size={22} />
+        </a>
       </div>
 
-      {/* মেইন মিনিমালিস্ট ট্রিগার বাটন */}
+      {/* মূল বাটন */}
+      {/* মূল বাটন */}
       <button
         onClick={() => setOpen(!open)}
-        className={`relative w-11 h-11 rounded-xl flex items-center justify-center shadow-lg transition-all duration-300 border active:scale-90 ${
-          open
-            ? "bg-slate-900 border-rose-500/40 text-rose-400"
-            : "bg-indigo-600 border-indigo-400/20 text-white hover:bg-indigo-700"
-        }`}
+        className={`bg-pink-600 text-white p-3 rounded-full shadow-xl hover:bg-pink-700 
+    transition-all duration-300 flex items-center justify-center transform-gpu z-[9999]
+    active:scale-95
+    ${open ? "scale-105 shadow-2xl" : "scale-100"}
+  `}
       >
-        {/* রিল্যাক্সড পালস অ্যানিমেশন (শুধু বন্ধ থাকলে জ্বলবে) */}
-        {!open && (
-          <span className="absolute inset-0 rounded-xl bg-indigo-500 animate-ping opacity-20 pointer-events-none" />
-        )}
+        {/* Pulse Ring */}
+        <span
+          className={`absolute w-12 h-12 rounded-full bg-pink-500/40 animate-ping 
+      ${open ? "hidden" : "block"}
+    `}
+        />
 
-        {/* আইকন রোটেশন ও স্মুথ ট্রানজিশন */}
+        {/* Icon animation */}
         <div
-          className={`transition-transform duration-300 ${open ? "rotate-90" : "rotate-0"}`}
+          className={`transition-transform duration-100 ease-in-out ${
+            open ? "rotate-180 scale-110" : "rotate-0 scale-100 animate-bounce"
+          }`}
         >
-          {open ? <FaTimes size={18} /> : <FaHeadset size={18} />}
+          {open ? <FaTimes size={20} /> : <FaRegCommentDots size={20} />}
         </div>
       </button>
     </div>

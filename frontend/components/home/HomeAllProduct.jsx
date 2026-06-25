@@ -191,10 +191,10 @@ export default function CategoryTabsSection() {
     return () => window.removeEventListener("hashchange", applyHashFilter);
   }, []);
 
-  // ✅ Navbar থেকে (Cartvan Box বাটন বা Logo ক্লিক) এই কাস্টম ইভেন্ট আসে।
-  // detail: "cartvanBox" হলে সেই filter apply হবে, null হলে clear হবে।
-  // এটা hashchange-এর বদলে কাজ করে, কারণ এখন hash বদলানো হয় history.replaceState
-  // দিয়ে যা native hashchange event fire করে না (এটাই jolt/dhakka এড়ানোর মূল কারণ)।
+  const mid = Math.ceil(categories.length / 2);
+  const topRow = categories.slice(0, mid);
+  const bottomRow = categories.slice(mid);
+
   useEffect(() => {
     const onOfferFilterChange = (e) => {
       handleFilterChange(e.detail ?? null);
@@ -275,27 +275,78 @@ export default function CategoryTabsSection() {
       </div>
 
       {/* Category Nav */}
-      <div className="mb-6 px-2">
-        <HorizontalScrollRow>
-          {categories.map((cat) => (
+      <div className="mb-6 px-2 overflow-x-auto scrollbar-hide">
+        {/* Mobile: 2 Rows */}
+        <div className="md:hidden w-max space-y-2">
+          {/* Top Row */}
+          <div className="flex gap-2">
+            {topRow.map((cat) => (
+              <button
+                key={cat._id}
+                onClick={() => {
+                  handleFilterChange(null);
+                  setTimeout(() => scrollToCategory(cat._id), 80);
+                }}
+                className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm whitespace-nowrap"
+              >
+                <div className="relative w-8 h-8 overflow-hidden rounded-md border bg-white flex-shrink-0">
+                  <Image
+                    src={cat.image || "/no-image.png"}
+                    alt={cat.name}
+                    fill
+                    sizes="40px"
+                    className="object-cover"
+                  />
+                </div>
+
+                <span className="text-xs font-medium text-gray-700">
+                  {cat.name}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Bottom Row */}
+          <div className="flex gap-2">
+            {bottomRow.map((cat) => (
+              <button
+                key={cat._id}
+                onClick={() => {
+                  handleFilterChange(null);
+                  setTimeout(() => scrollToCategory(cat._id), 80);
+                }}
+                className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm whitespace-nowrap"
+              >
+                <div className="relative w-8 h-8 overflow-hidden rounded-md border bg-white flex-shrink-0">
+                  <Image
+                    src={cat.image || "/no-image.png"}
+                    alt={cat.name}
+                    fill
+                    sizes="40px"
+                    className="object-cover"
+                  />
+                </div>
+
+                <span className="text-xs font-medium text-gray-700">
+                  {cat.name}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Desktop: 1 Row */}
+        <div className="hidden md:flex gap-2 w-max">
+          {[...topRow, ...bottomRow].map((cat) => (
             <button
               key={cat._id}
               onClick={() => {
                 handleFilterChange(null);
                 setTimeout(() => scrollToCategory(cat._id), 80);
               }}
-              className="
-                flex-shrink-0 flex items-center
-                gap-1 sm:gap-2
-                px-2 py-1 sm:px-3 sm:py-2
-                bg-white border border-gray-200
-                rounded-lg sm:rounded-xl
-                shadow-sm hover:shadow-md
-                transition-all duration-200 whitespace-nowrap
-                active:scale-95
-              "
+              className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm whitespace-nowrap"
             >
-              <div className="relative w-8 h-8 sm:w-10 sm:h-10 overflow-hidden rounded-md sm:rounded-lg border bg-white">
+              <div className="relative w-8 h-8 overflow-hidden rounded-md border bg-white flex-shrink-0">
                 <Image
                   src={cat.image || "/no-image.png"}
                   alt={cat.name}
@@ -304,12 +355,13 @@ export default function CategoryTabsSection() {
                   className="object-cover"
                 />
               </div>
-              <span className="text-xs sm:text-sm font-medium text-gray-700">
+
+              <span className="text-xs font-medium text-gray-700">
                 {cat.name}
               </span>
             </button>
           ))}
-        </HorizontalScrollRow>
+        </div>
       </div>
 
       {/* Products */}
