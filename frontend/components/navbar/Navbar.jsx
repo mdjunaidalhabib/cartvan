@@ -3,7 +3,6 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCart } from "../../context/CartContext";
-import { apiFetch } from "../../utils/api";
 import {
   FaHome,
   FaThLarge,
@@ -19,6 +18,7 @@ import AccountMenuDesktop from "./AccountMenuDesktop";
 import AccountMenuMobile from "./AccountMenuMobile";
 import CartIcon from "./CartIcon";
 import WishlistIcon from "./WishlistIcon";
+import { useUser } from "../../context/UserContext";
 
 const sideMenu = {
   hidden: { x: "-100%" },
@@ -33,9 +33,8 @@ export default function Navbar() {
   const [navbar, setNavbar] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-  const [me, setMe] = useState(null);
-  const [loadingUser, setLoadingUser] = useState(true);
   const [imgError, setImgError] = useState(false);
+  const { me } = useUser(); // ✅ UserContext থেকে নাও, আলাদা fetch দরকার নেই
 
   const pathname = usePathname();
   const router = useRouter();
@@ -43,19 +42,6 @@ export default function Navbar() {
   const cartCount = Object.keys(cart).length;
   const wishlistCount = Array.isArray(wishlist) ? wishlist.length : 0;
   const API_URL = "/api";
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const data = await apiFetch("/auth/me");
-        setMe(data.user);
-      } catch {
-        setMe(null);
-      } finally {
-        setLoadingUser(false);
-      }
-    })();
-  }, []);
 
   useEffect(() => {
     const fetchNavbar = async () => {
@@ -188,12 +174,7 @@ export default function Navbar() {
               <FaSearch className="w-5 h-5 text-pink-600" />
             </button>
 
-            <AccountMenuMobile
-              me={me}
-              setMe={setMe}
-              loadingUser={loadingUser}
-              topbar
-            />
+            <AccountMenuMobile topbar />
           </div>
 
           {/* 💻 Desktop Menu */}
@@ -382,7 +363,7 @@ export default function Navbar() {
                 ease: "easeInOut",
               }}
               // বর্ডার একদম ব্রাইট পিঙ্ক করা হয়েছে
-              className="relative w-14 h-14 flex flex-col items-center justify-center rounded-full border-2 border-pink-200 overflow-hidden active:scale-95 transition-transform"
+              className="relative w-13 h-13 flex flex-col items-center justify-center rounded-full border-2 border-pink-200 overflow-hidden active:scale-95 transition-transform"
               style={{
                 // খয়েরি বাদ দিয়ে এখানে খাঁটি হট-পিঙ্ক থেকে ভাইব্রেন্ট ম্যাজেন্টা গ্রেডিয়েন্ট ব্যবহার করা হয়েছে
                 background: "linear-gradient(135deg, #ff49db, #ff007f)",
@@ -405,9 +386,9 @@ export default function Navbar() {
               />
 
               {/* Content */}
-              <FaGift className="w-5 h-5 text-white drop-shadow-[0_2px_4px_rgba(255,0,127,0.5)] mb-0.5" />
-              <span className="text-[10px] font-black text-white tracking-widest uppercase drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] leading-none">
-                Box
+              <FaGift className="w-4 h-4 text-white drop-shadow-[0_2px_4px_rgba(255,0,127,0.5)] mb-0.5" />
+              <span className="text-[10px] font-semibold text-white tracking-widest  drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] leading-none">
+                Gift
               </span>
             </motion.button>
           </div>

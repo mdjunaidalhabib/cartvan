@@ -90,10 +90,10 @@ export default function Footer() {
   const { brand = {}, contact = {}, socialLinks = [] } = data;
 
   return (
-    <footer className="bg-gradient-to-br from-slate-900 via-zinc-950 to-neutral-950 text-slate-300 pt-16 pb-6 px-4 md:px-12 mb-14 md:mb-0 border-t border-zinc-800/60 font-sans tracking-wide">
+    <footer className="bg-pink-100 pt-16 pb-8 px-4 md:px-12 mb-14 md:mb-0 border-t border-pink-300 font-sans tracking-wide">
       <div className="mx-auto max-w-7xl">
         {/* Main Grid Section — ৪টি কলামকেই সমান ভাগ (lg:grid-cols-4) করা হয়েছে */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 ">
           {/* Column 1: Brand Info */}
           <div className="space-y-5">
             <div className="flex items-center gap-3.5">
@@ -111,12 +111,12 @@ export default function Footer() {
                   <FaUserCircle className="text-xl text-white" />
                 </div>
               )}
-              <h2 className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-pink-200 bg-clip-text text-transparent">
+              <h2 className="text-xl font-extrabold tracking-tight bg-pink-500 bg-clip-text text-transparent">
                 {brand.title || "BrandName"}
               </h2>
             </div>
 
-            <p className="text-sm leading-6 text-zinc-400">
+            <p className="text-sm leading-6 text-gray-900">
               {brand.about ||
                 "Elevating your premium lifestyle shopping experience with high-quality products curated just for you."}
             </p>
@@ -135,7 +135,7 @@ export default function Footer() {
                       href={social.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-9 h-9 rounded-xl bg-zinc-900/80 hover:bg-pink-600 border border-zinc-800 hover:border-pink-500 text-zinc-400 hover:text-white transition-all duration-300 flex items-center justify-center hover:-translate-y-1 backdrop-blur-sm"
+                      className="w-9 h-9 rounded-xl bg-pink-500 hover:bg-pink-600 border border-zinc-800 hover:border-pink-500 text-white transition-all duration-300 flex items-center justify-center hover:-translate-y-1 backdrop-blur-sm"
                     >
                       <Icon className="text-base" />
                     </Link>
@@ -146,7 +146,7 @@ export default function Footer() {
 
           {/* Column 2: Explore Links */}
           <div className="lg:pl-6">
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4 border-l-2 border-pink-500 pl-3">
+            <h3 className="text-sm font-semibold uppercase tracking-wider mb-4 border-l-2 border-pink-500 pl-3">
               Explore
             </h3>
             <ul className="space-y-2.5 text-sm">
@@ -154,9 +154,9 @@ export default function Footer() {
                 <li key={i}>
                   <Link
                     href={item.href}
-                    className="text-zinc-400 hover:text-pink-400 transition-colors duration-200 flex items-center group"
+                    className="hover:text-pink-400 transition-colors duration-200 flex items-center group"
                   >
-                    <span className="w-0 group-hover:w-1.5 h-1.5 bg-pink-400 rounded-full mr-0 group-hover:mr-2 transition-all duration-200"></span>
+                    <span className="w-1.5 h-1.5 bg-black rounded-full mr-2 group-hover:w-2 group-hover:h-2 group-hover:bg-pink-400 transition-all duration-200"></span>{" "}
                     {item.label}
                   </Link>
                 </li>
@@ -166,7 +166,7 @@ export default function Footer() {
 
           {/* Column 3: Customer Care */}
           <div className="lg:pl-6">
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4 border-l-2 border-pink-500 pl-3">
+            <h3 className="text-sm font-semibold uppercase tracking-wider mb-4 border-l-2 border-pink-500 pl-3">
               Support
             </h3>
             <ul className="space-y-2.5 text-sm">
@@ -174,9 +174,9 @@ export default function Footer() {
                 <li key={i}>
                   <Link
                     href={item.href}
-                    className="text-zinc-400 hover:text-pink-400 transition-colors duration-200 flex items-center group"
+                    className=" hover:text-pink-400 transition-colors duration-200 flex items-center group"
                   >
-                    <span className="w-0 group-hover:w-1.5 h-1.5 bg-pink-400 rounded-full mr-0 group-hover:mr-2 transition-all duration-200"></span>
+                    <span className="w-1.5 h-1.5 bg-black rounded-full mr-2 group-hover:w-2 group-hover:h-2 group-hover:bg-pink-400 transition-all duration-200"></span>{" "}
                     {item.label}
                   </Link>
                 </li>
@@ -186,16 +186,16 @@ export default function Footer() {
 
           {/* Column 4: Contact Us */}
           <div>
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4 border-l-2 border-pink-500 pl-3">
+            <h3 className="text-sm font-semibold uppercase tracking-wider mb-4 border-l-2 border-pink-500 pl-3">
               Contact Us
             </h3>
-            <ul className="space-y-3.5 text-sm text-zinc-400">
+            <ul className="space-y-3.5 text-sm">
               {contact.phone && (
                 <li className="flex items-center gap-2.5">
                   <FaPhoneAlt className="text-pink-500 text-base shrink-0" />
                   <a
                     href={`tel:${contact.phone}`}
-                    className="hover:text-white transition truncate"
+                    className="hover:text-pink-500 transition truncate"
                   >
                     {contact.phone}
                   </a>
@@ -212,7 +212,7 @@ export default function Footer() {
                     }
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:text-white transition truncate"
+                    className="hover:text-pink-500 transition truncate"
                   >
                     {contact.website}
                   </a>
@@ -223,7 +223,7 @@ export default function Footer() {
                   <FaEnvelope className="text-pink-500 text-base shrink-0" />
                   <a
                     href={`mailto:${contact.email}`}
-                    className="hover:text-white transition truncate"
+                    className="hover:text-pink-500 transition truncate"
                   >
                     {contact.email}
                   </a>
@@ -243,30 +243,22 @@ export default function Footer() {
         <div className="h-px w-full bg-gradient-to-r from-transparent via-zinc-800 to-transparent my-6" />
 
         {/* Bottom Section */}
-        <div className="flex flex-col sm:grid sm:grid-cols-3 items-center justify-between gap-4 text-xs text-zinc-500">
+        <div className="flex flex-col sm:grid sm:grid-cols-2 items-center justify-between gap-2 lg:gap-4 text-xs">
           {/* Copyright */}
           <p className="text-center sm:text-left order-2 sm:order-1">
             © {new Date().getFullYear()}{" "}
-            <span className="text-zinc-400 font-medium">
-              {brand.title || "Company"}
-            </span>
-            . All Rights Reserved.
+            <span className=" font-medium">{brand.title || "Company"}</span>.
+            All Rights Reserved.
           </p>
-
-          {/* Payment Gateways */}
-          <div className="flex items-center justify-center gap-3 text-2xl text-zinc-600 order-1 sm:order-2 bg-zinc-900/40 px-4 py-1.5 rounded-full border border-zinc-800/30 backdrop-blur-sm">
-            <FaCcVisa className="hover:text-slate-300 transition" />
-            <FaCcMastercard className="hover:text-slate-300 transition" />
-          </div>
 
           {/* Developer Credit */}
           <p className="text-center sm:text-right order-3">
-            Crafted by{" "}
+            Developed by{" "}
             <a
               href="https://hikmahit.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-orange-400 hover:text-pink-400 font-semibold transition-colors "
+              className="text-pink-600 hover:text-pink-500 font-semibold transition-colors "
             >
               Hikmah IT
             </a>
