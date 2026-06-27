@@ -11,7 +11,6 @@ import {
   FaGift,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
 
 import SearchBox from "./SearchBox";
 import AccountMenuDesktop from "./AccountMenuDesktop";
@@ -34,7 +33,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
-  const { me } = useUser(); // ✅ UserContext থেকে নাও, আলাদা fetch দরকার নেই
+  const { me } = useUser();
 
   const pathname = usePathname();
   const router = useRouter();
@@ -75,18 +74,11 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
-    document.body.style.overflow =
-      menuOpen || mobileSearchOpen ? "hidden" : "auto";
-  }, [menuOpen, mobileSearchOpen]);
+    document.body.style.overflow = menuOpen ? "hidden" : "auto";
+  }, [menuOpen]);
 
   const isActive = (path) => pathname === path;
 
-  // ✅ Cartvan Box → home page এর offer-section এ smooth scroll + cartvanBox filter
-  // ⚠️ ফিক্স: window.location.hash = "..." সরাসরি অ্যাসাইন করলে ব্রাউজার এটাকে
-  // নেটিভ anchor-navigation মনে করে এবং নিজের মতো জাম্প করার চেষ্টা করে, যা আমাদের
-  // smooth scrollIntoView()-এর সাথে কনফ্লিক্ট করে "dhakka" (jerky jump) তৈরি করে।
-  // এখন তার বদলে একটা কাস্টম ইভেন্ট পাঠানো হচ্ছে — CategoryTabsSection নিজেই
-  // history.replaceState দিয়ে hash বদলায় (কোনো native scroll trigger করে না)।
   const handleCartvanBox = () => {
     if (pathname === "/") {
       window.dispatchEvent(
@@ -97,7 +89,6 @@ export default function Navbar() {
     }
   };
 
-  // ✅ Logo / Brand name ক্লিক করলে সব ফিল্টার ক্লিয়ার করে All Products দেখাও
   const handleLogoClick = (e) => {
     if (pathname === "/") {
       e.preventDefault();
@@ -105,7 +96,6 @@ export default function Navbar() {
         new CustomEvent("offerFilterChange", { detail: null }),
       );
     }
-    // pathname অন্য কিছু হলে স্বাভাবিক Link নেভিগেশন চলবে (href="/")
   };
 
   return (
@@ -165,7 +155,7 @@ export default function Navbar() {
             )}
           </Link>
 
-          {/* 📱 Mobile — Search + existing AccountMenuMobile */}
+          {/* 📱 Mobile — Search icon + Account */}
           <div className="md:hidden flex items-center gap-1.5">
             <button
               className="p-2 rounded-lg hover:bg-pink-200 transition-colors"
@@ -173,7 +163,6 @@ export default function Navbar() {
             >
               <FaSearch className="w-5 h-5 text-pink-600" />
             </button>
-
             <AccountMenuMobile topbar />
           </div>
 
@@ -200,38 +189,23 @@ export default function Navbar() {
 
           {/* 💻 Desktop Actions */}
           <div className="hidden md:flex items-center gap-4 relative">
+            {/* ✅ Desktop-only SearchBox */}
             <SearchBox
               mobileSearchOpen={mobileSearchOpen}
               setMobileSearchOpen={setMobileSearchOpen}
             />
-
             <div
-              className={`rounded transition-all duration-200 ${
-                pathname.startsWith("/profile") ||
-                pathname.startsWith("/orders")
-                  ? "text-pink-600 bg-pink-300 border border-pink-400 font-medium"
-                  : "text-gray-900 hover:text-pink-600 hover:bg-pink-200"
-              }`}
+              className={`rounded transition-all duration-200 ${pathname.startsWith("/profile") || pathname.startsWith("/orders") ? "text-pink-600 bg-pink-300 border border-pink-400 font-medium" : "text-gray-900 hover:text-pink-600 hover:bg-pink-200"}`}
             >
               <AccountMenuDesktop />
             </div>
-
             <div
-              className={`rounded transition-all duration-200 p-2 ${
-                isActive("/cart")
-                  ? "text-pink-600 bg-pink-300 border border-pink-400 font-medium"
-                  : "text-gray-900 hover:text-pink-600 hover:bg-pink-200"
-              }`}
+              className={`rounded transition-all duration-200 p-2 ${isActive("/cart") ? "text-pink-600 bg-pink-300 border border-pink-400 font-medium" : "text-gray-900 hover:text-pink-600 hover:bg-pink-200"}`}
             >
               <CartIcon cartCount={cartCount} />
             </div>
-
             <div
-              className={`rounded transition-all duration-200 p-2 ${
-                isActive("/wishlist")
-                  ? "text-pink-600 bg-pink-300 border border-pink-400 font-medium"
-                  : "text-gray-900 hover:text-pink-600 hover:bg-pink-200"
-              }`}
+              className={`rounded transition-all duration-200 p-2 ${isActive("/wishlist") ? "text-pink-600 bg-pink-300 border border-pink-400 font-medium" : "text-gray-900 hover:text-pink-600 hover:bg-pink-200"}`}
             >
               <WishlistIcon wishlistCount={wishlistCount} />
             </div>
@@ -239,33 +213,13 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* 📱 Mobile Search bar */}
-      <AnimatePresence>
-        {mobileSearchOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="md:hidden bg-white shadow-inner border-t border-pink-200 px-4 py-3"
-          >
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <SearchBox
-                  mobileSearchOpen={mobileSearchOpen}
-                  setMobileSearchOpen={setMobileSearchOpen}
-                />
-              </div>
-              <button
-                onClick={() => setMobileSearchOpen(false)}
-                className="p-2 text-pink-500 hover:text-pink-700 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* ✅ Mobile-only SearchBox — সবসময় render হয়, fixed dropdown দেখায় */}
+      <div className="md:hidden">
+        <SearchBox
+          mobileSearchOpen={mobileSearchOpen}
+          setMobileSearchOpen={setMobileSearchOpen}
+        />
+      </div>
 
       {/* 📱 Mobile Side Menu */}
       <AnimatePresence>
@@ -331,7 +285,6 @@ export default function Navbar() {
       {/* ───────────── 📱 Bottom Navigation ───────────── */}
       <div className="fixed bottom-0 left-0 right-0 md:hidden z-50 bg-pink-100 border-t border-pink-300">
         <div className="relative flex justify-between items-center px-4 py-2">
-          {/* Home */}
           <Link
             href="/"
             className={`flex flex-col items-center text-[11px] gap-0.5 ${isActive("/") ? "text-pink-500" : "text-gray-900"}`}
@@ -340,7 +293,6 @@ export default function Navbar() {
             <span>Home</span>
           </Link>
 
-          {/* Category */}
           <Link
             href="/categories"
             className={`flex flex-col items-center text-[11px] gap-0.5 ${isActive("/categories") ? "text-pink-500" : "text-gray-900"}`}
@@ -349,30 +301,22 @@ export default function Navbar() {
             <span>Category</span>
           </Link>
 
-          {/* 🔥 Center — Cartvan Box → home page #cartvan-box section */}
           <div className="absolute left-1/2 -translate-x-1/2 -top-4 z-50">
             <motion.button
               onClick={handleCartvanBox}
-              animate={{
-                y: [0, -5, 0],
-                scale: [1, 1.02, 1],
-              }}
+              animate={{ y: [0, -5, 0], scale: [1, 1.02, 1] }}
               transition={{
                 duration: 1.8,
                 repeat: Infinity,
                 ease: "easeInOut",
               }}
-              // বর্ডার একদম ব্রাইট পিঙ্ক করা হয়েছে
               className="relative w-13 h-13 flex flex-col items-center justify-center rounded-full border-2 border-pink-200 overflow-hidden active:scale-95 transition-transform"
               style={{
-                // খয়েরি বাদ দিয়ে এখানে খাঁটি হট-পিঙ্ক থেকে ভাইব্রেন্ট ম্যাজেন্টা গ্রেডিয়েন্ট ব্যবহার করা হয়েছে
                 background: "linear-gradient(135deg, #ff49db, #ff007f)",
-                // নিখুঁত পিঙ্ক নিওন গ্লো (কোনো কালচে বা খয়েরি শ্যাডো নেই)
                 boxShadow:
                   "0 0 22px 6px rgba(255, 0, 127, 0.7), 0 0 10px 2px rgba(255, 73, 219, 0.4), inset 0 0 8px rgba(255, 255, 255, 0.4)",
               }}
             >
-              {/* Shimmer Effect */}
               <motion.span
                 aria-hidden
                 className="absolute top-0 left-0 h-full w-[50%] bg-gradient-to-r from-transparent via-white/60 to-transparent skew-x-[-25deg] pointer-events-none"
@@ -384,26 +328,21 @@ export default function Navbar() {
                   ease: "easeInOut",
                 }}
               />
-
-              {/* Content */}
               <FaGift className="w-4 h-4 text-white drop-shadow-[0_2px_4px_rgba(255,0,127,0.5)] mb-0.5" />
-              <span className="text-[10px] font-semibold text-white tracking-widest  drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] leading-none">
+              <span className="text-[10px] font-semibold text-white tracking-widest drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] leading-none">
                 Gift
               </span>
             </motion.button>
           </div>
 
-          {/* Spacer */}
           <div className="w-12" />
 
-          {/* Wishlist */}
           <div
             className={`flex flex-col items-center text-[11px] gap-0.5 ${isActive("/wishlist") ? "text-pink-500" : "text-gray-900"}`}
           >
             <WishlistIcon wishlistCount={wishlistCount} mobile />
           </div>
 
-          {/* Cart */}
           <div
             className={`flex flex-col items-center text-[11px] gap-0.5 ${isActive("/cart") ? "text-pink-500" : "text-gray-900"}`}
           >

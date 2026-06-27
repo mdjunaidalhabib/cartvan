@@ -1,10 +1,9 @@
 "use client";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { X, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-/* ✅ Debounce Hook */
 const useDebouncedValue = (value, delay = 400) => {
   const [v, setV] = useState(value);
   useEffect(() => {
@@ -14,20 +13,6 @@ const useDebouncedValue = (value, delay = 400) => {
   return v;
 };
 
-/* ✅ Animations */
-const panelVariants = {
-  hidden: { y: "100%" },
-  visible: { y: 0 },
-  exit: { y: "100%" },
-};
-
-const backdropVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1 },
-  exit: { opacity: 0 },
-};
-
-/* ✅ Product Card */
 const ProductCard = ({ product, onClick }) => (
   <button
     onClick={onClick}
@@ -38,7 +23,6 @@ const ProductCard = ({ product, onClick }) => (
       alt={product.name}
       className="w-10 h-10 rounded-lg object-cover border bg-white"
     />
-
     <div className="flex-1 min-w-0">
       <p className="text-sm font-medium text-gray-800 truncate">
         {product.name}
@@ -53,9 +37,9 @@ export default function SearchBox({ mobileSearchOpen, setMobileSearchOpen }) {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const debouncedQuery = useDebouncedValue(query);
-  const ref = useRef(null);
+  const desktopRef = useRef(null);
+  const mobileInputRef = useRef(null);
 
-  /* ✅ Navigate */
   const goToProduct = useCallback(
     (id) => {
       setQuery("");
@@ -63,13 +47,34 @@ export default function SearchBox({ mobileSearchOpen, setMobileSearchOpen }) {
       setMobileSearchOpen(false);
       router.push(`/products/${id}`);
     },
-    [router, setMobileSearchOpen]
+    [router, setMobileSearchOpen],
   );
 
-  /* ✅ Fetch Search Results */
+  // Auto focus mobile input when opened
+  useEffect(() => {
+    if (mobileSearchOpen) {
+      setTimeout(() => mobileInputRef.current?.focus(), 100);
+    } else {
+      setQuery("");
+      setResults([]);
+    }
+  }, [mobileSearchOpen]);
+
+  // Close mobile search on outside click
+  useEffect(() => {
+    if (!mobileSearchOpen) return;
+    const handler = (e) => {
+      if (!e.target.closest("#mobile-search-container")) {
+        setMobileSearchOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [mobileSearchOpen, setMobileSearchOpen]);
+
+  // Fetch results
   useEffect(() => {
     const q = debouncedQuery.trim();
-
     if (!q) {
       setResults([]);
       setLoading(false);
@@ -77,25 +82,19 @@ export default function SearchBox({ mobileSearchOpen, setMobileSearchOpen }) {
     }
 
     let cancelled = false;
-    const BASE_URL = "/api";
-
     setLoading(true);
 
     (async () => {
       try {
-        const res = await fetch(`${BASE_URL}/products`);
-        if (!res.ok) throw new Error("Failed to fetch products");
-
+        const res = await fetch(`/api/products`);
+        if (!res.ok) throw new Error("Failed");
         const data = await res.json();
         const products = Array.isArray(data) ? data : data.products || [];
-
         const filtered = products.filter((p) =>
-          p.name?.toLowerCase().includes(q.toLowerCase())
+          p.name?.toLowerCase().includes(q.toLowerCase()),
         );
-
         if (!cancelled) setResults(filtered.slice(0, 20));
-      } catch (err) {
-        console.error(err);
+      } catch {
         if (!cancelled) setResults([]);
       } finally {
         if (!cancelled) setLoading(false);
@@ -107,10 +106,30 @@ export default function SearchBox({ mobileSearchOpen, setMobileSearchOpen }) {
     };
   }, [debouncedQuery]);
 
+  const ResultList = () => (
+    <>
+      {loading && (
+        <p className="px-3 py-2 text-gray-500 text-sm">Searching...</p>
+      )}
+      {!loading &&
+        results.length > 0 &&
+        results.map((p) => (
+          <ProductCard
+            key={p._id}
+            product={p}
+            onClick={() => goToProduct(p._id)}
+          />
+        ))}
+      {!loading && debouncedQuery && results.length === 0 && (
+        <p className="px-3 py-2 text-gray-500 text-sm">No results found</p>
+      )}
+    </>
+  );
+
   return (
     <>
       {/* 🖥 Desktop Search */}
-      <div className="hidden md:block relative" ref={ref}>
+      <div className="hidden md:block relative" ref={desktopRef}>
         <input
           type="text"
           placeholder="Search products..."
@@ -118,103 +137,61 @@ export default function SearchBox({ mobileSearchOpen, setMobileSearchOpen }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-
         <AnimatePresence>
-          {loading && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="absolute mt-1 w-64 bg-pink-50 shadow rounded-xl px-3 py-2 text-gray-500"
-            >
-              Searching...
-            </motion.div>
-          )}
-
-          {!loading && results.length > 0 && (
+          {(loading || results.length > 0 || (debouncedQuery && !loading)) && (
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              className="absolute mt-1 w-64 bg-pink-50 shadow-xl rounded-xl max-h-72 overflow-y-auto p-2"
+              className="absolute mt-1 w-64 bg-white shadow-xl rounded-xl max-h-72 overflow-y-auto p-2 z-50"
             >
-              {results.map((p) => (
-                <ProductCard
-                  key={p._id}
-                  product={p}
-                  onClick={() => goToProduct(p._id)}
-                />
-              ))}
-            </motion.div>
-          )}
-
-          {!loading && debouncedQuery && results.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="absolute mt-1 w-64 bg-pink-50 shadow rounded-xl px-3 py-2 text-gray-500"
-            >
-              No results found
+              <ResultList />
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* 📱 Mobile Search */}
+      {/* 📱 Mobile Search — same page dropdown, navbar-এর নিচে */}
       <AnimatePresence>
         {mobileSearchOpen && (
-          <>
-            <motion.div
-              variants={backdropVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              className="fixed inset-0 bg-black/50 z-40"
-              onClick={() => setMobileSearchOpen(false)}
-            />
+          <motion.div
+            id="mobile-search-container"
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.2 }}
+            className="md:hidden fixed top-[60px] left-0 right-0 z-50 bg-white shadow-xl border-t border-pink-100"
+          >
+            {/* Search Input */}
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-pink-100">
+              <Search className="w-4 h-4 text-pink-400 shrink-0" />
+              <input
+                ref={mobileInputRef}
+                type="text"
+                placeholder="Search products..."
+                className="flex-1 focus:outline-none text-sm bg-transparent"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+              <button
+                onClick={() => setMobileSearchOpen(false)}
+                className="p-1 shrink-0"
+              >
+                <X className="w-5 h-5 text-rose-500" />
+              </button>
+            </div>
 
-            <motion.div
-              variants={panelVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              className="fixed inset-0 bg-pink-50 z-50 flex flex-col"
-            >
-              <div className="flex items-center p-4 border-b bg-pink-50">
-                <input
-                  autoFocus
-                  type="text"
-                  placeholder="Search products..."
-                  className="flex-1 border border-pink-300 rounded-lg px-3 py-2 focus:outline-none"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                />
-                <button
-                  onClick={() => setMobileSearchOpen(false)}
-                  className="ml-3 p-2"
-                >
-                  <X className="w-6 h-6 text-rose-600" />
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-4 space-y-1">
-                {loading ? (
-                  <p className="text-gray-500">Searching...</p>
-                ) : results.length ? (
-                  results.map((p) => (
-                    <ProductCard
-                      key={p._id}
-                      product={p}
-                      onClick={() => goToProduct(p._id)}
-                    />
-                  ))
-                ) : debouncedQuery ? (
-                  <p className="text-gray-500">No results found</p>
-                ) : (
-                  <p className="text-gray-400">Type to search products...</p>
-                )}
-              </div>
-            </motion.div>
-          </>
+            {/* Results */}
+            <div className="max-h-[60vh] overflow-y-auto p-3 space-y-1">
+              {!debouncedQuery ? (
+                <p className="text-gray-400 text-sm px-2">
+                  Type to search products...
+                </p>
+              ) : (
+                <ResultList />
+              )}
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </>
