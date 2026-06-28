@@ -71,10 +71,10 @@ export default function BasicInfoCategory({
           Description
         </label>
         <textarea
-          rows={3}
+          rows={6}
           value={form.description}
           onChange={(e) => handleChange("description", e.target.value)}
-          className={`${inputBase} ${ok}`}
+          className={`${inputBase} ${ok} resize-y min-h-[140px] leading-relaxed`}
           placeholder="বিস্তারিত বিবরণ..."
         />
       </div>
@@ -84,11 +84,11 @@ export default function BasicInfoCategory({
           Additional Info
         </label>
         <textarea
-          rows={3}
+          rows={12}
           value={form.additionalInfo}
           onChange={(e) => handleChange("additionalInfo", e.target.value)}
-          className={`${inputBase} ${ok}`}
-          placeholder="অতিরিক্ত তথ্য (বক্স কন্টেন্ট, ওয়ারেন্টি ইত্যাদি)..."
+          className={`${inputBase} ${ok} resize-y min-h-[260px] leading-relaxed whitespace-pre-wrap`}
+          placeholder="অতিরিক্ত তথ্য (বক্স কন্টেন্ট, ওয়ারেন্টি, রিটার্ন পলিসি ইত্যাদি)..."
         />
       </div>
     </section>

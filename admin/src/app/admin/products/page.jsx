@@ -12,6 +12,9 @@ export default function ProductsPage() {
 
   const [filter, setFilter] = useState("all"); // all / active / hidden
 
+  // ✅ NEW: Products সাব-মেনু — All Product / Free Delivery / Best Discount / Gift Box
+  const [badgeFilter, setBadgeFilter] = useState("all");
+
   const [showForm, setShowForm] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
 
@@ -52,12 +55,33 @@ export default function ProductsPage() {
   }, []);
 
   // ================== FILTERED LIST ==================
-  const filteredProducts =
+  const statusFiltered =
     filter === "active"
       ? products.filter((p) => p.isActive)
       : filter === "hidden"
         ? products.filter((p) => !p.isActive)
         : products;
+
+  // ✅ NEW: সাব-মেনু অনুযায়ী filter (Free Delivery / Best Discount / Gift Box)
+  const filteredProducts =
+    badgeFilter === "freeDelivery"
+      ? statusFiltered.filter((p) => p.freeDelivery)
+      : badgeFilter === "bestDiscount"
+        ? statusFiltered.filter((p) => p.bestDiscount)
+        : badgeFilter === "cartvanBox"
+          ? statusFiltered.filter((p) => p.cartvanBox)
+          : statusFiltered;
+
+  // ✅ সাব-মেনুর প্রতিটি ট্যাবে কতগুলো প্রোডাক্ট আছে তার count
+  const badgeCounts = useMemo(
+    () => ({
+      all: products.length,
+      freeDelivery: products.filter((p) => p.freeDelivery).length,
+      bestDiscount: products.filter((p) => p.bestDiscount).length,
+      cartvanBox: products.filter((p) => p.cartvanBox).length,
+    }),
+    [products],
+  );
 
   // check if ANY product is active → then bulk button = Hide All
   const hasAnyActive = useMemo(
@@ -191,6 +215,39 @@ export default function ProductsPage() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* ===================== NEW: PRODUCTS SUB-MENU ===================== */}
+      <div className="flex flex-wrap gap-2 mb-5 border-b pb-3">
+        {[
+          { key: "all", label: "🗂️ All Product", color: "indigo" },
+          { key: "freeDelivery", label: "🚚 Free Delivery", color: "orange" },
+          { key: "bestDiscount", label: "🛍️ Best Discount", color: "blue" },
+          { key: "cartvanBox", label: "🎁 Gift Box", color: "rose" },
+        ].map((tab) => {
+          const active = badgeFilter === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setBadgeFilter(tab.key)}
+              className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold border transition-all ${
+                active
+                  ? "bg-indigo-600 text-white border-indigo-600 shadow"
+                  : "bg-white text-gray-600 border-gray-200 hover:border-indigo-300 hover:text-indigo-600"
+              }`}
+            >
+              {tab.label}
+              <span
+                className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] ${
+                  active ? "bg-white/20" : "bg-gray-100"
+                }`}
+              >
+                {badgeCounts[tab.key] ?? 0}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* ===================== PRODUCT GRID ===================== */}

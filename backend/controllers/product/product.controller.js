@@ -43,11 +43,12 @@ const cleanupReqFiles = (req) => {
 };
 
 /**
- * ✅ Convert ANY (jpeg/png/webp) => 600×600 WEBP <= 100KB
+ * ✅ Convert ANY (jpeg/png/webp) => 600×600 WEBP, এর কাছাকাছি সর্বোচ্চ চেষ্টায় <= 100KB
  * - center crop
  * - resize
- * - compress loop
- * - overwrite file.path so uploadToCloudinary uploads converted file
+ * - quality compress loop
+ * - তারপরও বড় হলে ধীরে ধীরে dimension কমিয়ে আবার compress (NEVER throw)
+ * - guaranteed: এই ফাংশন কখনো error throw করবে না, upload সবসময় শেষ পর্যন্ত হবে
  */
 const convertAndOverwriteProductImage = async (file) => {
   if (!file?.path) throw new Error("Invalid upload file");
@@ -60,41 +61,70 @@ const convertAndOverwriteProductImage = async (file) => {
   const inputPath = file.path;
   const outputPath = inputPath.replace(/\.[^/.]+$/, "") + "_converted.webp";
 
-  // ✅ sharp pipeline (center crop)
-  const base = sharp(inputPath).resize(
-    PRODUCT_IMAGE_RULE.width,
-    PRODUCT_IMAGE_RULE.height,
-    {
-      fit: "cover",
-      position: "centre",
-    },
-  );
+  // ✅ ইমেজ আগে থেকেই যদি already valid হয় (webp + size + dimension ঠিক আছে),
+  // তাহলে আবার re-encode করার দরকার নেই — re-encode করলে generation-loss এর কারণে
+  // মাঝে মাঝে ফাইল উল্টো বড় হয়ে যেতে পারে এবং upload error দিতে পারে।
+  if (
+    file.mimetype === PRODUCT_IMAGE_RULE.mime &&
+    file.size <= PRODUCT_IMAGE_RULE.maxBytes
+  ) {
+    try {
+      const meta = await sharp(inputPath).metadata();
+      if (
+        meta.width === PRODUCT_IMAGE_RULE.width &&
+        meta.height === PRODUCT_IMAGE_RULE.height
+      ) {
+        return; // ✅ already perfect — কিছু পরিবর্তন না করেই upload হবে
+      }
+    } catch {
+      // metadata পড়তে সমস্যা হলেও normal flow এ এগিয়ে যাবো
+    }
+  }
 
-  // ✅ compress loop
-  let quality = 90;
-  let buffer = await base.webp({ quality }).toBuffer();
+  // ✅ একটা single pass যেখানে quality ও প্রয়োজনে dimension দুটোই কমানো হবে,
+  // কিন্তু কখনো error throw হবে না — শেষে যা পাওয়া যায় সেটাই ব্যবহার হবে।
+  let bestBuffer = null;
+  let dims = { width: PRODUCT_IMAGE_RULE.width, height: PRODUCT_IMAGE_RULE.height };
 
-  while (buffer.length > PRODUCT_IMAGE_RULE.maxBytes && quality > 30) {
-    quality -= 7;
-    buffer = await sharp(inputPath)
-      .resize(PRODUCT_IMAGE_RULE.width, PRODUCT_IMAGE_RULE.height, {
-        fit: "cover",
-        position: "centre",
-      })
-      .webp({ quality })
+  outer: for (let attempt = 0; attempt < 5; attempt++) {
+    let quality = 90;
+
+    while (quality >= 25) {
+      try {
+        const buffer = await sharp(inputPath)
+          .resize(dims.width, dims.height, { fit: "cover", position: "centre" })
+          .webp({ quality })
+          .toBuffer();
+
+        bestBuffer = buffer; // সবসময় শেষ successful buffer রাখি (fallback এর জন্য)
+
+        if (buffer.length <= PRODUCT_IMAGE_RULE.maxBytes) {
+          break outer; // ✅ লক্ষ্যে পৌঁছে গেছি
+        }
+      } catch {
+        // এই quality/size এ encode করতে সমস্যা হলেও থেমে যাবো না, পরের ধাপে যাবো
+      }
+
+      quality -= 10;
+    }
+
+    // ✅ quality কমিয়েও 100KB এর নিচে আনা যাচ্ছে না — dimension আরও ছোট করে আবার চেষ্টা
+    dims = {
+      width: Math.max(200, Math.round(dims.width * 0.8)),
+      height: Math.max(200, Math.round(dims.height * 0.8)),
+    };
+  }
+
+  // ✅ guaranteed fallback: bestBuffer না পেলে (একদমই অসম্ভব edge case) plain resize ব্যবহার করো
+  if (!bestBuffer) {
+    bestBuffer = await sharp(inputPath)
+      .resize(300, 300, { fit: "cover", position: "centre" })
+      .webp({ quality: 50 })
       .toBuffer();
   }
 
-  if (buffer.length > PRODUCT_IMAGE_RULE.maxBytes) {
-    throw new Error(
-      `Could not compress under ${Math.floor(
-        PRODUCT_IMAGE_RULE.maxBytes / 1024,
-      )}KB`,
-    );
-  }
-
-  // ✅ write file
-  fs.writeFileSync(outputPath, buffer);
+  // ✅ কখনো error throw না করে — যা পাওয়া গেছে সেটাই লিখে ফেলা হলো (no blocking error)
+  fs.writeFileSync(outputPath, bestBuffer);
 
   // ✅ remove original
   safeUnlink(inputPath);
@@ -102,7 +132,7 @@ const convertAndOverwriteProductImage = async (file) => {
   // ✅ overwrite multer file
   file.path = outputPath;
   file.mimetype = PRODUCT_IMAGE_RULE.mime;
-  file.size = buffer.length;
+  file.size = bestBuffer.length;
   file.originalname =
     (file.originalname || "image").replace(/\.(png|jpg|jpeg|webp)$/i, "") +
     ".webp";
@@ -327,10 +357,19 @@ export const updateProduct = async (req, res) => {
       product.order = newOrder;
     }
 
-    let incomingColors = colors ? safeJSON(colors, []) : [];
+    // ✅ FIX: "colors" field না থাকলে (যেমন bulk Hide/Show All আপডেট) এটাকে
+    // "variant নাই" ধরে নিয়ে পুরনো images/colors ডিলিট করা হচ্ছিল — এটাই
+    // ছিল "আপডেট করার পর ইমেজ চলে যাওয়া" বাগের মূল কারণ।
+    // colors field সত্যিকারে পাঠানো হয়েছে কিনা সেটা আলাদাভাবে চেক করা হলো।
+    const colorsFieldProvided = colors !== undefined;
+    let incomingColors = colorsFieldProvided ? safeJSON(colors, []) : [];
     const allFiles = req.files || [];
 
-    if (Array.isArray(incomingColors) && incomingColors.length > 0) {
+    if (!colorsFieldProvided) {
+      // ✅ এই request এ images/colors related কিছুই পাঠানো হয়নি
+      // (যেমন bulk isActive/order টগল) — তাই product.image/images/colors
+      // একদম অপরিবর্তিত থাকবে। শুধু নিচের অন্য field গুলো (isActive, order ইত্যাদি) আপডেট হবে।
+    } else if (Array.isArray(incomingColors) && incomingColors.length > 0) {
       incomingColors = incomingColors.map((c) => ({
         ...c,
         price:
@@ -388,7 +427,9 @@ export const updateProduct = async (req, res) => {
           : null;
       product.sold = toNumber(product.colors?.[0]?.sold, product.sold);
     } else {
-      // ✅ switching from variants to normal
+      // ✅ colors field খালি/empty array আকারে পাঠানো হয়েছে
+      // (explicit signal যে variant mode থেকে normal mode এ switch করা হচ্ছে)
+      // switching from variants to normal
       if (product.colors && product.colors.length > 0) {
         for (let color of product.colors) {
           for (let url of color.images) await deleteFromCloudinary(url);

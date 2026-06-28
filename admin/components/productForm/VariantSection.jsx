@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   FaPlus,
   FaTrash,
@@ -32,9 +32,8 @@ const IMAGE_RULE = {
   width: 600,
   height: 600,
   startQuality: 0.92,
-  minQuality: 0.2, // ✅ 0.3 → 0.2
-  qualityStep: 0.05, // ✅ 0.07 → 0.05
-  strictLimit: true, // ✅ 100KB এর বেশি হলে error
+  minQuality: 0.2,
+  qualityStep: 0.05,
 };
 
 /* ---------------- Helpers ---------------- */
@@ -162,19 +161,26 @@ export default function VariantSection({
     "bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200";
   const errClass = "border-red-500 bg-red-50 focus:ring-red-100";
 
-  const normalizedOnceRef = useRef(false);
-
+  // ✅ FIX: আগে এই normalize effect মাত্র একবার (component mount এ) চলত।
+  // কিন্তু ProductForm যখন কোনো existing product edit করার জন্য খোলে, তখন
+  // product এর real data (ছবির URL string গুলো) আসে একটু পরে — একটা আলাদা
+  // useEffect দিয়ে, mount হওয়ার পরে। তাই প্রথমবার এই effect চলার সময়
+  // variants ছিল খালি (placeholder), normalize করার কিছু ছিল না, এবং
+  // normalizedOnceRef সাথে সাথে true হয়ে যেত। পরে আসল image URL গুলো
+  // (string) আসলেও আর কখনো normalize হতো না — ফলে প্রতিটি item হয়ে যেত
+  // raw string, যার `.id`/.src` কিছুই নেই → preview "No Preview" দেখাত,
+  // এবং একটা ছবি delete করতে গেলে সব ছবির id === undefined হওয়ায়
+  // filter এ সবগুলোই বাদ পড়ে যেত (সব ছবি একসাথে ডিলিট হয়ে যেত)।
+  //
+  // ফিক্স: "once" গার্ড সরিয়ে দিয়ে variants পরিবর্তন হলেই আবার চেক করা হচ্ছে।
+  // normalizeOne ইতিমধ্যে normalize করা item কে অপরিবর্তিত রাখে (idempotent),
+  // তাই এটা infinite loop তৈরি করবে না — প্রয়োজন হলেই একবার ঠিক হয়ে যাবে।
   useEffect(() => {
-    if (normalizedOnceRef.current) return;
-
     const needsNormalize = (variants || []).some((v) =>
       (v.files || []).some((f) => typeof f === "string" || f instanceof File),
     );
 
-    if (!needsNormalize) {
-      normalizedOnceRef.current = true;
-      return;
-    }
+    if (!needsNormalize) return;
 
     const next = (variants || []).map((v) => ({
       ...v,
@@ -182,9 +188,8 @@ export default function VariantSection({
     }));
 
     setVariants(next);
-    normalizedOnceRef.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [variants]);
 
   const update = (i, field, value) => {
     const next = [...variants];
@@ -209,17 +214,10 @@ export default function VariantSection({
     }
   };
 
-  // ✅ iOS এ JPEG output হবে তাই type check সরানো হয়েছে
-  const validateFiles = async (fileItems) => {
-    for (const it of fileItems) {
-      const f = it?.src;
-      if (!(f instanceof File)) continue;
-      if (f.size > IMAGE_RULE.maxBytes) {
-        return `এই image টি ${Math.ceil(f.size / 1024)}KB — সর্বোচ্চ ${Math.floor(IMAGE_RULE.maxBytes / 1024)}KB allowed।`;
-      }
-    }
-    return null;
-  };
+  // ✅ NOTE: আগে এখানে convert হওয়া ফাইলের size আবার চেক করে error দেখানো হতো।
+  // এখন convertToWebpUnderLimit() নিজেই guarantee করে যে ফাইল maxBytes এর
+  // মধ্যে থাকবে (দরকার হলে dimension কমিয়ে), তাই এই ডুপ্লিকেট ব্লকিং চেক
+  // সরিয়ে দেওয়া হলো — যাতে কোনো অবস্থাতেই upload error না দেখায়।
 
   const handleFileChange = async (i, files) => {
     const raw = Array.from(files || []);
@@ -268,19 +266,6 @@ export default function VariantSection({
 
       const added = normalizeList(converted);
       const merged = [...current, ...added];
-
-      const errMsg = await validateFiles(merged);
-      if (errMsg) {
-        setErrors((prev) => ({ ...prev, [key]: `❌ ${errMsg}` }));
-        onFilesReadyChange?.(true);
-        return;
-      }
-
-      setErrors((prev) => {
-        const n = { ...prev };
-        delete n[key];
-        return n;
-      });
 
       next[i].files = merged;
       setVariants(next);

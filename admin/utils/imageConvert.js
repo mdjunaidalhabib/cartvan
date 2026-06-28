@@ -37,7 +37,9 @@ const checkWebPSupport = () =>
  * - center crop square
  * - resize to width × height
  * - quality loop to keep under maxBytes
- * - strictLimit: true → error, false → warning only
+ * - এরপরও বড় হলে dimension ধাপে ধাপে কমিয়ে আবার চেষ্টা
+ * - GUARANTEE: এই ফাংশন আর কখনো error throw করবে না (image invalid হওয়া ছাড়া) —
+ *   শেষ পর্যন্ত যত ভালো সম্ভব compress করে upload-ready file রিটার্ন করবে।
  */
 export const convertToWebpUnderLimit = async (file, rule) => {
   if (!file) throw new Error("কোনো file select করা হয়নি।");
@@ -49,7 +51,6 @@ export const convertToWebpUnderLimit = async (file, rule) => {
     startQuality = 0.88,
     minQuality = 0.2,
     qualityStep = 0.05,
-    strictLimit = true,
   } = rule || {};
 
   // ✅ iOS check — WebP support না থাকলে JPEG use করো
@@ -59,56 +60,69 @@ export const convertToWebpUnderLimit = async (file, rule) => {
 
   const img = await loadImageFromFile(file);
 
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("তোমার browser canvas support করে না।");
-
-  // ✅ center crop to square
   const sw = img.naturalWidth;
   const sh = img.naturalHeight;
   const side = Math.min(sw, sh);
   const sx = Math.floor((sw - side) / 2);
   const sy = Math.floor((sh - side) / 2);
 
-  ctx.clearRect(0, 0, width, height);
-  ctx.drawImage(img, sx, sy, side, side, 0, 0, width, height);
+  let dims = { width, height };
+  let bestBlob = null;
 
-  // ✅ quality loop
-  let quality = startQuality;
-  let blob = await new Promise((res) =>
-    canvas.toBlob(res, outputType, quality),
-  );
+  // ✅ প্রথমে quality কমিয়ে চেষ্টা, তারপরও বড় হলে dimension ছোট করে আবার চেষ্টা
+  outer: for (let attempt = 0; attempt < 5; attempt++) {
+    const canvas = document.createElement("canvas");
+    canvas.width = dims.width;
+    canvas.height = dims.height;
 
-  if (!blob) throw new Error("Image convert করা যাচ্ছে না।");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("তোমার browser canvas support করে না।");
 
-  while (blob.size > maxBytes && quality > minQuality) {
-    quality -= qualityStep;
-    blob = await new Promise((res) => canvas.toBlob(res, outputType, quality));
-    if (!blob) throw new Error("Compression এর সময় সমস্যা হয়েছে।");
-  }
+    ctx.clearRect(0, 0, dims.width, dims.height);
+    ctx.drawImage(img, sx, sy, side, side, 0, 0, dims.width, dims.height);
 
-  // ✅ তারপরও বেশি হলে
-  if (blob.size > maxBytes) {
-    const kb = Math.ceil(blob.size / 1024);
-    const maxKB = Math.floor(maxBytes / 1024);
+    let quality = startQuality;
 
-    if (strictLimit) {
-      throw new Error(
-        `এই image টি ${kb}KB — সর্বোচ্চ ${maxKB}KB allowed। ছোট বা সহজ image দাও।`,
+    while (quality >= minQuality) {
+      const blob = await new Promise((res) =>
+        canvas.toBlob(res, outputType, quality),
       );
-    } else {
-      console.warn(`Image ${kb}KB — max ${maxKB}KB এর বেশি, তবুও upload হবে।`);
+
+      if (blob) {
+        bestBlob = blob; // ✅ সবসময় শেষ successful blob রাখি (fallback এর জন্য)
+        if (blob.size <= maxBytes) break outer; // ✅ লক্ষ্যে পৌঁছে গেছি
+      }
+
+      quality -= qualityStep;
     }
+
+    // ✅ quality কমিয়েও কাজ হয়নি — dimension আরও ছোট করে আবার চেষ্টা
+    dims = {
+      width: Math.max(200, Math.round(dims.width * 0.8)),
+      height: Math.max(200, Math.round(dims.height * 0.8)),
+    };
   }
+
+  // ✅ guaranteed fallback (প্রায় অসম্ভব edge case): একদম ছোট সাইজে শেষ চেষ্টা
+  if (!bestBlob) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 200;
+    canvas.height = 200;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, sx, sy, side, side, 0, 0, 200, 200);
+    bestBlob = await new Promise((res) => canvas.toBlob(res, outputType, 0.5));
+  }
+
+  if (!bestBlob) throw new Error("Image convert করা যাচ্ছে না।");
+
+  // ✅ এখন থেকে আর কখনো size এর কারণে error throw হবে না —
+  // যত ছোট করা সম্ভব হয়েছে, সেটাই নিয়ে upload এগিয়ে যাবে।
 
   // ✅ file name
   const newName =
     (file.name || "image").replace(/\.[^.]+$/, "").trim() + outputExt;
 
-  return new File([blob], newName, {
+  return new File([bestBlob], newName, {
     type: outputType,
     lastModified: Date.now(),
   });
