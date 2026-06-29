@@ -117,7 +117,7 @@ export default function ImageUploader({
 
         <input
           type="file"
-          accept="image/*"
+          accept="image/*,.heic,.heif"
           className="hidden"
           disabled={processing}
           onChange={handleInputChange}

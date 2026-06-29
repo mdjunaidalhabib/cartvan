@@ -22,6 +22,49 @@ export const loadImageFromFile = (file) =>
   });
 
 /**
+ * ✅ HEIC/HEIF detect করা (iPhone-এর default photo format)
+ * - Chrome/Firefox/Edge কখনো এই format <img> এ load করতে পারে না,
+ *   তাই canvas pipeline-এ পাঠানোর আগেই JPEG-এ convert করে নিতে হয়।
+ */
+const isHeicFile = (file) => {
+  const type = (file?.type || "").toLowerCase();
+  const name = (file?.name || "").toLowerCase();
+  return (
+    type === "image/heic" ||
+    type === "image/heif" ||
+    type === "image/heic-sequence" ||
+    type === "image/heif-sequence" ||
+    name.endsWith(".heic") ||
+    name.endsWith(".heif")
+  );
+};
+
+/**
+ * ✅ HEIC/HEIF -> JPEG (heic2any দিয়ে, WebAssembly based, browser-only)
+ * dynamic import করা হয়েছে যাতে SSR/Next.js build এ সমস্যা না হয়
+ */
+const convertHeicToJpegFile = async (file) => {
+  const heic2any = (await import("heic2any")).default;
+
+  const result = await heic2any({
+    blob: file,
+    toType: "image/jpeg",
+    quality: 0.92,
+  });
+
+  // ✅ কোনো কোনো multi-image HEIC ফাইলে array রিটার্ন হতে পারে — প্রথমটা নেওয়া হলো
+  const jpegBlob = Array.isArray(result) ? result[0] : result;
+
+  const newName =
+    (file.name || "image").replace(/\.[^.]+$/, "").trim() + ".jpg";
+
+  return new File([jpegBlob], newName, {
+    type: "image/jpeg",
+    lastModified: Date.now(),
+  });
+};
+
+/**
  * ✅ Check WebP support (iOS Safari/Chrome এ false আসবে)
  */
 const checkWebPSupport = () =>
@@ -44,6 +87,19 @@ const checkWebPSupport = () =>
 export const convertToWebpUnderLimit = async (file, rule) => {
   if (!file) throw new Error("কোনো file select করা হয়নি।");
 
+  // ✅ HEIC/HEIF (iPhone default) হলে আগেই JPEG-এ convert করে নেওয়া হচ্ছে,
+  // কারণ Chrome/Firefox/Edge HEIC সরাসরি <img>-এ load করতে পারে না
+  let workingFile = file;
+  if (isHeicFile(file)) {
+    try {
+      workingFile = await convertHeicToJpegFile(file);
+    } catch (err) {
+      throw new Error(
+        "এই HEIC/HEIF ছবিটি convert করা যাচ্ছে না। অনুগ্রহ করে JPG/PNG ফরম্যাটে try করো।",
+      );
+    }
+  }
+
   const {
     width = 300,
     height = 300,
@@ -58,7 +114,7 @@ export const convertToWebpUnderLimit = async (file, rule) => {
   const outputType = supportsWebP ? "image/webp" : "image/jpeg";
   const outputExt = supportsWebP ? ".webp" : ".jpg";
 
-  const img = await loadImageFromFile(file);
+  const img = await loadImageFromFile(workingFile);
 
   const sw = img.naturalWidth;
   const sh = img.naturalHeight;
@@ -120,7 +176,7 @@ export const convertToWebpUnderLimit = async (file, rule) => {
 
   // ✅ file name
   const newName =
-    (file.name || "image").replace(/\.[^.]+$/, "").trim() + outputExt;
+    (workingFile.name || "image").replace(/\.[^.]+$/, "").trim() + outputExt;
 
   return new File([bestBlob], newName, {
     type: outputType,

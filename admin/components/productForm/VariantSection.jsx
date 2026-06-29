@@ -510,7 +510,7 @@ export default function VariantSection({
                 type="file"
                 multiple
                 hidden
-                accept="image/*"
+                accept="image/*,.heic,.heif"
                 onChange={(e) => {
                   handleFileChange(i, e.target.files);
                   e.target.value = "";
