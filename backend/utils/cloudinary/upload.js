@@ -2,9 +2,15 @@ import multer from "multer";
 import path from "path";
 
 /* ================== ✅ STORAGE ================== */
+// ⚠️ আগে শুধু Date.now() দিয়ে filename বানানো হতো — কিন্তু একই request-এ
+// (যেমন multi-variant এ ৮টা image একসাথে) একাধিক file একই millisecond-এ
+// আসলে তাদের filename একই হয়ে যেত, ফলে একটা file আরেকটার temp path
+// overwrite/delete করে দিতো এবং পরে sharp() গিয়ে "Input file is missing"
+// error দিতো। এখন Date.now() + random suffix দিয়ে guaranteed-unique filename।
 const storage = multer.diskStorage({
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    cb(null, uniqueSuffix + path.extname(file.originalname));
   },
 });
 
