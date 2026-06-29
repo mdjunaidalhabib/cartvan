@@ -17,7 +17,7 @@ const PRODUCT_IMAGE_RULE = {
   mime: "image/webp",
   width: 600,
   height: 600,
-  maxBytes: 100 * 1024, // ✅ 100KB (same as frontend)
+  maxBytes: 220 * 1024, // ✅ আগে 100KB ছিল — খুব strict হওয়ায় detail-ভরা ছবি over-compress/blurry হয়ে যেত
   allowedInputTypes: ["image/webp", "image/jpeg", "image/png"],
 };
 
@@ -89,7 +89,7 @@ const convertAndOverwriteProductImage = async (file) => {
   outer: for (let attempt = 0; attempt < 5; attempt++) {
     let quality = 90;
 
-    while (quality >= 25) {
+    while (quality >= 50) {
       try {
         const buffer = await sharp(inputPath)
           .resize(dims.width, dims.height, { fit: "cover", position: "centre" })
