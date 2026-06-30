@@ -15,9 +15,9 @@ import {
 /* ================== ✅ RULE ================== */
 const PRODUCT_IMAGE_RULE = {
   mime: "image/webp",
-  width: 1200,
-  height: 1200,
-  maxBytes: 220 * 1024, // ✅ fit:inside + withoutEnlargement দিয়ে portrait ছবি crop হয় না, aspect ratio বজায় থাকে
+  width: 800,
+  height: 800,
+  maxBytes: 220 * 1024, // ✅ dimension বাড়লেও effort+sharpen দিয়ে size প্রায় একই রাখা হচ্ছে
   allowedInputTypes: ["image/webp", "image/jpeg", "image/png"],
 };
 
@@ -43,7 +43,7 @@ const cleanupReqFiles = (req) => {
 };
 
 /**
- * ✅ Convert ANY (jpeg/png/webp) => 1200×1200 WEBP, এর কাছাকাছি সর্বোচ্চ চেষ্টায় <= 220KB (fit:inside তাই portrait ছবি নিজের ratio বজায় রাখে)
+ * ✅ Convert ANY (jpeg/png/webp) => 800×800 WEBP, এর কাছাকাছি সর্বোচ্চ চেষ্টায় <= 220KB
  * - center crop
  * - resize
  * - quality compress loop
@@ -84,7 +84,10 @@ const convertAndOverwriteProductImage = async (file) => {
   // ✅ একটা single pass যেখানে quality ও প্রয়োজনে dimension দুটোই কমানো হবে,
   // কিন্তু কখনো error throw হবে না — শেষে যা পাওয়া যায় সেটাই ব্যবহার হবে।
   let bestBuffer = null;
-  let dims = { width: PRODUCT_IMAGE_RULE.width, height: PRODUCT_IMAGE_RULE.height };
+  let dims = {
+    width: PRODUCT_IMAGE_RULE.width,
+    height: PRODUCT_IMAGE_RULE.height,
+  };
 
   outer: for (let attempt = 0; attempt < 5; attempt++) {
     let quality = 90;
@@ -93,7 +96,7 @@ const convertAndOverwriteProductImage = async (file) => {
       try {
         const buffer = await sharp(inputPath)
           .resize(dims.width, dims.height, {
-            fit: "inside",            // ✅ "cover" বাদ — cover ছবি crop করতো, inside পুরো প্রডাক্ট দেখায়
+            fit: "inside", // ✅ "cover" বাদ — cover ছবি crop করতো, inside পুরো প্রডাক্ট দেখায়
             withoutEnlargement: true, // ✅ ছোট ইমেজকে জোর করে বড় করা বন্ধ — upscale মানেই blur
             background: { r: 255, g: 255, b: 255, alpha: 1 }, // ✅ বাকি জায়গা সাদা background দিয়ে ভরাট
           })
@@ -184,7 +187,7 @@ export const getProductByIdAdmin = async (req, res) => {
 /* ================== ✅ CREATE ================== */
 export const createProduct = async (req, res) => {
   try {
-    // ✅ convert ALL uploaded files first (guaranteed webp 1200×1200 <= 220KB (fit:inside তাই portrait ছবি নিজের ratio বজায় রাখে))
+    // ✅ convert ALL uploaded files first (guaranteed webp 800×800 <= 220KB)
     await convertAllReqFiles(req);
 
     const {
@@ -332,7 +335,7 @@ export const createProduct = async (req, res) => {
 /* ================== ✅ UPDATE ================== */
 export const updateProduct = async (req, res) => {
   try {
-    // ✅ convert ALL uploaded files first (guaranteed webp 1200×1200 <= 220KB (fit:inside তাই portrait ছবি নিজের ratio বজায় রাখে))
+    // ✅ convert ALL uploaded files first (guaranteed webp 800×800 <= 220KB)
     await convertAllReqFiles(req);
 
     const product = await Product.findById(req.params.id);

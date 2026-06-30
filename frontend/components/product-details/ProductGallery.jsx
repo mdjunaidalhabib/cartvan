@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { optimizeCloudinaryUrl } from "../../lib/utils";
 
 export default function ProductGallery({
   images,
@@ -9,14 +10,15 @@ export default function ProductGallery({
 }) {
   return (
     <div className="bg-pink-50 rounded-xl">
-      <div className="relative w-full aspect-[4/4] max-h-[600px] rounded-lg overflow-hidden bg-white group mx-auto">
+      {/* ✅ aspect-[3/4] + object-contain: badhonsworld.com এর মতো full product দেখায়, crop হয় না */}
+      <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden bg-white group mx-auto">
         <Image
-          src={images[activeIdx] || "/no-image.png"}
+          src={optimizeCloudinaryUrl(images[activeIdx]) || "/no-image.png"}
           alt={productName}
           fill
           priority
           sizes="(max-width: 1024px) 100vw, 50vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-110"
+          className="object-contain p-2 transition-transform duration-500 group-hover:scale-105"
         />
 
         {isOutOfStock && (
@@ -47,7 +49,7 @@ export default function ProductGallery({
                 fill
                 sizes="56px"
                 loading="lazy"
-                className="object-cover"
+                className="object-contain p-0.5"
               />
             </button>
           ))}
