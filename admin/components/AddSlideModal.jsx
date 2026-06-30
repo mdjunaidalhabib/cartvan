@@ -7,7 +7,7 @@ const SLIDER_IMAGE_RULE = {
   type: "image/webp",
   width: 1500,
   height: 500,
-  maxBytes: 100 * 1024, // ✅ 100KB
+  maxBytes: 100 * 1024, // ✅ 100KB 
 };
 
 export default function AddSlideModal({
