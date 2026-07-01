@@ -32,13 +32,13 @@ export default function ProductCard({ product, onEdit, onDelete }) {
       `}
     >
       {/* 🖼️ Product Image */}
-      <div className="w-full h-40 overflow-hidden rounded-lg mb-3 relative bg-gray-50">
+      <div className="w-full aspect-square overflow-hidden rounded-lg mb-3 relative bg-gray-50">
         {displayImage ? (
           <img
             src={displayImage}
             alt={product.name}
-            className={`w-full h-full object-cover transition-transform duration-300
-              ${isHidden ? "brightness-90" : "hover:scale-105"}
+            className={`w-full h-full object-contain p-1 transition-opacity duration-300
+              ${isHidden ? "brightness-90" : ""}
             `}
           />
         ) : (
