@@ -15,13 +15,13 @@ export function optimizeCloudinaryUrl(url) {
   if (
     url.includes("q_auto") ||
     url.includes("f_auto") ||
-    url.includes("c_pad")
+    url.includes("c_limit")
   ) {
     return url;
   }
 
   return url.replace(
     "/upload/",
-    "/upload/c_pad,b_white,w_900,h_900,q_auto:good,f_auto,dpr_auto/",
+    "/upload/c_limit,w_1200,h_1200,q_auto:best,f_auto,dpr_auto/",
   );
 }
