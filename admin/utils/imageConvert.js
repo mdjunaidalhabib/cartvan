@@ -118,24 +118,27 @@ export const convertToWebpUnderLimit = async (file, rule) => {
 
   const sw = img.naturalWidth;
   const sh = img.naturalHeight;
-  const side = Math.min(sw, sh);
-  const sx = Math.floor((sw - side) / 2);
-  const sy = Math.floor((sh - side) / 2);
 
   let dims = { width, height };
   let bestBlob = null;
 
   // ✅ প্রথমে quality কমিয়ে চেষ্টা, তারপরও বড় হলে dimension ছোট করে আবার চেষ্টা
   outer: for (let attempt = 0; attempt < 5; attempt++) {
+    // ✅ fit:inside — aspect ratio বজায় রেখে max dimension এর মধ্যে রাখো
+    // (sharp এর fit:"inside" এর মতো — portrait ছবি crop হবে না)
+    const ratio = Math.min(dims.width / sw, dims.height / sh, 1); // withoutEnlargement
+    const canvasW = Math.round(sw * ratio);
+    const canvasH = Math.round(sh * ratio);
+
     const canvas = document.createElement("canvas");
-    canvas.width = dims.width;
-    canvas.height = dims.height;
+    canvas.width = canvasW;
+    canvas.height = canvasH;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("তোমার browser canvas support করে না।");
 
-    ctx.clearRect(0, 0, dims.width, dims.height);
-    ctx.drawImage(img, sx, sy, side, side, 0, 0, dims.width, dims.height);
+    ctx.clearRect(0, 0, canvasW, canvasH);
+    ctx.drawImage(img, 0, 0, sw, sh, 0, 0, canvasW, canvasH);
 
     let quality = startQuality;
 
@@ -161,11 +164,14 @@ export const convertToWebpUnderLimit = async (file, rule) => {
 
   // ✅ guaranteed fallback (প্রায় অসম্ভব edge case): একদম ছোট সাইজে শেষ চেষ্টা
   if (!bestBlob) {
+    const fbRatio = Math.min(200 / sw, 200 / sh, 1);
+    const fbW = Math.round(sw * fbRatio);
+    const fbH = Math.round(sh * fbRatio);
     const canvas = document.createElement("canvas");
-    canvas.width = 200;
-    canvas.height = 200;
+    canvas.width = fbW;
+    canvas.height = fbH;
     const ctx = canvas.getContext("2d");
-    ctx.drawImage(img, sx, sy, side, side, 0, 0, 200, 200);
+    ctx.drawImage(img, 0, 0, sw, sh, 0, 0, fbW, fbH);
     bestBlob = await new Promise((res) => canvas.toBlob(res, outputType, 0.5));
   }
 

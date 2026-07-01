@@ -5,10 +5,10 @@ import { convertToWebpUnderLimit } from "../utils/imageConvert";
 
 export const DEFAULT_IMAGE_RULE = {
   type: "image/webp",
-  width: 300,
-  height: 300,
-  maxBytes: 100 * 1024,
-  minQuality: 0.2,
+  width: 1200,
+  height: 1200,
+  maxBytes: 220 * 1024,
+  minQuality: 0.55,
   qualityStep: 0.05,
   strictLimit: true,
 };

@@ -32,7 +32,7 @@ export default function ProductCard({ product, onEdit, onDelete }) {
       `}
     >
       {/* 🖼️ Product Image */}
-      <div className="w-full aspect-square overflow-hidden rounded-lg mb-3 relative bg-gray-50">
+      <div className="w-full aspect-[4/5] overflow-hidden rounded-lg mb-3 relative bg-gray-50">
         {displayImage ? (
           <img
             src={displayImage}

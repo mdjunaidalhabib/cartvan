@@ -29,8 +29,8 @@ import { convertToWebpUnderLimit } from "../../utils/imageConvert";
 const IMAGE_RULE = {
   type: "image/webp",
   maxBytes: 220 * 1024,
-  width: 600,
-  height: 600,
+  width: 1200,
+  height: 1200,
   startQuality: 0.92,
   minQuality: 0.55,
   qualityStep: 0.05,

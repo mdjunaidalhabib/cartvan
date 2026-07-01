@@ -6,7 +6,7 @@ export default function ProductGridSkeleton({ count = 10 }) {
           key={i}
           className="bg-white rounded-xl shadow p-3 animate-pulse"
         >
-          <div className="w-full aspect-square bg-gray-200 rounded-lg mb-3" />
+          <div className="w-full aspect-[4/5] bg-gray-200 rounded-lg mb-3" />
           <div className="h-4 bg-gray-200 rounded mb-2" />
           <div className="h-4 w-2/3 bg-gray-200 rounded" />
         </div>

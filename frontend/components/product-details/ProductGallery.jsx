@@ -11,7 +11,7 @@ export default function ProductGallery({
   return (
     <div className="bg-pink-50 rounded-xl">
       {/* ✅ aspect-[3/4] + object-contain: badhonsworld.com এর মতো full product দেখায়, crop হয় না */}
-      <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-white mx-auto">
+      <div className="relative w-full aspect-[4/5] rounded-lg overflow-hidden bg-white mx-auto">
         <Image
           src={optimizeCloudinaryUrl(images[activeIdx]) || "/no-image.png"}
           alt={productName}
