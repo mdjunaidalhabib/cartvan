@@ -72,7 +72,7 @@ const ProductCard = memo(({ product, priority = false }) => {
     <div className="relative bg-pink-100 shadow-md rounded-lg hover:shadow-lg transition flex flex-col group">
       <Link
         href={`/products/${productId}`}
-        className="relative w-full aspect-[4/5] mb-1 overflow-hidden rounded-lg bg-white"
+        className="relative w-full aspect-[4/5] mb-1 overflow-hidden rounded-lg"
       >
         <div className="absolute top-1 left-1 right-1 flex justify-between z-10">
           {product?.oldPrice && (
@@ -105,7 +105,7 @@ const ProductCard = memo(({ product, priority = false }) => {
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
           priority={priority}
           loading={priority ? "eager" : "lazy"}
-          className="object-contain p-1 rounded-lg transition-transform duration-500 group-hover:scale-105"
+          className="object-cover rounded-lg transition-transform duration-500 group-hover:scale-105"
         />
       </Link>
 

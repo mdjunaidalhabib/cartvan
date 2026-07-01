@@ -124,11 +124,13 @@ export default function ProductDetailsClient({
     );
   };
 
-  return (
-    <main className="container mx-auto px-4 sm:px-6 lg:px-8 mt-4 md:py-8">
-      <ProductBreadcrumb product={product} category={category} />
+return (
+  <main className="container mx-auto px-4 sm:px-6 lg:px-8 mt-4 md:py-8">
+    <ProductBreadcrumb product={product} category={category} />
 
-      <section className="bg-pink-50 rounded-2xl grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 overflow-hidden">
+    <section className="bg-pink-50 rounded-2xl grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 overflow-hidden">
+      {/* Product Gallery */}
+      <div className="lg:col-span-7">
         <ProductGallery
           images={images}
           activeIdx={activeIdx}
@@ -136,41 +138,43 @@ export default function ProductDetailsClient({
           productName={product.name}
           isOutOfStock={isOutOfStock}
         />
+      </div>
 
-        <div className="flex flex-col md:px-6 md:py-6 bg-pink-50 gap-4">
-          <ProductInfo
-            product={product}
-            category={category}
-            isOutOfStock={isOutOfStock}
-            currentStock={currentStock}
-            soldCount={soldCount}
-            hasOldPrice={hasOldPrice}
-            discountPct={discountPct}
-            isInWishlist={isInWishlist}
-            toggleWishlist={toggleWishlist}
-            selectedColor={selectedColor}
-            setSelectedColor={(c) => {
-              setSelectedColor(c);
-              setActiveIdx(0);
-            }}
-          />
+      {/* Product Info */}
+      <div className="lg:col-span-5 flex flex-col md:px-6 md:py-6 bg-pink-50 gap-4">
+        <ProductInfo
+          product={product}
+          category={category}
+          isOutOfStock={isOutOfStock}
+          currentStock={currentStock}
+          soldCount={soldCount}
+          hasOldPrice={hasOldPrice}
+          discountPct={discountPct}
+          isInWishlist={isInWishlist}
+          toggleWishlist={toggleWishlist}
+          selectedColor={selectedColor}
+          setSelectedColor={(c) => {
+            setSelectedColor(c);
+            setActiveIdx(0);
+          }}
+        />
 
-          <PurchaseActions
-            product={product}
-            cartKey={cartKey}
-            quantity={quantity}
-            totalPrice={totalPrice}
-            isOutOfStock={isOutOfStock}
-            currentStock={currentStock}
-            updateCart={updateCart}
-            handleCheckout={handleCheckout}
-          />
-        </div>
-      </section>
+        <PurchaseActions
+          product={product}
+          cartKey={cartKey}
+          quantity={quantity}
+          totalPrice={totalPrice}
+          isOutOfStock={isOutOfStock}
+          currentStock={currentStock}
+          updateCart={updateCart}
+          handleCheckout={handleCheckout}
+        />
+      </div>
+    </section>
 
-      <ProductTabs product={product} tab={tab} setTab={setTab} />
-      <FacebookGroupLink />
-      <RelatedProducts related={related} />
-    </main>
-  );
+    <ProductTabs product={product} tab={tab} setTab={setTab} />
+    <FacebookGroupLink />
+    <RelatedProducts related={related} />
+  </main>
+);
 }

@@ -96,9 +96,9 @@ const convertAndOverwriteProductImage = async (file) => {
       try {
         const buffer = await sharp(inputPath)
           .resize(dims.width, dims.height, {
-            fit: "inside", // ✅ "cover" বাদ — cover ছবি crop করতো, inside পুরো প্রডাক্ট দেখায়
+            fit: "cover", // ✅ ফ্রেম পুরোপুরি ভরাট করে crop করে — কোনো সাদা জায়গা/padding থাকবে না
+            position: "attention", // ✅ ছবির সবচেয়ে গুরুত্বপূর্ণ অংশ (subject) কেন্দ্র করে crop করে
             withoutEnlargement: true, // ✅ ছোট ইমেজকে জোর করে বড় করা বন্ধ — upscale মানেই blur
-            background: { r: 255, g: 255, b: 255, alpha: 1 }, // ✅ বাকি জায়গা সাদা background দিয়ে ভরাট
           })
           .sharpen({ sigma: 1.2, m1: 1.5, m2: 0.7 }) // ✅ default sharpen এর চেয়ে বেশি কার্যকর — detail/text এর edge ধরে রাখে
           .webp({ quality, effort: 6 }) // ✅ effort:6 → একই quality-তে স্মার্ট কম্প্রেশন
@@ -127,9 +127,9 @@ const convertAndOverwriteProductImage = async (file) => {
   if (!bestBuffer) {
     bestBuffer = await sharp(inputPath)
       .resize(400, 400, {
-        fit: "inside",
+        fit: "cover",
+        position: "attention",
         withoutEnlargement: true,
-        background: { r: 255, g: 255, b: 255, alpha: 1 },
       })
       .sharpen({ sigma: 1.2, m1: 1.5, m2: 0.7 })
       .webp({ quality: 65, effort: 6 })

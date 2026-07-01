@@ -37,7 +37,7 @@ export default function ProductCard({ product, onEdit, onDelete }) {
           <img
             src={displayImage}
             alt={product.name}
-            className={`w-full h-full object-contain p-1 transition-opacity duration-300
+            className={`w-full h-full object-cover transition-opacity duration-300
               ${isHidden ? "brightness-90" : ""}
             `}
           />

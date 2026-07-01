@@ -9,16 +9,16 @@ export default function ProductGallery({
   isOutOfStock,
 }) {
   return (
-    <div className="bg-pink-50 rounded-xl">
-      {/* ✅ aspect-[3/4] + object-contain: badhonsworld.com এর মতো full product দেখায়, crop হয় না */}
-      <div className="relative w-full aspect-[4/5] rounded-lg overflow-hidden bg-white mx-auto">
+    <div className="bg-pink-50 rounded-xl p-2">
+      {/* Main Image */}
+      <div className="relative w-full max-w-[520px] sm:max-w-[560px] md:max-w-[580px] mx-auto aspect-square rounded-xl overflow-hidden bg-white shadow-sm">
         <Image
           src={optimizeCloudinaryUrl(images[activeIdx]) || "/no-image.png"}
           alt={productName}
           fill
           priority
-          sizes="(max-width: 1024px) 100vw, 50vw"
-          className="object-contain p-2 transition-transform duration-500 group-hover:scale-105"
+          sizes="(max-width:768px) 100vw, (max-width:1280px) 60vw, 55vw"
+          className="object-contain object-center p-0 transition-transform duration-300 hover:scale-105"
         />
 
         {isOutOfStock && (
@@ -30,26 +30,27 @@ export default function ProductGallery({
         )}
       </div>
 
+      {/* Thumbnails */}
       {images.length > 1 && (
-        <div className="mt-2 flex gap-2 justify-center overflow-x-auto no-scrollbar py-1">
+        <div className="mt-4 flex justify-center gap-3 overflow-x-auto no-scrollbar pb-2">
           {images.map((src, i) => (
             <button
-              type="button"
               key={i}
+              type="button"
               onClick={() => setActiveIdx(i)}
-              className={`relative w-14 h-14 rounded-md overflow-hidden border-2 transition-all ${
+              className={`relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all ${
                 i === activeIdx
-                  ? "border-pink-600 ring-1 ring-pink-400"
-                  : "border-transparent"
+                  ? "border-pink-600 ring-2 ring-pink-300"
+                  : "border-gray-200 hover:border-pink-400"
               }`}
             >
               <Image
-                src={src}
-                alt={`thumb-${i}`}
+                src={optimizeCloudinaryUrl(src) || "/no-image.png"}
+                alt={`${productName}-${i}`}
                 fill
-                sizes="56px"
                 loading="lazy"
-                className="object-contain p-0.5"
+                sizes="80px"
+                className="object-cover"
               />
             </button>
           ))}
