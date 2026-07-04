@@ -49,9 +49,21 @@ router.get(
     const clientUrl = clientUrls.split(",")[0].trim();
 
     // state param থেকে redirect (optional)
-    const redirect = req.query.state
+    let redirect = req.query.state
       ? decodeURIComponent(req.query.state)
       : "/";
+
+    // ✅ Safety net: কেউ যদি ভুলবশত/পুরনো link থেকে পুরো URL (origin সহ) পাঠায়,
+    // সেখান থেকে শুধু path+search বের করে নেওয়া হচ্ছে। নাহলে cartvan.com এবং
+    // www.cartvan.com এর মধ্যে redirect হলে localStorage token হারিয়ে যায়।
+    if (/^https?:\/\//i.test(redirect)) {
+      try {
+        const parsed = new URL(redirect);
+        redirect = parsed.pathname + parsed.search;
+      } catch {
+        redirect = "/";
+      }
+    }
 
     // সবসময় /auth/callback এ পাঠানো হবে
     res.redirect(

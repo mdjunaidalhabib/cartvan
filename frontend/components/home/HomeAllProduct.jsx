@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import ProductCard from "./ProductCard";
 import ProductCardSkeleton from "../skeletons/ProductCardSkeleton";
@@ -9,71 +9,120 @@ import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import cloudinaryLoader from "../../lib/cloudinaryLoader";
 import OfferBadges from "./OfferBadges";
-import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+
+// ── Mouse drag-to-scroll hook ───────────────────────────────
+// ✅ যেকোনো horizontal scroll container-এ mouse দিয়ে click-and-drag করে
+// scroll করার জন্য। Card বা image-এর ভিতরে ক্লিক করলেও কাজ করবে, কিন্তু
+// সত্যিকারের ক্লিক (drag ছাড়া) স্বাভাবিকভাবে product page-এ navigate করবে —
+// কারণ ছোট movement কে drag হিসেবে ধরা হয় না।
+// ⚠️ Fix: draggable="false" না থাকলে <img>/<Image>-এর নিজস্ব native drag
+// (HTML5 image drag, ghost preview) ব্রাউজারের mousemove trap করে নেয় এবং
+// আমাদের কাস্টম scroll লজিক আর কাজ করে না। তাই container-এর ভিতরের সব image-এ
+// draggable={false} বসানো হয়েছে (ProductCard/HorizontalScrollRow wrapper-এ)।
+function useDragScroll(ref) {
+  const state = useRef({
+    isDown: false,
+    startX: 0,
+    scrollLeft: 0,
+    moved: false,
+  });
+
+  const onMouseDown = useCallback(
+    (e) => {
+      const el = ref.current;
+      if (!el) return;
+      state.current.isDown = true;
+      state.current.moved = false;
+      state.current.startX = e.pageX - el.offsetLeft;
+      state.current.scrollLeft = el.scrollLeft;
+      el.classList.add("cursor-grabbing");
+    },
+    [ref],
+  );
+
+  const endDrag = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    state.current.isDown = false;
+    el.classList.remove("cursor-grabbing");
+  }, [ref]);
+
+  const onMouseMove = useCallback(
+    (e) => {
+      const el = ref.current;
+      if (!el || !state.current.isDown) return;
+      // prevent native image ghost-drag/text-selection from hijacking the move
+      e.preventDefault();
+      const x = e.pageX - el.offsetLeft;
+      const walk = x - state.current.startX;
+      if (Math.abs(walk) > 5) state.current.moved = true;
+      el.scrollLeft = state.current.scrollLeft - walk;
+    },
+    [ref],
+  );
+
+  // ✅ drag করার সময় ভিতরের লিংক/বাটনে যেন accidental click না লাগে
+  const onClickCapture = useCallback((e) => {
+    if (state.current.moved) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, []);
+
+  // ✅ native browser image-drag (dragstart) বন্ধ করে দাও, যাতে
+  // image-এর উপর mouse down/move করলেও আমাদের custom scroll কাজ করে
+  const onDragStart = useCallback((e) => {
+    e.preventDefault();
+  }, []);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    window.addEventListener("mouseup", endDrag);
+    window.addEventListener("mouseleave", endDrag);
+    return () => {
+      window.removeEventListener("mouseup", endDrag);
+      window.removeEventListener("mouseleave", endDrag);
+    };
+  }, [ref, endDrag]);
+
+  return {
+    onMouseDown,
+    onMouseMove,
+    onMouseUp: endDrag,
+    onMouseLeave: endDrag,
+    onClickCapture,
+    onDragStart,
+  };
+}
 
 // ── Horizontal scroll row (peek style) ─────────────────────
 // ✅ mobile-এ ~2টা কার্ড পুরোপুরি + পরের কার্ডের কিছুটা অংশ দেখা যায়,
 // desktop-এ ~5টা কার্ড পুরোপুরি + পরের কার্ডের কিছুটা অংশ দেখা যায় —
 // এতে ইউজার বুঝতে পারে যে আরও প্রোডাক্ট আছে (scroll করার hint)।
 // ✅ scrollbar সম্পূর্ণ hidden (Chrome/Safari/Firefox সব জায়গায়)।
+// ✅ মাউস দিয়ে click-and-drag করেও scroll করা যাবে — image-এর উপর
+// ক্লিক করেও এখন drag/scroll কাজ করে (arrow বাটন সরিয়ে দেওয়া হয়েছে)।
 function HorizontalScrollRow({ children, className = "" }) {
   const ref = useRef(null);
-  const [canLeft, setCanLeft] = useState(false);
-  const [canRight, setCanRight] = useState(false);
-
-  const update = () => {
-    const el = ref.current;
-    if (!el) return;
-    setCanLeft(el.scrollLeft > 4);
-    setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
-  };
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const t = setTimeout(update, 100);
-    el.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update);
-    return () => {
-      clearTimeout(t);
-      el.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-    };
-  }, [children]);
-
-  const scroll = (dir) => {
-    const el = ref.current;
-    if (!el) return;
-    el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: "smooth" });
-  };
+  const drag = useDragScroll(ref);
 
   return (
     <div className={`relative flex items-center ${className}`}>
-      <button
-        onClick={() => scroll(-1)}
-        className={`hidden md:flex absolute left-0 z-10 -translate-x-1/2 w-8 h-8 items-center justify-center rounded-full bg-white border shadow transition-opacity duration-200 ${
-          canLeft ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
-      >
-        <ChevronLeft className="w-4 h-4" />
-      </button>
-
       <div
         ref={ref}
-        className="flex gap-2 sm:gap-3 w-full overflow-x-auto py-2 [&::-webkit-scrollbar]:hidden"
+        className="flex gap-2 sm:gap-3 w-full overflow-x-auto py-2 cursor-grab select-none [&::-webkit-scrollbar]:hidden"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        onMouseDown={drag.onMouseDown}
+        onMouseMove={drag.onMouseMove}
+        onMouseUp={drag.onMouseUp}
+        onMouseLeave={drag.onMouseLeave}
+        onClickCapture={drag.onClickCapture}
+        onDragStart={drag.onDragStart}
       >
         {children}
       </div>
-
-      <button
-        onClick={() => scroll(1)}
-        className={`hidden md:flex absolute right-0 z-10 translate-x-1/2 w-8 h-8 items-center justify-center rounded-full bg-white border shadow transition-opacity duration-200 ${
-          canRight ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
-      >
-        <ChevronRight className="w-4 h-4" />
-      </button>
     </div>
   );
 }
@@ -99,7 +148,12 @@ const FILTER_HASH_MAP = {
   bestDiscount: "best-discount",
 };
 
-// ── Staggered product grid (filter view) ───────────────────
+// ── Filtered products row (Free Delivery / Best Discount / Cartvan Box) ──
+// ✅ প্রোডাক্ট সংখ্যা যাই হোক না কেন (৫টা বা তার বেশি) — Free Delivery,
+// Best Discount এবং Cartvan Box সবসময় একই normal wrap grid design
+// দেখাবে। এতে item সংখ্যা বেশি হলেও card গুলো "সরু/সুতো" না হয়ে
+// স্বাভাবিক size ধরে সারিতে বসে, এবং তিনটা section-ই consistent
+// দেখায় — horizontal scroll ব্যবহার হয় না এখানে।
 function ProductGrid({ products }) {
   const container = {
     hidden: {},
@@ -112,7 +166,7 @@ function ProductGrid({ products }) {
 
   return (
     <motion.div
-      className="flex flex-wrap gap-3"
+      className="flex flex-wrap gap-2 sm:gap-3"
       variants={container}
       initial="hidden"
       animate="show"
@@ -121,7 +175,7 @@ function ProductGrid({ products }) {
         <motion.div
           key={prod._id}
           variants={item}
-          className="w-[140px] sm:w-[170px] flex-shrink-0"
+          className="w-[44%] md:w-[19%] flex-shrink-0"
         >
           <ProductCard product={prod} />
         </motion.div>
@@ -138,6 +192,9 @@ export default function CategoryTabsSection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [activeFilter, setActiveFilter] = useState(null);
+
+  const categoryNavRef = useRef(null);
+  const categoryNavDrag = useDragScroll(categoryNavRef);
 
   // ✅ Badge ক্লিক করলে এখন hash-ও সেট হয় — এতে cross-page navigation,
   // browser back/forward, এবং URL শেয়ার করা সবকিছুই badge ক্লিকের সাথে
@@ -263,10 +320,18 @@ export default function CategoryTabsSection() {
       </div>
 
       {/* Category Nav */}
-      {/* ✅ scrollbar সম্পূর্ণ hidden + category বাটন আগের চেয়ে স্লিম */}
+      {/* ✅ scrollbar সম্পূর্ণ hidden + category বাটন আগের চেয়ে স্লিম
+          ✅ মাউস দিয়ে drag করেও scroll করা যাবে */}
       <div
-        className="mb-6 px-2 overflow-x-auto [&::-webkit-scrollbar]:hidden"
+        ref={categoryNavRef}
+        className="mb-6 px-2 overflow-x-auto cursor-grab select-none [&::-webkit-scrollbar]:hidden"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        onMouseDown={categoryNavDrag.onMouseDown}
+        onMouseMove={categoryNavDrag.onMouseMove}
+        onMouseUp={categoryNavDrag.onMouseUp}
+        onMouseLeave={categoryNavDrag.onMouseLeave}
+        onClickCapture={categoryNavDrag.onClickCapture}
+        onDragStart={categoryNavDrag.onDragStart}
       >
         {/* Mobile: 2 Rows */}
         <div className="md:hidden w-max space-y-1.5">
@@ -289,6 +354,7 @@ export default function CategoryTabsSection() {
                     fill
                     sizes="32px"
                     className="object-cover"
+                    draggable={false}
                   />
                 </div>
 
@@ -318,6 +384,7 @@ export default function CategoryTabsSection() {
                     fill
                     sizes="32px"
                     className="object-cover"
+                    draggable={false}
                   />
                 </div>
 
@@ -348,6 +415,7 @@ export default function CategoryTabsSection() {
                   fill
                   sizes="36px"
                   className="object-cover"
+                  draggable={false}
                 />
               </div>
 
@@ -363,7 +431,7 @@ export default function CategoryTabsSection() {
       <div className="space-y-8">
         <AnimatePresence mode="wait">
           {activeFilter ? (
-            /* ── Filter view ── */
+            /* ── Filter view (Free Delivery / Best Discount / Cartvan Box) ── */
             <motion.div
               key={activeFilter}
               initial={{ opacity: 0, y: 12 }}
@@ -377,7 +445,7 @@ export default function CategoryTabsSection() {
                     "🚚 Free Delivery Products"}
                   {activeFilter === "bestDiscount" &&
                     "🛍️ Best Discount Products"}
-                  {activeFilter === "cartvanBox" && "🎁 Cartvan Box Products"}
+                  {activeFilter === "cartvanBox" && "🎁 Treasure Box Products"}
                 </h2>
                 <div className="flex-1 h-px bg-gray-200" />
                 <button
@@ -426,6 +494,7 @@ export default function CategoryTabsSection() {
                           alt={cat.name}
                           fill
                           className="object-cover"
+                          draggable={false}
                         />
                       </div>
 
@@ -445,19 +514,36 @@ export default function CategoryTabsSection() {
                       </button>
                     </div>
 
-                    {/* ✅ mobile-এ ~2টা + desktop-এ ~5টা কার্ড পুরোপুরি
-                        দেখা যায়, পরের কার্ডের কিছু অংশ (peek) দেখা যায়
-                        যাতে বোঝা যায় আরও প্রোডাক্ট আছে */}
-                    <HorizontalScrollRow>
-                      {catProducts.map((prod) => (
-                        <div
-                          key={prod._id}
-                          className="w-[44%] md:w-[19%] flex-shrink-0"
-                        >
-                          <ProductCard product={prod} />
-                        </div>
-                      ))}
-                    </HorizontalScrollRow>
+                    {/* ✅ ৬টা বা তার বেশি প্রোডাক্ট থাকলে mobile-এ ~2টা +
+                        desktop-এ ~5টা কার্ড পুরোপুরি দেখা যায়, পরের
+                        কার্ডের কিছু অংশ (peek) দেখা যায় যাতে বোঝা যায়
+                        আরও প্রোডাক্ট আছে (HorizontalScrollRow + drag scroll)।
+                        ✅ ৫টা বা তার কম প্রোডাক্ট থাকলে normal wrap grid
+                        দেখায়, যাতে card গুলো ফাঁকা জায়গা রেখে "সরু/সুতো"
+                        না দেখিয়ে স্বাভাবিক size ধরে সারিতে বসে। */}
+                    {catProducts.length <= 5 ? (
+                      <div className="flex flex-wrap gap-2 sm:gap-3">
+                        {catProducts.map((prod) => (
+                          <div
+                            key={prod._id}
+                            className="w-[44%] md:w-[19%] flex-shrink-0"
+                          >
+                            <ProductCard product={prod} />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <HorizontalScrollRow>
+                        {catProducts.map((prod) => (
+                          <div
+                            key={prod._id}
+                            className="w-[44%] md:w-[19%] flex-shrink-0"
+                          >
+                            <ProductCard product={prod} />
+                          </div>
+                        ))}
+                      </HorizontalScrollRow>
+                    )}
                   </div>
                 );
               })}

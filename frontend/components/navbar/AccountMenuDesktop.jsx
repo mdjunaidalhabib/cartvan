@@ -48,9 +48,10 @@ export default function AccountMenuDesktop() {
     return (
       <button
         onClick={() => {
-          const currentUrl = window.location.href;
+          // ✅ শুধু path পাঠানো হচ্ছে, origin না — cross-domain redirect এ token হারানো ঠেকাতে
+          const currentPath = window.location.pathname + window.location.search;
           window.location.href = `/api/auth/google?redirect=${encodeURIComponent(
-            currentUrl
+            currentPath
           )}`;
         }}
         className="p-2 rounded hover:bg-pink-300 flex items-center gap-1"

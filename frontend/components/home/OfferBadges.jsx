@@ -41,7 +41,7 @@ const badges = [
   },
   {
     key: "cartvanBox",
-    label: "Cartvan Box",
+    label: "Treasure Box",
     Icon: FaGift,
     streakColor: "from-transparent via-rose-200/90 to-transparent",
     glowColor: "rgba(251,113,133,0.55)",

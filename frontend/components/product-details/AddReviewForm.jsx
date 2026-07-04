@@ -16,10 +16,11 @@ export default function AddReviewForm({ productId, onSuccess }) {
   }, []);
 
   const goLogin = () => {
-    const currentUrl = window.location.href;
+    // ✅ শুধু path পাঠানো হচ্ছে, origin না — www/non-www cross-domain এ token হারানো ঠেকাতে
+    const currentPath = window.location.pathname + window.location.search;
     window.location.href = `${
       "/api"
-    }/auth/google?redirect=${encodeURIComponent(currentUrl)}`;
+    }/auth/google?redirect=${encodeURIComponent(currentPath)}`;
   };
 
   const openModal = () => {

@@ -37,8 +37,10 @@ export default function AccountMenuMobile({ onOpen }) {
           open={confirmOpen}
           message="আপনি কি Google দিয়ে লগইন করতে চান?"
           onConfirm={() => {
-            const currentUrl = window.location.href;
-            window.location.href = `/api/auth/google?redirect=${encodeURIComponent(currentUrl)}`;
+            // ✅ শুধু path পাঠানো হচ্ছে, origin না — যাতে cartvan.com / www.cartvan.com
+            // এর মধ্যে redirect করলে token (localStorage) হারিয়ে না যায়
+            const currentPath = window.location.pathname + window.location.search;
+            window.location.href = `/api/auth/google?redirect=${encodeURIComponent(currentPath)}`;
           }}
           onCancel={() => setConfirmOpen(false)}
         />

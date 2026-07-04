@@ -70,21 +70,23 @@ export default function CheckoutButton({
 
     try {
       // ✅ build checkout url (product OR cart)
+      // ✅ শুধু path পাঠানো হচ্ছে, origin (www vs non-www) বাদ দিয়ে —
+      // নাহলে Google login এর পর ভিন্ন domain এ redirect হলে token/localStorage হারিয়ে যায়
       const checkoutUrl = (() => {
         // ✅ cart checkout
         if (Array.isArray(checkoutItems) && checkoutItems.length > 0) {
           const payload = encodeURIComponent(JSON.stringify(checkoutItems));
-          return `${window.location.origin}/checkout?items=${payload}`;
+          return `/checkout?items=${payload}`;
         }
 
         // ✅ single product checkout (include color + stock)
         if (productId) {
           const c = color ? `&color=${encodeURIComponent(color)}` : "";
           const s = `&stock=${encodeURIComponent(String(currentStock))}`;
-          return `${window.location.origin}/checkout?productId=${productId}&qty=${qty}${c}${s}`;
+          return `/checkout?productId=${productId}&qty=${qty}${c}${s}`;
         }
 
-        return `${window.location.origin}/checkout`;
+        return `/checkout`;
       })();
 
       // 🔹 User not logged in → redirect to Google Auth
