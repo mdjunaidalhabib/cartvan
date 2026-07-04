@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import ProductCard from "./ProductCard";
 import ProductCardSkeleton from "../skeletons/ProductCardSkeleton";
 import { apiFetch } from "../../utils/api";
@@ -8,20 +9,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import cloudinaryLoader from "../../lib/cloudinaryLoader";
 import OfferBadges from "./OfferBadges";
-import { ChevronLeft, ChevronRight, ArrowRight, ChevronUp } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 
-// ── Horizontal scroll row ─────────────────────────────────
-// ✅ wrap prop যুক্ত: wrap=false হলে আগের মতো horizontal scroll row,
-// wrap=true হলে flex-wrap করে সব card একসাথে দেখায় — কিন্তু এটা একই DOM
-// element-গুলোকে রিইউজ করে (remount করে না), তাই "All" ক্লিক করলে card
-// চলে যাওয়া-আসার "dhakka" jump হয় না।
-function HorizontalScrollRow({ children, className = "", wrap = false }) {
+// ── Horizontal scroll row (peek style) ─────────────────────
+// ✅ mobile-এ ~2টা কার্ড পুরোপুরি + পরের কার্ডের কিছুটা অংশ দেখা যায়,
+// desktop-এ ~5টা কার্ড পুরোপুরি + পরের কার্ডের কিছুটা অংশ দেখা যায় —
+// এতে ইউজার বুঝতে পারে যে আরও প্রোডাক্ট আছে (scroll করার hint)।
+// ✅ scrollbar সম্পূর্ণ hidden (Chrome/Safari/Firefox সব জায়গায়)।
+function HorizontalScrollRow({ children, className = "" }) {
   const ref = useRef(null);
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
 
   const update = () => {
-    if (wrap) return;
     const el = ref.current;
     if (!el) return;
     setCanLeft(el.scrollLeft > 4);
@@ -29,7 +29,6 @@ function HorizontalScrollRow({ children, className = "", wrap = false }) {
   };
 
   useEffect(() => {
-    if (wrap) return;
     const el = ref.current;
     if (!el) return;
     const t = setTimeout(update, 100);
@@ -40,7 +39,7 @@ function HorizontalScrollRow({ children, className = "", wrap = false }) {
       el.removeEventListener("scroll", update);
       window.removeEventListener("resize", update);
     };
-  }, [children, wrap]);
+  }, [children]);
 
   const scroll = (dir) => {
     const el = ref.current;
@@ -50,37 +49,31 @@ function HorizontalScrollRow({ children, className = "", wrap = false }) {
 
   return (
     <div className={`relative flex items-center ${className}`}>
-      {!wrap && (
-        <button
-          onClick={() => scroll(-1)}
-          className={`hidden md:flex absolute left-0 z-10 -translate-x-1/2 w-8 h-8 items-center justify-center rounded-full bg-white border shadow transition-opacity duration-200 ${
-            canLeft ? "opacity-100" : "opacity-0 pointer-events-none"
-          }`}
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-      )}
+      <button
+        onClick={() => scroll(-1)}
+        className={`hidden md:flex absolute left-0 z-10 -translate-x-1/2 w-8 h-8 items-center justify-center rounded-full bg-white border shadow transition-opacity duration-200 ${
+          canLeft ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+      >
+        <ChevronLeft className="w-4 h-4" />
+      </button>
 
       <div
         ref={ref}
-        className={`flex gap-2 sm:gap-3 w-full ${
-          wrap ? "flex-wrap" : "overflow-x-auto py-2"
-        }`}
-        style={wrap ? {} : { scrollbarWidth: "none" }}
+        className="flex gap-2 sm:gap-3 w-full overflow-x-auto py-2 [&::-webkit-scrollbar]:hidden"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {children}
       </div>
 
-      {!wrap && (
-        <button
-          onClick={() => scroll(1)}
-          className={`hidden md:flex absolute right-0 z-10 translate-x-1/2 w-8 h-8 items-center justify-center rounded-full bg-white border shadow transition-opacity duration-200 ${
-            canRight ? "opacity-100" : "opacity-0 pointer-events-none"
-          }`}
-        >
-          <ChevronRight className="w-4 h-4" />
-        </button>
-      )}
+      <button
+        onClick={() => scroll(1)}
+        className={`hidden md:flex absolute right-0 z-10 translate-x-1/2 w-8 h-8 items-center justify-center rounded-full bg-white border shadow transition-opacity duration-200 ${
+          canRight ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+      >
+        <ChevronRight className="w-4 h-4" />
+      </button>
     </div>
   );
 }
@@ -106,11 +99,7 @@ const FILTER_HASH_MAP = {
   bestDiscount: "best-discount",
 };
 
-// ── Staggered product grid ─────────────────────────────────
-// ✅ ফিক্স: আগে এটা CSS grid (grid-cols-2 sm:grid-cols-4) ব্যবহার করত, যেখানে
-// card-গুলো column-এর পুরো width নিয়ে নিত — ফলে horizontal scroll row-এর fixed
-// width card (w-[140px]/w-[170px]) এর তুলনায় "All" ক্লিক করলে card বড় হয়ে যেত।
-// এখন flex-wrap + একই fixed width ব্যবহার করছি, তাই সাইজ সবসময় একই থাকে।
+// ── Staggered product grid (filter view) ───────────────────
 function ProductGrid({ products }) {
   const container = {
     hidden: {},
@@ -143,21 +132,16 @@ function ProductGrid({ products }) {
 
 // ── MAIN ──────────────────────────────────────────────────
 export default function CategoryTabsSection() {
+  const router = useRouter();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [expanded, setExpanded] = useState({});
   const [activeFilter, setActiveFilter] = useState(null);
 
   // ✅ Badge ক্লিক করলে এখন hash-ও সেট হয় — এতে cross-page navigation,
   // browser back/forward, এবং URL শেয়ার করা সবকিছুই badge ক্লিকের সাথে
   // consistent থাকে।
-  // ⚠️ ফিক্স: window.location.hash = "..." সরাসরি অ্যাসাইন করলে ব্রাউজার এটাকে
-  // নেটিভ anchor-navigation মনে করে নিজে থেকেও instant scroll/jump করার চেষ্টা
-  // করে — আমাদের নিজের smooth scrollIntoView()-এর সাথে কনফ্লিক্ট করে "dhakka"
-  // (jerky jump) তৈরি করছিল। history.replaceState() URL বদলায় কিন্তু কোনো
-  // native scroll trigger করে না, তাই jolt থাকে না।
   const handleFilterChange = (filter) => {
     setActiveFilter(filter);
 
@@ -178,7 +162,6 @@ export default function CategoryTabsSection() {
       const filter = HASH_FILTER_MAP[hash] ?? null;
       setActiveFilter(filter);
 
-      // filter section এ smooth scroll
       if (filter) {
         setTimeout(() => {
           const el = document.getElementById("offer-section");
@@ -187,7 +170,7 @@ export default function CategoryTabsSection() {
       }
     };
 
-    applyHashFilter(); // page load এ
+    applyHashFilter();
     window.addEventListener("hashchange", applyHashFilter);
     return () => window.removeEventListener("hashchange", applyHashFilter);
   }, []);
@@ -248,8 +231,12 @@ export default function CategoryTabsSection() {
     fetchData();
   }, []);
 
-  const toggleExpand = (catId) =>
-    setExpanded((prev) => ({ ...prev, [catId]: !prev[catId] }));
+  // ✅ "See All" ক্লিক করলে বিদ্যমান /categories/[id] page এ নিয়ে যায়,
+  // যেখানে ওই ক্যাটাগরির সব প্রোডাক্ট দেখাবে (আলাদা পেজ, একই পেজে
+  // wrap/expand হবে না)
+  const goToCategoryPage = (cat) => {
+    router.push(`/categories/${cat._id}`);
+  };
 
   const filteredProducts = activeFilter
     ? products.filter((p) => p[activeFilter] === true)
@@ -276,11 +263,15 @@ export default function CategoryTabsSection() {
       </div>
 
       {/* Category Nav */}
-      <div className="mb-6 px-2 overflow-x-auto scrollbar-hide">
+      {/* ✅ scrollbar সম্পূর্ণ hidden + category বাটন আগের চেয়ে স্লিম */}
+      <div
+        className="mb-6 px-2 overflow-x-auto [&::-webkit-scrollbar]:hidden"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
         {/* Mobile: 2 Rows */}
-        <div className="md:hidden w-max space-y-2">
+        <div className="md:hidden w-max space-y-1.5">
           {/* Top Row */}
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             {topRow.map((cat) => (
               <button
                 key={cat._id}
@@ -288,19 +279,20 @@ export default function CategoryTabsSection() {
                   handleFilterChange(null);
                   setTimeout(() => scrollToCategory(cat._id), 80);
                 }}
-                className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm whitespace-nowrap"
+                className="inline-flex items-center gap-1.5 px-2 py-1.5 bg-white border border-gray-200 rounded-lg shadow-sm whitespace-nowrap"
               >
-                <div className="relative w-8 h-8 overflow-hidden rounded-md border bg-white flex-shrink-0">
-                  <Image loader={cloudinaryLoader}
+                <div className="relative w-6 h-6 overflow-hidden rounded-md border bg-white flex-shrink-0">
+                  <Image
+                    loader={cloudinaryLoader}
                     src={cat.image || "/no-image.png"}
                     alt={cat.name}
                     fill
-                    sizes="40px"
+                    sizes="32px"
                     className="object-cover"
                   />
                 </div>
 
-                <span className="text-xs font-medium text-gray-700">
+                <span className="text-[11px] font-medium text-gray-700">
                   {cat.name}
                 </span>
               </button>
@@ -308,7 +300,7 @@ export default function CategoryTabsSection() {
           </div>
 
           {/* Bottom Row */}
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             {bottomRow.map((cat) => (
               <button
                 key={cat._id}
@@ -316,19 +308,20 @@ export default function CategoryTabsSection() {
                   handleFilterChange(null);
                   setTimeout(() => scrollToCategory(cat._id), 80);
                 }}
-                className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm whitespace-nowrap"
+                className="inline-flex items-center gap-1.5 px-2 py-1.5 bg-white border border-gray-200 rounded-lg shadow-sm whitespace-nowrap"
               >
-                <div className="relative w-8 h-8 overflow-hidden rounded-md border bg-white flex-shrink-0">
-                  <Image loader={cloudinaryLoader}
+                <div className="relative w-6 h-6 overflow-hidden rounded-md border bg-white flex-shrink-0">
+                  <Image
+                    loader={cloudinaryLoader}
                     src={cat.image || "/no-image.png"}
                     alt={cat.name}
                     fill
-                    sizes="40px"
+                    sizes="32px"
                     className="object-cover"
                   />
                 </div>
 
-                <span className="text-xs font-medium text-gray-700">
+                <span className="text-[11px] font-medium text-gray-700">
                   {cat.name}
                 </span>
               </button>
@@ -345,14 +338,15 @@ export default function CategoryTabsSection() {
                 handleFilterChange(null);
                 setTimeout(() => scrollToCategory(cat._id), 80);
               }}
-              className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm whitespace-nowrap"
+              className="inline-flex items-center gap-2 px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg shadow-sm whitespace-nowrap"
             >
-              <div className="relative w-8 h-8 overflow-hidden rounded-md border bg-white flex-shrink-0">
-                <Image loader={cloudinaryLoader}
+              <div className="relative w-7 h-7 overflow-hidden rounded-md border bg-white flex-shrink-0">
+                <Image
+                  loader={cloudinaryLoader}
                   src={cat.image || "/no-image.png"}
                   alt={cat.name}
                   fill
-                  sizes="40px"
+                  sizes="36px"
                   className="object-cover"
                 />
               </div>
@@ -422,13 +416,12 @@ export default function CategoryTabsSection() {
                 );
                 if (!catProducts.length) return null;
 
-                const isExpanded = expanded[cat._id];
-
                 return (
                   <div key={cat._id} id={`category-${cat._id}`}>
                     <div className="flex items-center gap-2 mb-3">
                       <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-lg border overflow-hidden">
-                        <Image loader={cloudinaryLoader}
+                        <Image
+                          loader={cloudinaryLoader}
                           src={cat.image || "/no-image.png"}
                           alt={cat.name}
                           fill
@@ -442,29 +435,24 @@ export default function CategoryTabsSection() {
 
                       <div className="flex-1 h-px bg-gray-200" />
 
+                      {/* ✅ এখন "See All" ক্লিক করলে /categories/[id] page এ
+                          গিয়ে ওই ক্যাটাগরির সব প্রোডাক্ট দেখাবে */}
                       <button
-                        onClick={() => toggleExpand(cat._id)}
+                        onClick={() => goToCategoryPage(cat)}
                         className="text-xs text-blue-600 flex items-center gap-1 hover:text-blue-700 transition-colors"
                       >
-                        {isExpanded ? (
-                          <>
-                            Less <ChevronUp className="w-3 h-3" />
-                          </>
-                        ) : (
-                          <>
-                            All <ArrowRight className="w-3 h-3" />
-                          </>
-                        )}
+                        See All <ArrowRight className="w-3 h-3" />
                       </button>
                     </div>
 
-                    {/* ✅ একই card elements থাকে — শুধু wrap mode টগল হয়,
-                        তাই "All" ক্লিক করলে card remount/jump হয় না */}
-                    <HorizontalScrollRow wrap={isExpanded}>
+                    {/* ✅ mobile-এ ~2টা + desktop-এ ~5টা কার্ড পুরোপুরি
+                        দেখা যায়, পরের কার্ডের কিছু অংশ (peek) দেখা যায়
+                        যাতে বোঝা যায় আরও প্রোডাক্ট আছে */}
+                    <HorizontalScrollRow>
                       {catProducts.map((prod) => (
                         <div
                           key={prod._id}
-                          className="w-[140px] sm:w-[170px] flex-shrink-0"
+                          className="w-[44%] md:w-[19%] flex-shrink-0"
                         >
                           <ProductCard product={prod} />
                         </div>
