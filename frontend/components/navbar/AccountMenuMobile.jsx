@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import cloudinaryLoader from "../../lib/cloudinaryLoader";
 import { FaUser, FaClipboardList, FaSignOutAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import ConfirmModal from "../ConfirmModal";
@@ -90,7 +91,7 @@ export default function AccountMenuMobile({ onOpen }) {
         className="flex flex-col items-center"
       >
         {me.avatar ? (
-          <Image
+          <Image loader={cloudinaryLoader}
             src={me.avatar}
             alt={me.name}
             width={28}
@@ -122,7 +123,7 @@ export default function AccountMenuMobile({ onOpen }) {
 
               <div className="flex items-center gap-3 mb-6 border-b pb-4">
                 {me.avatar ? (
-                  <Image
+                  <Image loader={cloudinaryLoader}
                     src={me.avatar}
                     alt={me.name}
                     width={30}

@@ -28,7 +28,7 @@ import { convertToWebpUnderLimit } from "../../utils/imageConvert";
 /* ---------------- RULES ---------------- */
 const IMAGE_RULE = {
   type: "image/webp",
-  maxBytes: 220 * 1024,
+  maxBytes: 100 * 1024, // ✅ backend এর PRODUCT_IMAGE_RULE.maxBytes (100KB) এর সাথে মিলিয়ে আপডেট করা হলো
   width: 1200,
   height: 1200,
   startQuality: 0.92,

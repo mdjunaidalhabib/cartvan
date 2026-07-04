@@ -7,6 +7,7 @@ import CategoryNavSkeleton from "./CategoryNavSkeleton";
 import { apiFetch } from "../../utils/api";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import cloudinaryLoader from "../../lib/cloudinaryLoader";
 import OfferBadges from "./OfferBadges";
 import { ChevronLeft, ChevronRight, ArrowRight, ChevronUp } from "lucide-react";
 
@@ -220,7 +221,7 @@ export default function CategoryTabsSection() {
               className="flex-shrink-0 flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:border-blue-500 transition-all duration-300 whitespace-nowrap"
             >
               <div className="relative w-10 h-10 overflow-hidden rounded-lg border bg-white">
-                <Image
+                <Image loader={cloudinaryLoader}
                   src={cat.image || "/no-image.png"}
                   alt={cat.name}
                   fill
@@ -255,7 +256,7 @@ export default function CategoryTabsSection() {
               {/* ── Category Header ── */}
               <div className="flex items-center gap-3 mb-4">
                 <div className="relative w-10 h-10 overflow-hidden rounded-xl border bg-white shadow-sm flex-shrink-0">
-                  <Image
+                  <Image loader={cloudinaryLoader}
                     src={cat.image || "/no-image.png"}
                     alt={cat.name}
                     fill

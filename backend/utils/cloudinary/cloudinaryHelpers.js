@@ -43,6 +43,21 @@ const extractPublicIdFromUrl = (imageUrl) => {
   }
 };
 
+/**
+ * ✅ Shared helper — public_id থেকে f_auto,q_auto:good সহ optimized delivery URL বানায়।
+ * Product upload flow-এ (utils/product/product.upload.js) আগে থেকেই এভাবে বানানো হতো,
+ * এখন category/footer/navbar/slider/profile upload-গুলোও একই standard ব্যবহার করছে
+ * যাতে Cloudinary নিজে থেকেই format/quality optimize করে দেয় (raw secure_url না দিয়ে)।
+ */
+export const buildOptimizedUrl = (publicId) => {
+  if (!publicId) return "";
+
+  return cloudinary.url(publicId, {
+    secure: true,
+    transformation: [{ fetch_format: "auto", quality: "auto:good" }],
+  });
+};
+
 /* ✅ URL থেকে ডিলিট */
 export const deleteFromCloudinary = async (imageUrl) => {
   try {

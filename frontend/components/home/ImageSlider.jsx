@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import cloudinaryLoader from "../../lib/cloudinaryLoader";
 import Link from "next/link";
 import axios from "axios";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
@@ -163,7 +164,7 @@ export default function ImageSlider({
 
               const imageEl = (
                 <div className={`relative w-full ${ratioClass} bg-gray-100`}>
-                  <Image
+                  <Image loader={cloudinaryLoader}
                     src={img.src}
                     alt={img.alt || "slide"}
                     fill

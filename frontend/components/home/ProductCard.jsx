@@ -3,6 +3,7 @@
 import React, { memo, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import cloudinaryLoader from "../../lib/cloudinaryLoader";
 import {
   FaStar,
   FaHeart,
@@ -72,7 +73,7 @@ const ProductCard = memo(({ product, priority = false }) => {
     <div className="relative bg-pink-100 shadow-md rounded-lg hover:shadow-lg transition flex flex-col group">
       <Link
         href={`/products/${productId}`}
-        className="relative w-full aspect-[4/5] mb-1 overflow-hidden rounded-lg"
+        className="relative w-full aspect-square mb-1 overflow-hidden rounded-lg"
       >
         <div className="absolute top-1 left-1 right-1 flex justify-between z-10">
           {product?.oldPrice && (
@@ -98,7 +99,7 @@ const ProductCard = memo(({ product, priority = false }) => {
           </button>
         </div>
 
-        <Image
+        <Image loader={cloudinaryLoader}
           src={mainImage}
           alt={product?.name || "Product"}
           fill

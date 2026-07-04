@@ -3,7 +3,7 @@ import fs from "fs";
 import streamifier from "streamifier";
 
 /**
- * ✅ Sharp দিয়ে backend-এ image process হয়ে যায় (1200×1200, webp, <=220KB)
+ * ✅ Sharp দিয়ে backend-এ image process হয়ে যায় (strict 1200×1200 1:1, webp, <=150KB)
  * তাই Cloudinary-তে upload এর সময় আর কোনো transformation দরকার নেই।
  * শুধু f_auto,q_auto:good দিয়ে serve করব — crop/resize নয়।
  */

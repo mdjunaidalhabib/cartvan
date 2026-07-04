@@ -3,7 +3,7 @@ import Slider from "../../models/Slider.js";
 import upload from "../../../utils/upload.js"; // multer
 import fs from "fs";
 import cloudinary from "../../../utils/cloudinary.js";
-import { deleteByPublicId } from "../../../utils/cloudinaryHelpers.js";
+import { deleteByPublicId, buildOptimizedUrl } from "../../../utils/cloudinaryHelpers.js";
 import sharp from "sharp";
 
 const router = express.Router();
@@ -222,7 +222,7 @@ router.post("/", upload.single("image"), async (req, res) => {
       safeUnlink(req.file.path);
       safeUnlink(convertedPath);
 
-      slidePayload.src = result.secure_url;
+      slidePayload.src = buildOptimizedUrl(result.public_id); // ✅ f_auto,q_auto সহ optimized URL
       slidePayload.srcPublicId = result.public_id;
     } else if (slide) {
       // ✅ keep old image if no new image uploaded

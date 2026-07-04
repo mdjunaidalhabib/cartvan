@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import cloudinaryLoader from "../../lib/cloudinaryLoader";
 import FooterSkeleton from "../skeletons/FooterSkeleton";
 import { useEffect, useState } from "react";
 import {
@@ -98,7 +99,7 @@ export default function Footer() {
           <div className="space-y-5">
             <div className="flex items-center gap-3.5">
               {brand.logo && !imgError ? (
-                <Image
+                <Image loader={cloudinaryLoader}
                   src={brand.logo}
                   alt={brand?.title || "Brand Logo"}
                   width={45}

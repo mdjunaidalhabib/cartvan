@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import cloudinaryLoader from "../../lib/cloudinaryLoader";
 import { usePathname } from "next/navigation";
 import { FaUser } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
@@ -77,7 +78,7 @@ export default function AccountMenuDesktop() {
         }`}
       >
         {me.avatar ? (
-          <Image
+          <Image loader={cloudinaryLoader}
             src={me.avatar}
             alt={me.name}
             width={28}
@@ -104,7 +105,7 @@ export default function AccountMenuDesktop() {
             {/* 🧍 User Info */}
             <div className="flex items-center gap-3 px-3 py-3 border-b text-gray-800">
               {me.avatar ? (
-                <Image
+                <Image loader={cloudinaryLoader}
                   src={me.avatar}
                   alt={me.name}
                   width={36}

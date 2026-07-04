@@ -17,7 +17,7 @@ const PRODUCT_IMAGE_RULE = {
   mime: "image/webp",
   width: 1200,
   height: 1200,
-  maxBytes: 220 * 1024, // ✅ fit:inside + withoutEnlargement দিয়ে portrait ছবি crop হয় না, aspect ratio বজায় থাকে
+  maxBytes: 100 * 1024, // ✅ strict 1:1 (1200×1200) crop, ১৫০KB থেকে কমিয়ে ১০০KB করা হলো
   allowedInputTypes: ["image/webp", "image/jpeg", "image/png"],
 };
 
@@ -43,7 +43,7 @@ const cleanupReqFiles = (req) => {
 };
 
 /**
- * ✅ Convert ANY (jpeg/png/webp) => 1200×1200 WEBP, এর কাছাকাছি সর্বোচ্চ চেষ্টায় <= 220KB (fit:inside তাই portrait ছবি নিজের ratio বজায় রাখে)
+ * ✅ Convert ANY (jpeg/png/webp) => strict 1200×1200 (1:1) WEBP, এর কাছাকাছি সর্বোচ্চ চেষ্টায় <= 150KB (fit:cover, center crop)
  * - center crop
  * - resize
  * - quality compress loop
@@ -89,13 +89,16 @@ const convertAndOverwriteProductImage = async (file) => {
   outer: for (let attempt = 0; attempt < 5; attempt++) {
     let quality = 90;
 
-    while (quality >= 65) {
+    while (quality >= 40) {
       try {
         const buffer = await sharp(inputPath)
           .resize(dims.width, dims.height, {
-            fit: "inside",            // ✅ "cover" বাদ — cover ছবি crop করতো, inside পুরো প্রডাক্ট দেখায়
-            withoutEnlargement: true, // ✅ ছোট ইমেজকে জোর করে বড় করা বন্ধ — upscale মানেই blur
-            background: { r: 255, g: 255, b: 255, alpha: 1 }, // ✅ বাকি জায়গা সাদা background দিয়ে ভরাট
+            fit: "cover",  // ✅ strict 1:1 — center crop করে পুরো ফ্রেম ভরাট করে, সাদা padding থাকে না
+            position: "center", // ✅ true center crop — উপর-নিচ/দুই পাশ থেকে সমান কেটে center রাখে
+            // ⚠️ আগে "attention" ব্যবহার হতো (saliency-based), যেটা প্রায়ই ছবির
+            // উপরের দিকের subject-কে বেশি গুরুত্ব দিয়ে শুধু নিচ থেকে কাটতো —
+            // ফলে user-এর চোখে মনে হতো "শুধু উপর থেকে কাটছে"। "center" দিলে
+            // সবসময় exact মাঝখান বরাবর crop হবে, দুই দিক থেকেই সমান অংশ কাটবে।
           })
           .sharpen({ sigma: 1.2, m1: 1.5, m2: 0.7 }) // ✅ default sharpen এর চেয়ে বেশি কার্যকর — detail/text এর edge ধরে রাখে
           .webp({ quality, effort: 6 }) // ✅ effort:6 → একই quality-তে স্মার্ট কম্প্রেশন
@@ -124,9 +127,8 @@ const convertAndOverwriteProductImage = async (file) => {
   if (!bestBuffer) {
     bestBuffer = await sharp(inputPath)
       .resize(400, 400, {
-        fit: "inside",
-        withoutEnlargement: true,
-        background: { r: 255, g: 255, b: 255, alpha: 1 },
+        fit: "cover",
+        position: "center", // ✅ fallback path-ও এখন true center crop
       })
       .sharpen({ sigma: 1.2, m1: 1.5, m2: 0.7 })
       .webp({ quality: 65, effort: 6 })
@@ -184,7 +186,7 @@ export const getProductByIdAdmin = async (req, res) => {
 /* ================== ✅ CREATE ================== */
 export const createProduct = async (req, res) => {
   try {
-    // ✅ convert ALL uploaded files first (guaranteed webp 1200×1200 <= 220KB (fit:inside তাই portrait ছবি নিজের ratio বজায় রাখে))
+    // ✅ convert ALL uploaded files first (guaranteed webp strict 1200×1200 1:1 <= 150KB, center crop)
     await convertAllReqFiles(req);
 
     const {
@@ -332,7 +334,7 @@ export const createProduct = async (req, res) => {
 /* ================== ✅ UPDATE ================== */
 export const updateProduct = async (req, res) => {
   try {
-    // ✅ convert ALL uploaded files first (guaranteed webp 1200×1200 <= 220KB (fit:inside তাই portrait ছবি নিজের ratio বজায় রাখে))
+    // ✅ convert ALL uploaded files first (guaranteed webp strict 1200×1200 1:1 <= 150KB, center crop)
     await convertAllReqFiles(req);
 
     const product = await Product.findById(req.params.id);

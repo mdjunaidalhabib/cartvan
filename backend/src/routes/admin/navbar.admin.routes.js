@@ -2,7 +2,7 @@ import express from "express";
 import Navbar from "../../models/Navbar.js";
 import upload from "../../../utils/upload.js"; // multer
 import fs from "fs";
-import { deleteByPublicId } from "../../../utils/cloudinaryHelpers.js";
+import { deleteByPublicId, buildOptimizedUrl } from "../../../utils/cloudinaryHelpers.js";
 import cloudinary from "../../../utils/cloudinary.js";
 
 const router = express.Router();
@@ -50,7 +50,7 @@ router.post("/", upload.single("logo"), async (req, res) => {
       fs.unlinkSync(req.file.path);
 
       data.brand = data.brand || {};
-      data.brand.logo = result.secure_url;
+      data.brand.logo = buildOptimizedUrl(result.public_id); // ✅ f_auto,q_auto সহ optimized URL
       data.brand.logoPublicId = result.public_id;
     } else if (navbar?.brand) {
       // file না এলে আগের logo/publicId রেখে দাও

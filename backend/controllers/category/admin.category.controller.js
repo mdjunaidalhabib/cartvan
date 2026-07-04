@@ -1,5 +1,5 @@
 import Category from "../../src/models/Category.js";
-import { deleteFromCloudinary, deleteByPublicId } from "../../utils/cloudinary/cloudinaryHelpers.js"; // ✅ deleteByPublicId added
+import { deleteFromCloudinary, deleteByPublicId, buildOptimizedUrl } from "../../utils/cloudinary/cloudinaryHelpers.js"; // ✅ deleteByPublicId added
 import cloudinary from "../../utils/cloudinary/cloudinary.js";
 import fs from "fs";
 import sharp from "sharp";
@@ -97,7 +97,7 @@ export const createCategory = async (req, res) => {
       safeUnlink(req.file.path);
       safeUnlink(convertedPath);
 
-      imageUrl = result.secure_url;
+      imageUrl = buildOptimizedUrl(result.public_id); // ✅ f_auto,q_auto সহ optimized URL
       imagePublicId = result.public_id; // ✅
     }
 
@@ -174,7 +174,7 @@ export const updateCategory = async (req, res) => {
       safeUnlink(req.file.path);
       safeUnlink(convertedPath);
 
-      category.image = result.secure_url;
+      category.image = buildOptimizedUrl(result.public_id); // ✅ f_auto,q_auto সহ optimized URL
       category.imagePublicId = result.public_id; // ✅
     }
 

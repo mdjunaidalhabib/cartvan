@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import axios from "axios";
 import Image from "next/image";
+import cloudinaryLoader from "../../../lib/cloudinaryLoader";
 import ProductCard from "../../../components/home/ProductCard";
 import CategorySkeleton from "../../../components/skeletons/CategorySkeleton";
 import ProductDetailsSkeleton from "../../../components/skeletons/ProductDetailsSkeleton";
@@ -140,7 +141,7 @@ export default function CategoryPage() {
                 }`}
               >
                 <div className="relative w-8 h-8 md:w-10 md:h-10 flex-shrink-0 rounded-md overflow-hidden border bg-white">
-                  <Image
+                  <Image loader={cloudinaryLoader}
                     src={cat.image || "/no-image.png"}
                     alt={cat.name}
                     fill
@@ -174,7 +175,7 @@ export default function CategoryPage() {
               </p>
             </div>
           ) : products.length ? (
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
               {products.map((p, i) => (
                 // ✅ first row gets priority (LCP fix if needed)
                 <ProductCard key={p._id} product={p} priority={i < 4} />

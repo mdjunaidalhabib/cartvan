@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useMemo, memo } from "react";
 import Image from "next/image";
+import cloudinaryLoader from "../../../lib/cloudinaryLoader";
 import Link from "next/link";
 import { useCart } from "../../../context/CartContext";
 import { FaPlus, FaMinus, FaTrash, FaHeart } from "react-icons/fa";
@@ -53,7 +54,7 @@ const CartItem = memo(
           href={`/products/${p._id}`}
           className="relative w-14 h-14 flex-shrink-0"
         >
-          <Image
+          <Image loader={cloudinaryLoader}
             src={p.image || "/no-image.png"}
             alt={p.name || "Product"}
             fill

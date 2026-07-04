@@ -6,6 +6,7 @@ import ProductCardSkeleton from "../skeletons/ProductCardSkeleton";
 import { apiFetch } from "../../utils/api";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import cloudinaryLoader from "../../lib/cloudinaryLoader";
 import OfferBadges from "./OfferBadges";
 import { ChevronLeft, ChevronRight, ArrowRight, ChevronUp } from "lucide-react";
 
@@ -290,7 +291,7 @@ export default function CategoryTabsSection() {
                 className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm whitespace-nowrap"
               >
                 <div className="relative w-8 h-8 overflow-hidden rounded-md border bg-white flex-shrink-0">
-                  <Image
+                  <Image loader={cloudinaryLoader}
                     src={cat.image || "/no-image.png"}
                     alt={cat.name}
                     fill
@@ -318,7 +319,7 @@ export default function CategoryTabsSection() {
                 className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm whitespace-nowrap"
               >
                 <div className="relative w-8 h-8 overflow-hidden rounded-md border bg-white flex-shrink-0">
-                  <Image
+                  <Image loader={cloudinaryLoader}
                     src={cat.image || "/no-image.png"}
                     alt={cat.name}
                     fill
@@ -347,7 +348,7 @@ export default function CategoryTabsSection() {
               className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm whitespace-nowrap"
             >
               <div className="relative w-8 h-8 overflow-hidden rounded-md border bg-white flex-shrink-0">
-                <Image
+                <Image loader={cloudinaryLoader}
                   src={cat.image || "/no-image.png"}
                   alt={cat.name}
                   fill
@@ -427,7 +428,7 @@ export default function CategoryTabsSection() {
                   <div key={cat._id} id={`category-${cat._id}`}>
                     <div className="flex items-center gap-2 mb-3">
                       <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-lg border overflow-hidden">
-                        <Image
+                        <Image loader={cloudinaryLoader}
                           src={cat.image || "/no-image.png"}
                           alt={cat.name}
                           fill

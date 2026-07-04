@@ -1,7 +1,7 @@
 import express from "express";
 import Footer from "../../models/Footer.js";
 import upload from "../../../utils/upload.js";
-import { deleteByPublicId } from "../../../utils/cloudinaryHelpers.js";
+import { deleteByPublicId, buildOptimizedUrl } from "../../../utils/cloudinaryHelpers.js";
 import cloudinary from "../../../utils/cloudinary.js";
 import fs from "fs";
 
@@ -75,7 +75,7 @@ router.post("/", upload.single("logo"), async (req, res) => {
       fs.unlinkSync(req.file.path);
 
       data.brand = data.brand || {};
-      data.brand.logo = result.secure_url;
+      data.brand.logo = buildOptimizedUrl(result.public_id); // ✅ f_auto,q_auto সহ optimized URL
       data.brand.logoPublicId = result.public_id;
     } else if (footer?.brand) {
       data.brand = {

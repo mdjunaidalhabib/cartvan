@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
 import cloudinary from "../../../utils/cloudinary.js";
+import { buildOptimizedUrl } from "../../../utils/cloudinaryHelpers.js";
 
 const router = express.Router();
 
@@ -29,7 +30,7 @@ router.post("/avatar", upload.single("image"), async (req, res) => {
           return res.status(500).json({ message: "Upload failed" });
         }
 
-        return res.status(200).json({ url: result.secure_url });
+        return res.status(200).json({ url: buildOptimizedUrl(result.public_id) }); // ✅ f_auto,q_auto সহ optimized URL
       }
     );
 

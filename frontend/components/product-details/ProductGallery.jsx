@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { optimizeCloudinaryUrl } from "../../lib/utils";
+import cloudinaryLoader from "../../lib/cloudinaryLoader";
 
 export default function ProductGallery({
   images,
@@ -13,7 +13,8 @@ export default function ProductGallery({
       {/* Main Image */}
       <div className="relative w-full max-w-[520px] sm:max-w-[560px] md:max-w-[580px] mx-auto aspect-square rounded-xl overflow-hidden bg-white shadow-sm">
         <Image
-          src={optimizeCloudinaryUrl(images[activeIdx]) || "/no-image.png"}
+          loader={cloudinaryLoader}
+          src={images[activeIdx] || "/no-image.png"}
           alt={productName}
           fill
           priority
@@ -38,14 +39,15 @@ export default function ProductGallery({
               key={i}
               type="button"
               onClick={() => setActiveIdx(i)}
-              className={`relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all ${
+              className={`relative w-12 h-12 md:w-16 md:h-16 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all ${
                 i === activeIdx
                   ? "border-pink-600 ring-2 ring-pink-300"
                   : "border-gray-200 hover:border-pink-400"
               }`}
             >
               <Image
-                src={optimizeCloudinaryUrl(src) || "/no-image.png"}
+                loader={cloudinaryLoader}
+                src={src || "/no-image.png"}
                 alt={`${productName}-${i}`}
                 fill
                 loading="lazy"

@@ -2,6 +2,7 @@
 
 import { useUser } from "../../../context/UserContext";
 import Image from "next/image";
+import cloudinaryLoader from "../../../lib/cloudinaryLoader";
 import { FaUser } from "react-icons/fa";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../../../utils/api";
@@ -346,7 +347,7 @@ export default function ProfilePage() {
                 title={editMode ? "Click to change photo" : ""}
               >
                 {avatarPreview ? (
-                  <Image
+                  <Image loader={cloudinaryLoader}
                     src={avatarPreview}
                     alt={form.name || "User"}
                     fill
