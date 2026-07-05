@@ -14,6 +14,7 @@ export default function ProductsPage() {
 
   // ✅ NEW: Products সাব-মেনু — All Product / Free Delivery / Best Discount / Gift Box
   const [badgeFilter, setBadgeFilter] = useState("all");
+  const [homeBadges, setHomeBadges] = useState([]);
 
   const [showForm, setShowForm] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
@@ -52,7 +53,20 @@ export default function ProductsPage() {
 
   useEffect(() => {
     loadProducts();
+
+    // ✅ Admin থেকে দেওয়া Offer Badge নাম লোড করা (dynamic tab label)
+    fetch(`/api/admin/homeBadges`)
+      .then((res) => res.json())
+      .then((data) =>
+        setHomeBadges(Array.isArray(data?.badges) ? data.badges : []),
+      )
+      .catch(() => setHomeBadges([]));
   }, []);
+
+  const getBadgeName = (field, fallback) => {
+    const b = homeBadges.find((x) => x.field === field);
+    return b?.name || fallback;
+  };
 
   // ================== FILTERED LIST ==================
   const statusFiltered =
@@ -221,9 +235,21 @@ export default function ProductsPage() {
       <div className="flex flex-wrap gap-2 mb-5 border-b pb-3">
         {[
           { key: "all", label: "🗂️ All Product", color: "indigo" },
-          { key: "freeDelivery", label: "🚚 Free Delivery", color: "orange" },
-          { key: "bestDiscount", label: "🛍️ Best Discount", color: "blue" },
-          { key: "cartvanBox", label: "🎁 Gift Box", color: "rose" },
+          {
+            key: "freeDelivery",
+            label: `🚚 ${getBadgeName("freeDelivery", "Free Delivery")}`,
+            color: "orange",
+          },
+          {
+            key: "bestDiscount",
+            label: `🛍️ ${getBadgeName("bestDiscount", "Best Discount")}`,
+            color: "blue",
+          },
+          {
+            key: "cartvanBox",
+            label: `🎁 ${getBadgeName("cartvanBox", "Gift Box")}`,
+            color: "rose",
+          },
         ].map((tab) => {
           const active = badgeFilter === tab.key;
           return (
@@ -254,7 +280,7 @@ export default function ProductsPage() {
       {loading ? (
         <ProductsSkeleton />
       ) : filteredProducts.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 2xl:grid-cols-6  gap-4">
           {filteredProducts.map((p) => (
             <ProductCard
               key={p._id}

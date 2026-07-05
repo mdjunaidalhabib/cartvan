@@ -56,6 +56,39 @@ const getDeliveryFeeFromDB = async () => {
 };
 
 /**
+ * ✅ Free Delivery Check
+ * cart-এর সবগুলো আইটেম যদি admin থেকে "Free Delivery" মার্ক করা
+ * থাকে (Product.freeDelivery === true) — তাহলেই পুরো অর্ডারের
+ * delivery charge 0 (জিরো) হবে। একটা আইটেমও non-free-delivery
+ * হলে সম্পূর্ণ ডেলিভারি চার্জ প্রযোজ্য হবে।
+ */
+const isEntireCartFreeDelivery = async (items) => {
+  try {
+    const ids = [
+      ...new Set(
+        (Array.isArray(items) ? items : [])
+          .map((it) => it?.productId)
+          .filter(Boolean),
+      ),
+    ];
+    if (!ids.length) return false;
+
+    const totalCount = ids.length;
+
+    const freeCount = await Product.countDocuments({
+      _id: { $in: ids },
+      freeDelivery: true,
+    });
+
+    // ✅ সবগুলো (ইউনিক) প্রোডাক্টই ফ্রি ডেলিভারি হলে তবেই true
+    return freeCount === totalCount;
+  } catch (err) {
+    console.error("❌ Free delivery check failed:", err);
+    return false;
+  }
+};
+
+/**
  * ✅ Inventory update (stock & sold) for a single item
  * item: { productId, qty, color }
  * mode: "decrease" | "increase"
@@ -193,7 +226,11 @@ router.post("/", async (req, res) => {
     const normalizedPaymentMethod = normalizePaymentMethod(paymentMethod);
 
     // ✅ DeliveryCharge DB driven
-    const DELIVERY_CHARGE = await getDeliveryFeeFromDB();
+    const baseDeliveryFee = await getDeliveryFeeFromDB();
+
+    // ✅ যদি cart-এ কোনো Free Delivery প্রোডাক্ট থাকে → চার্জ 0
+    const isFreeDelivery = await isEntireCartFreeDelivery(items);
+    const DELIVERY_CHARGE = isFreeDelivery ? 0 : baseDeliveryFee;
 
     // ✅ backend-safe total calculation
     const calculatedSubtotal = toNumber(subtotal, 0);

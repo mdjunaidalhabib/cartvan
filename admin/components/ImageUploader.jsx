@@ -84,9 +84,9 @@ export default function ImageUploader({
     <div className="flex flex-col gap-1">
       {/* Label */}
       <label className="block text-sm font-medium">
-        {label}{" "}
-        <span className="text-[11px] text-gray-500 font-semibold">
-          ({rule.width}×{rule.height}, max {maxKB}KB — যেকোনো image format)
+        {label}
+        <span className="text-[11px] text-gray-500 font-semibold ml-2">
+          (যেকোনো image format → Auto {rule.width}×{rule.height})
         </span>
       </label>
 

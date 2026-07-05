@@ -36,6 +36,12 @@ const IMAGE_RULE = {
   qualityStep: 0.05,
 };
 
+// ✅ প্রতিটি variant (বা default/base) এ সর্বোচ্চ কতটি image রাখা যাবে
+// ⚠️ এই সংখ্যা backend/controllers/product/product.controller.js এর
+// MAX_VARIANT_IMAGES এর সাথে মিলিয়ে রাখতে হবে, নাহলে frontend এ pass হলেও
+// backend আপলোড কেটে দেবে।
+const MAX_VARIANT_IMAGES = 8;
+
 /* ---------------- Helpers ---------------- */
 const safeUrlId = (url) => {
   try {
@@ -229,17 +235,34 @@ export default function VariantSection({
     const current = Array.isArray(next[i].files) ? next[i].files : [];
     const key = next[i].isBase ? "baseImages" : `variantImages_${i}`;
 
+    // ✅ প্রতি variant এ সর্বোচ্চ MAX_VARIANT_IMAGES টা image রাখার limit
+    const remainingSlots = MAX_VARIANT_IMAGES - current.length;
+    if (remainingSlots <= 0) {
+      setErrors((prev) => ({
+        ...prev,
+        [key]: `❌ সর্বোচ্চ ${MAX_VARIANT_IMAGES}টি image রাখা যাবে। আগে কিছু image মুছে তারপর নতুন যোগ করুন।`,
+      }));
+      onFilesReadyChange?.(true);
+      return;
+    }
+
+    const acceptedRaw = raw.slice(0, remainingSlots);
+    const rejectedCount = raw.length - acceptedRaw.length;
+
     try {
       setErrors((prev) => {
         const n = { ...prev };
         delete n[key];
         delete n[`${key}_processing`];
+        if (rejectedCount > 0) {
+          n[key] = `⚠️ সর্বোচ্চ ${MAX_VARIANT_IMAGES}টি image এর limit থাকায় শেষের ${rejectedCount}টি image বাদ দেওয়া হয়েছে।`;
+        }
         return n;
       });
 
       const converted = [];
 
-      for (const f of raw) {
+      for (const f of acceptedRaw) {
         setErrors((prev) => ({
           ...prev,
           [`${key}_processing`]: `⏳ "${f.name}" processing...`,
@@ -452,8 +475,16 @@ export default function VariantSection({
                 Variant Images (Required) *
                 <span className="ml-2 text-[10px] font-semibold text-gray-500 normal-case">
                   (যেকোনো image format → Auto {IMAGE_RULE.width}×
-                  {IMAGE_RULE.height}, max{" "}
-                  {Math.floor(IMAGE_RULE.maxBytes / 1024)}KB)
+                  {IMAGE_RULE.height})
+                </span>
+                <span
+                  className={`ml-2 text-[10px] font-bold normal-case ${
+                    fileItems.length >= MAX_VARIANT_IMAGES
+                      ? "text-red-500"
+                      : "text-gray-500"
+                  }`}
+                >
+                  ({fileItems.length}/{MAX_VARIANT_IMAGES})
                 </span>
               </label>
 
@@ -478,31 +509,37 @@ export default function VariantSection({
                   </SortableContext>
                 </DndContext>
 
-                <button
-                  type="button"
-                  onClick={() => document.getElementById(`file-${i}`)?.click()}
-                  className={`w-24 h-24 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all ${
-                    imgErr
-                      ? "border-red-500 bg-red-50 text-red-500 shadow-inner"
-                      : imgProcessing
-                        ? "border-orange-300 bg-orange-50 text-orange-400"
-                        : "border-gray-300 text-gray-400 hover:border-indigo-300 hover:text-indigo-400"
-                  }`}
-                >
-                  {imgProcessing ? (
-                    <>
-                      <span className="text-lg animate-spin">⏳</span>
-                      <span className="text-[10px] mt-1 font-bold">
-                        Processing
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <FaImages size={20} />
-                      <span className="text-[10px] mt-1 font-bold">Upload</span>
-                    </>
-                  )}
-                </button>
+                {fileItems.length < MAX_VARIANT_IMAGES && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      document.getElementById(`file-${i}`)?.click()
+                    }
+                    className={`w-24 h-24 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all ${
+                      imgErr
+                        ? "border-red-500 bg-red-50 text-red-500 shadow-inner"
+                        : imgProcessing
+                          ? "border-orange-300 bg-orange-50 text-orange-400"
+                          : "border-gray-300 text-gray-400 hover:border-indigo-300 hover:text-indigo-400"
+                    }`}
+                  >
+                    {imgProcessing ? (
+                      <>
+                        <span className="text-lg animate-spin">⏳</span>
+                        <span className="text-[10px] mt-1 font-bold">
+                          Processing
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <FaImages size={20} />
+                        <span className="text-[10px] mt-1 font-bold">
+                          Upload
+                        </span>
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
 
               <input

@@ -5,6 +5,7 @@ import fs from "fs";
 import cloudinary from "../../../utils/cloudinary.js";
 import { deleteByPublicId, buildOptimizedUrl } from "../../../utils/cloudinaryHelpers.js";
 import sharp from "sharp";
+import { moveToTrash } from "../../../utils/trash/trash.helpers.js";
 
 const router = express.Router();
 
@@ -285,12 +286,12 @@ router.delete("/delete-all", async (req, res) => {
   try {
     const allSlides = await Slider.find();
 
+    // ✅ hard-delete এর বদলে সবগুলো Trash এ move — 3 দিন পর auto-purge হবে
     for (const s of allSlides) {
-      if (s.srcPublicId) await deleteByPublicId(s.srcPublicId);
+      await moveToTrash("Slider", s);
     }
 
-    await Slider.deleteMany({});
-    res.json({ message: "✅ All slides deleted" });
+    res.json({ message: "✅ All slides moved to Trash" });
   } catch (err) {
     console.error("❌ Delete all error:", err);
     res.status(500).json({ message: "Failed to delete all slides" });
@@ -322,15 +323,15 @@ router.delete("/:id", async (req, res) => {
     const slide = await Slider.findById(req.params.id);
     if (!slide) return res.status(404).json({ message: "Not found" });
 
-    if (slide.srcPublicId) await deleteByPublicId(slide.srcPublicId);
-
-    await slide.deleteOne();
+    // ✅ hard-delete এর বদলে Trash এ move — 3 দিন পর auto-purge হবে,
+    // এর মাঝে Trash থেকে restore করা যাবে। তাই এখানে image ডিলিট করা হচ্ছে না।
+    await moveToTrash("Slider", slide);
 
     // ✅ normalize after delete
     await normalizeOrders();
 
     const slides = await Slider.find().sort({ order: 1 });
-    res.json({ message: "✅ Slide deleted", slides });
+    res.json({ message: "✅ Slide moved to Trash", slides });
   } catch (err) {
     console.error("Delete failed:", err);
     res.status(500).json({ message: "Delete failed" });

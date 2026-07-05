@@ -1,5 +1,6 @@
 import express from "express";
 import Order from "../../models/Order.js";
+import { moveToTrash } from "../../../utils/trash/trash.helpers.js";
 
 const router = express.Router();
 
@@ -256,11 +257,13 @@ router.post("/bulk/delete", async (req, res) => {
       return res.status(400).json({ error: "Invalid payload" });
     }
 
-    const result = await Order.deleteMany({
-      _id: { $in: ids },
-    });
+    // ✅ hard-delete এর বদলে Trash এ move — 3 দিন পর auto-purge হবে
+    const orders = await Order.find({ _id: { $in: ids } });
+    for (const o of orders) {
+      await moveToTrash("Order", o);
+    }
 
-    res.json({ deletedCount: result.deletedCount });
+    res.json({ deletedCount: orders.length });
   } catch (err) {
     console.error("❌ Bulk delete failed:", err);
     res.status(500).json({
@@ -396,10 +399,14 @@ router.put("/:id", async (req, res) => {
  */
 router.delete("/:id", async (req, res) => {
   try {
-    const deleted = await Order.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ error: "Order not found" });
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ error: "Order not found" });
 
-    res.json({ message: "Order deleted successfully" });
+    // ✅ hard-delete এর বদলে Trash এ move — 3 দিন পর auto-purge হবে,
+    // এর মাঝে Trash থেকে restore করা যাবে।
+    await moveToTrash("Order", order);
+
+    res.json({ message: "Order moved to Trash" });
   } catch (err) {
     console.error("❌ Failed to delete order:", err);
     res.status(500).json({

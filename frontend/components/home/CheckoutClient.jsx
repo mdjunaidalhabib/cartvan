@@ -186,6 +186,7 @@ export default function CheckoutPage() {
             image,
             stock,
             color: it.color || null,
+            freeDelivery: !!p.freeDelivery,
           };
         })
         .filter(Boolean);
@@ -224,6 +225,7 @@ export default function CheckoutPage() {
           image,
           stock,
           color: selectedColorName || null,
+          freeDelivery: !!p.freeDelivery,
         },
       ];
     }
@@ -260,6 +262,7 @@ export default function CheckoutPage() {
           image,
           stock,
           color: color || null,
+          freeDelivery: !!p.freeDelivery,
         };
       })
       .filter(Boolean);
@@ -288,7 +291,15 @@ export default function CheckoutPage() {
   }, [cartItems]);
 
   const subtotal = calcSubtotal(cartItems);
-  const total = subtotal + deliveryCharge;
+
+  // ✅ কার্টের সবগুলো আইটেম যদি admin থেকে "Free Delivery" মার্ক করা
+  // থাকে, তবেই পুরো অর্ডারের delivery charge 0 দেখাবে (backend-ও একই
+  // নিয়মে চূড়ান্ত charge হিসাব করে, তাই এটা শুধু preview)
+  const isFreeDeliveryOrder =
+    cartItems.length > 0 && cartItems.every((it) => it.freeDelivery);
+  const effectiveDeliveryCharge = isFreeDeliveryOrder ? 0 : deliveryCharge;
+
+  const total = subtotal + effectiveDeliveryCharge;
 
   const phoneValid = /^(01[3-9]\d{8})$/.test(phone);
   const errors = {
@@ -472,7 +483,13 @@ export default function CheckoutPage() {
 
             <div className="p-3 bg-yellow-50 border border-yellow-100 rounded-xl text-yellow-700 text-xs font-medium">
               🚚 ডেলিভারি চার্জ:{" "}
-              <b>{deliveryLoading ? "Loading..." : `৳${deliveryCharge}`}</b>
+              <b>
+                {deliveryLoading
+                  ? "Loading..."
+                  : isFreeDeliveryOrder
+                  ? "Free"
+                  : `৳${effectiveDeliveryCharge}`}
+              </b>
             </div>
           </div>
         </div>
@@ -609,8 +626,16 @@ export default function CheckoutPage() {
 
                 <div className="flex justify-between text-gray-600">
                   <span>ডেলিভারি চার্জ:</span>
-                  <span className="font-medium text-gray-800">
-                    {deliveryLoading ? "Loading..." : `৳${deliveryCharge}`}
+                  <span
+                    className={`font-medium ${
+                      isFreeDeliveryOrder ? "text-green-600" : "text-gray-800"
+                    }`}
+                  >
+                    {deliveryLoading
+                      ? "Loading..."
+                      : isFreeDeliveryOrder
+                      ? "Free"
+                      : `৳${effectiveDeliveryCharge}`}
                   </span>
                 </div>
 

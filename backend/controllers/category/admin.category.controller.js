@@ -4,6 +4,7 @@ import cloudinary from "../../utils/cloudinary/cloudinary.js";
 import fs from "fs";
 import sharp from "sharp";
 import { toBool, normalizeCategoryOrders } from "../../utils/category/index.js";
+import { moveToTrash } from "../../utils/trash/trash.helpers.js";
 
 /* ================== CATEGORY IMAGE RULE ================== */
 const CATEGORY_IMAGE_RULE = {
@@ -229,14 +230,9 @@ export const deleteCategory = async (req, res) => {
 
     const deletedOrder = category.order;
 
-    // ✅ publicId দিয়ে delete, না থাকলে URL দিয়ে fallback
-    if (category.imagePublicId) {
-      await deleteByPublicId(category.imagePublicId);
-    } else if (category.image) {
-      await deleteFromCloudinary(category.image);
-    }
-
-    await category.deleteOne();
+    // ✅ hard-delete এর বদলে Trash এ move — 3 দিন পর auto-purge হবে,
+    // এর মাঝে Trash থেকে restore করা যাবে। তাই এখানে image ডিলিট করা হচ্ছে না।
+    await moveToTrash("Category", category);
 
     await Category.updateMany(
       { order: { $gt: deletedOrder } },
@@ -245,7 +241,7 @@ export const deleteCategory = async (req, res) => {
 
     await normalizeCategoryOrders();
 
-    res.json({ message: "🗑️ Category deleted successfully" });
+    res.json({ message: "🗑️ Category moved to Trash" });
   } catch (err) {
     console.error("❌ Error deleting category:", err);
     res.status(400).json({ error: err.message });

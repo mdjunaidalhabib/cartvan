@@ -3,6 +3,7 @@ import fs from "fs";
 import sharp from "sharp";
 import path from "path";
 import { deleteFromCloudinary } from "../../utils/cloudinary/cloudinaryHelpers.js";
+import { moveToTrash } from "../../utils/trash/trash.helpers.js";
 import {
   toNumber,
   computeIsSoldOut,
@@ -20,6 +21,13 @@ const PRODUCT_IMAGE_RULE = {
   maxBytes: 100 * 1024, // ✅ strict 1:1 (1200×1200) crop, ১৫০KB থেকে কমিয়ে ১০০KB করা হলো
   allowedInputTypes: ["image/webp", "image/jpeg", "image/png"],
 };
+
+// ✅ প্রতিটি variant (color) এ সর্বোচ্চ কতটি image রাখা যাবে — এটাই এখন
+// সার্ভার-সাইড source of truth। Frontend (VariantSection.jsx এর
+// MAX_VARIANT_IMAGES) এখানে হার্ডকোড এই সংখ্যার সাথে মিলিয়ে রাখা হয়েছে,
+// কিন্তু আসল নিরাপত্তা এখানেই — frontend bypass করে সরাসরি API কল করলেও
+// এই limit ভাঙা যাবে না।
+const MAX_VARIANT_IMAGES = 8;
 
 /* ================== ✅ HELPERS ================== */
 const safeJSON = (val, fallback) => {
@@ -225,7 +233,14 @@ export const createProduct = async (req, res) => {
     const allFiles = req.files || [];
 
     if (!hasVariants) {
-      const galleryFiles = allFiles.filter((f) => f.fieldname === "images");
+      let galleryFiles = allFiles.filter((f) => f.fieldname === "images");
+
+      // ✅ non-variant product এও একই MAX_VARIANT_IMAGES limit প্রযোজ্য
+      if (galleryFiles.length > MAX_VARIANT_IMAGES) {
+        const excess = galleryFiles.slice(MAX_VARIANT_IMAGES);
+        for (const f of excess) safeUnlink(f.path);
+        galleryFiles = galleryFiles.slice(0, MAX_VARIANT_IMAGES);
+      }
 
       for (let file of galleryFiles) {
         const uploaded = await uploadToCloudinary(file, "products/gallery");
@@ -252,7 +267,16 @@ export const createProduct = async (req, res) => {
 
       for (let i = 0; i < parsedColors.length; i++) {
         const fieldName = `color_images_${i}`;
-        const colorFiles = allFiles.filter((f) => f.fieldname === fieldName);
+        let colorFiles = allFiles.filter((f) => f.fieldname === fieldName);
+
+        // ✅ প্রতি variant এ সর্বোচ্চ MAX_VARIANT_IMAGES টা image — বাড়তি
+        // file গুলো disk থেকে সাথে সাথে unlink করে দেওয়া হচ্ছে যাতে temp
+        // ফাইল জমে না থাকে।
+        if (colorFiles.length > MAX_VARIANT_IMAGES) {
+          const excess = colorFiles.slice(MAX_VARIANT_IMAGES);
+          for (const f of excess) safeUnlink(f.path);
+          colorFiles = colorFiles.slice(0, MAX_VARIANT_IMAGES);
+        }
 
         if (colorFiles.length > 0) {
           const urls = [];
@@ -408,7 +432,19 @@ export const updateProduct = async (req, res) => {
 
       for (let i = 0; i < incomingColors.length; i++) {
         const fieldName = `color_images_${i}`;
-        const colorFiles = allFiles.filter((f) => f.fieldname === fieldName);
+        let colorFiles = allFiles.filter((f) => f.fieldname === fieldName);
+
+        // ✅ MAX_VARIANT_IMAGES হিসাব করা হচ্ছে আগে থেকে রাখা (existing)
+        // image + নতুন upload মিলিয়ে — টোটাল যেন কখনো limit ছাড়িয়ে না যায়।
+        const existingCount = Array.isArray(incomingColors[i].images)
+          ? incomingColors[i].images.length
+          : 0;
+        const allowedNew = Math.max(0, MAX_VARIANT_IMAGES - existingCount);
+        if (colorFiles.length > allowedNew) {
+          const excess = colorFiles.slice(allowedNew);
+          for (const f of excess) safeUnlink(f.path);
+          colorFiles = colorFiles.slice(0, allowedNew);
+        }
 
         if (colorFiles.length > 0) {
           const urls = [];
@@ -457,8 +493,16 @@ export const updateProduct = async (req, res) => {
       );
       for (let url of imagesToRemove) await deleteFromCloudinary(url);
 
-      const galleryFiles = allFiles.filter((f) => f.fieldname === "images");
+      let galleryFiles = allFiles.filter((f) => f.fieldname === "images");
       let newUploads = [];
+
+      // ✅ existing (kept) + নতুন upload মিলিয়ে MAX_VARIANT_IMAGES ছাড়ানো যাবে না
+      const allowedNew = Math.max(0, MAX_VARIANT_IMAGES - keepImages.length);
+      if (galleryFiles.length > allowedNew) {
+        const excess = galleryFiles.slice(allowedNew);
+        for (const f of excess) safeUnlink(f.path);
+        galleryFiles = galleryFiles.slice(0, allowedNew);
+      }
 
       for (let file of galleryFiles) {
         const uploaded = await uploadToCloudinary(file, "products/gallery");
@@ -530,17 +574,12 @@ export const deleteProduct = async (req, res) => {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ error: "Product not found" });
 
-    if (product.image) await deleteFromCloudinary(product.image);
-    for (let url of product.images) await deleteFromCloudinary(url);
-
-    for (let color of product.colors) {
-      for (let url of color.images) await deleteFromCloudinary(url);
-    }
-
-    await product.deleteOne();
+    // ✅ hard-delete এর বদলে Trash এ move — 3 দিন পর auto-purge হবে,
+    // এর মাঝে Trash থেকে restore করা যাবে। তাই এখানে image ডিলিট করা হচ্ছে না।
+    await moveToTrash("Product", product);
     await normalizeOrders();
 
-    res.json({ message: "🗑️ Product deleted successfully" });
+    res.json({ message: "🗑️ Product moved to Trash" });
   } catch (err) {
     res.status(500).json({ error: err?.message || "Server error" });
   }

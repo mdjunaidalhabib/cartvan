@@ -237,7 +237,7 @@ export default function AddSlideModal({
                       <option key={num} value={num}>
                         {num}
                       </option>
-                    )
+                    ),
                   )}
                 </select>
               </div>
@@ -260,8 +260,8 @@ export default function AddSlideModal({
               <label className="block text-sm font-medium mb-2">
                 Slide Image{" "}
                 <span className="text-[11px] text-gray-500 font-semibold">
-                  (jpeg/png/webp → Auto WEBP, {SLIDER_IMAGE_RULE.width}×
-                  {SLIDER_IMAGE_RULE.height}, max {maxKB}KB)
+                  (যেকোনো image format → Auto {SLIDER_IMAGE_RULE.width}×
+                  {SLIDER_IMAGE_RULE.height})
                 </span>
               </label>
 

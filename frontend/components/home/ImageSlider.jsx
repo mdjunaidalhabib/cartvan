@@ -164,14 +164,14 @@ export default function ImageSlider({
 
               const imageEl = (
                 <div className={`relative w-full ${ratioClass} bg-gray-100`}>
-                  <Image loader={cloudinaryLoader}
+                  <Image
+                    loader={cloudinaryLoader}
                     src={img.src}
                     alt={img.alt || "slide"}
                     fill
                     className="object-contain" // ✅ no crop
                     sizes="100vw"
                     priority={isPriority}
-                    loading={isPriority ? "eager" : "lazy"}
                   />
                 </div>
               );

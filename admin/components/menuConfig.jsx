@@ -9,6 +9,7 @@ import {
   Eye,
   Settings,
   LayoutDashboard,
+  Trash2,
 } from "lucide-react";
 
 export const navItems = [
@@ -43,6 +44,8 @@ export const navItems = [
     href: "/admin/analytics",
   },
 
+  { icon: <Trash2 size={18} />, label: "Trash", href: "/admin/trash" },
+
   { icon: <Settings size={18} />, label: "Settings", href: "/admin/settings" },
 ];
 
@@ -57,6 +60,11 @@ export const settingsChildren = [
     label: "Footer",
     href: "/admin/footer",
   },
+  {
+    icon: <LayoutDashboard size={16} />,
+    label: "About Page",
+    href: "/admin/about",
+  },
     {
     icon: <LayoutDashboard size={16} />,
     label: "Action Button",
@@ -64,8 +72,18 @@ export const settingsChildren = [
   },
   {
     icon: <LayoutDashboard size={16} />,
+    label: "Facebook Group",
+    href: "/admin/facebookGroup",
+  },
+  {
+    icon: <LayoutDashboard size={16} />,
     label: "Delivery Charge",
     href: "/admin/deliveryCharge",
+  },
+  {
+    icon: <LayoutDashboard size={16} />,
+    label: "Home Badges",
+    href: "/admin/home-badges",
   },
   {
     icon: <LayoutDashboard size={16} />,

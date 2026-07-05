@@ -98,7 +98,7 @@ function useDragScroll(ref) {
 }
 
 // ── Horizontal scroll row (peek style) ─────────────────────
-// ✅ mobile-এ ~2টা কার্ড পুরোপুরি + পরের কার্ডের কিছুটা অংশ দেখা যায়,
+// ✅ mobile-এ ঠিক ২টা কার্ড পুরোপুরি + ৩নং কার্ডের একটা অংশ (peek) দেখা যায়,
 // desktop-এ ~5টা কার্ড পুরোপুরি + পরের কার্ডের কিছুটা অংশ দেখা যায় —
 // এতে ইউজার বুঝতে পারে যে আরও প্রোডাক্ট আছে (scroll করার hint)।
 // ✅ scrollbar সম্পূর্ণ hidden (Chrome/Safari/Firefox সব জায়গায়)।
@@ -166,17 +166,13 @@ function ProductGrid({ products }) {
 
   return (
     <motion.div
-      className="flex flex-wrap gap-2 sm:gap-3"
+      className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"
       variants={container}
       initial="hidden"
       animate="show"
     >
       {products.map((prod) => (
-        <motion.div
-          key={prod._id}
-          variants={item}
-          className="w-[44%] md:w-[19%] flex-shrink-0"
-        >
+        <motion.div key={prod._id} variants={item}>
           <ProductCard product={prod} />
         </motion.div>
       ))}
@@ -192,6 +188,7 @@ export default function CategoryTabsSection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [activeFilter, setActiveFilter] = useState(null);
+  const [badges, setBadges] = useState([]);
 
   const categoryNavRef = useRef(null);
   const categoryNavDrag = useDragScroll(categoryNavRef);
@@ -256,13 +253,15 @@ export default function CategoryTabsSection() {
       setLoading(true);
       setError(false);
 
-      const [pRes, cRes] = await Promise.all([
+      const [pRes, cRes, bRes] = await Promise.all([
         apiFetch("/products"),
         apiFetch("/categories"),
+        apiFetch("/homeBadges").catch(() => ({ badges: [] })),
       ]);
 
       let pArr = Array.isArray(pRes) ? pRes : [];
       let cArr = Array.isArray(cRes) ? cRes : [];
+      let bArr = Array.isArray(bRes?.badges) ? bRes.badges : [];
 
       cArr = cArr.filter((c) => c.isActive !== false);
       cArr.sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0));
@@ -276,6 +275,7 @@ export default function CategoryTabsSection() {
 
       setProducts(pArr);
       setCategories(cArr);
+      setBadges(bArr);
     } catch (err) {
       console.error(err);
       setError(true);
@@ -293,6 +293,12 @@ export default function CategoryTabsSection() {
   // wrap/expand হবে না)
   const goToCategoryPage = (cat) => {
     router.push(`/categories/${cat._id}`);
+  };
+
+  // ✅ Admin থেকে সেট করা badge name — না থাকলে fallback default দেখাবে
+  const getBadgeName = (field, fallback) => {
+    const b = badges.find((x) => x.field === field);
+    return b?.name || fallback;
   };
 
   const filteredProducts = activeFilter
@@ -314,6 +320,7 @@ export default function CategoryTabsSection() {
       {/* ✅ id="offer-section" —  navbar Cartvan Box বাটন এখানে scroll করে আসে */}
       <div id="offer-section" className="mb-4">
         <OfferBadges
+          badges={badges}
           activeFilter={activeFilter}
           onFilterChange={handleFilterChange}
         />
@@ -442,10 +449,11 @@ export default function CategoryTabsSection() {
               <div className="flex items-center gap-2 mb-3">
                 <h2 className="text-sm sm:text-lg font-bold text-gray-800">
                   {activeFilter === "freeDelivery" &&
-                    "🚚 Free Delivery Products"}
+                    `🚚 ${getBadgeName("freeDelivery", "Free Delivery")} Products`}
                   {activeFilter === "bestDiscount" &&
-                    "🛍️ Best Discount Products"}
-                  {activeFilter === "cartvanBox" && "🎁 Treasure Box Products"}
+                    `🛍️ ${getBadgeName("bestDiscount", "Best Discount")} Products`}
+                  {activeFilter === "cartvanBox" &&
+                    `🎁 ${getBadgeName("cartvanBox", "Gift Box")} Products`}
                 </h2>
                 <div className="flex-1 h-px bg-gray-200" />
                 <button
@@ -493,6 +501,7 @@ export default function CategoryTabsSection() {
                           src={cat.image || "/no-image.png"}
                           alt={cat.name}
                           fill
+                          sizes="40px"
                           className="object-cover"
                           draggable={false}
                         />
@@ -514,13 +523,21 @@ export default function CategoryTabsSection() {
                       </button>
                     </div>
 
-                    {/* ✅ ৬টা বা তার বেশি প্রোডাক্ট থাকলে mobile-এ ~2টা +
-                        desktop-এ ~5টা কার্ড পুরোপুরি দেখা যায়, পরের
-                        কার্ডের কিছু অংশ (peek) দেখা যায় যাতে বোঝা যায়
-                        আরও প্রোডাক্ট আছে (HorizontalScrollRow + drag scroll)।
+                    {/* ✅ ৬টা বা তার বেশি প্রোডাক্ট থাকলে mobile-এ ঠিক ২টা
+                        card পুরোপুরি + ৩নং কার্ডের একটা অংশ (peek) দেখা
+                        যায়, desktop-এ ~5টা কার্ড পুরোপুরি + পরের কার্ডের
+                        কিছু অংশ (peek) দেখা যায় যাতে বোঝা যায় আরও প্রোডাক্ট
+                        আছে (HorizontalScrollRow + drag scroll)।
                         ✅ ৫টা বা তার কম প্রোডাক্ট থাকলে normal wrap grid
                         দেখায়, যাতে card গুলো ফাঁকা জায়গা রেখে "সরু/সুতো"
-                        না দেখিয়ে স্বাভাবিক size ধরে সারিতে বসে। */}
+                        না দেখিয়ে স্বাভাবিক size ধরে সারিতে বসে।
+
+                        📐 mobile width হিসাব (gap-2 = 0.5rem, ২টা gap ধরে):
+                        containerWidth = 2×card + 0.4×card(peek) + 2×gap
+                                       = 2.4×card + 1rem
+                        => card = (100% - 1rem) / 2.4
+                        → w-[calc((100%-1rem)/2.4)]
+                        (২.৪ সংখ্যাটা কমালে peek বেশি দেখাবে, বাড়ালে কম) */}
                     {catProducts.length <= 5 ? (
                       <div className="flex flex-wrap gap-2 sm:gap-3">
                         {catProducts.map((prod) => (
@@ -537,7 +554,7 @@ export default function CategoryTabsSection() {
                         {catProducts.map((prod) => (
                           <div
                             key={prod._id}
-                            className="w-[44%] md:w-[19%] flex-shrink-0"
+                            className="w-[calc((100%-1rem)/2.4)] md:w-[19%] flex-shrink-0"
                           >
                             <ProductCard product={prod} />
                           </div>

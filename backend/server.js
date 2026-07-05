@@ -11,6 +11,7 @@ import createSuperAdmin from "./src/config/createSuperAdmin.js";
 
 import publicRoutes from "./src/routes/public/index.js";
 import adminRoutes from "./src/routes/admin/index.js";
+import { purgeExpiredTrash } from "./utils/trash/trash.helpers.js";
 
 dotenv.config();
 
@@ -138,6 +139,11 @@ const startServer = async () => {
   try {
     await dbConnect(process.env.MONGO_URI);
     await createSuperAdmin();
+
+    // ✅ Trash auto-purge: 3 দিনের পুরনো item গুলো boot এ একবার,
+    // তারপর প্রতি ঘন্টায় check করে permanently delete করবে
+    purgeExpiredTrash();
+    setInterval(purgeExpiredTrash, 60 * 60 * 1000);
 
     app.listen(PORT, "0.0.0.0", () =>
       console.log(`🚀 Backend running on port ${PORT}`)

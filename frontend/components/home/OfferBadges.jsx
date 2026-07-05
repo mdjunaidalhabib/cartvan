@@ -1,14 +1,32 @@
 "use client";
 
 import React from "react";
-import { FaShippingFast, FaShoppingBag, FaGift } from "react-icons/fa";
+import {
+  FaShippingFast,
+  FaShoppingBag,
+  FaGift,
+  FaTag,
+  FaFire,
+  FaStar,
+  FaPercent,
+} from "react-icons/fa";
 import { motion } from "framer-motion";
 
-const badges = [
-  {
-    key: "freeDelivery",
-    label: "Free Delivery",
-    Icon: FaShippingFast,
+// ✅ icon key (DB-তে সেভ হওয়া) → actual react-icon component
+const ICON_MAP = {
+  truck: FaShippingFast,
+  bag: FaShoppingBag,
+  gift: FaGift,
+  tag: FaTag,
+  fire: FaFire,
+  star: FaStar,
+  percent: FaPercent,
+};
+
+// ✅ প্রতিটা technical field-এর জন্য একটা fixed color theme —
+// নাম/আইকন Admin থেকে বদলালেও এই থিম consistent থাকবে
+const THEME_MAP = {
+  freeDelivery: {
     streakColor: "from-transparent via-orange-200/90 to-transparent",
     glowColor: "rgba(251,146,60,0.55)",
     activeBg: "bg-orange-100",
@@ -16,16 +34,9 @@ const badges = [
     inactiveBg: "bg-[#FFF5EE]",
     iconGradient: "from-orange-400 to-red-500",
     hoverBorder: "hover:border-orange-300",
-    // icon animation — delivery truck দৌড়ায়
-    iconAnimate: {
-      x: [0, 3, -1, 3, 0],
-      rotate: [0, -4, 0, 4, 0],
-    },
+    iconAnimate: { x: [0, 3, -1, 3, 0], rotate: [0, -4, 0, 4, 0] },
   },
-  {
-    key: "bestDiscount",
-    label: "Best Discount",
-    Icon: FaShoppingBag,
+  bestDiscount: {
     streakColor: "from-transparent via-indigo-200/90 to-transparent",
     glowColor: "rgba(99,102,241,0.55)",
     activeBg: "bg-blue-100",
@@ -33,16 +44,9 @@ const badges = [
     inactiveBg: "bg-[#F4F9FF]",
     iconGradient: "from-blue-400 to-indigo-600",
     hoverBorder: "hover:border-blue-300",
-    // bag দুলতে থাকে
-    iconAnimate: {
-      rotate: [-8, 8, -8, 8, 0],
-      y: [0, -1, 0, -1, 0],
-    },
+    iconAnimate: { rotate: [-8, 8, -8, 8, 0], y: [0, -1, 0, -1, 0] },
   },
-  {
-    key: "cartvanBox",
-    label: "Treasure Box",
-    Icon: FaGift,
+  cartvanBox: {
     streakColor: "from-transparent via-rose-200/90 to-transparent",
     glowColor: "rgba(251,113,133,0.55)",
     activeBg: "bg-rose-100",
@@ -50,36 +54,48 @@ const badges = [
     inactiveBg: "bg-rose-50",
     iconGradient: "from-pink-400 to-rose-500",
     hoverBorder: "hover:border-rose-300",
-    // gift box bounce করে
-    iconAnimate: {
-      y: [0, -3, 0, -2, 0],
-      scale: [1, 1.15, 1, 1.1, 1],
-    },
+    iconAnimate: { y: [0, -3, 0, -2, 0], scale: [1, 1.15, 1, 1.1, 1] },
   },
+};
+
+const DEFAULT_THEME = THEME_MAP.cartvanBox;
+
+// ✅ Admin panel থেকে badge না এলে (লোড হওয়ার আগে / API fail) fallback
+const FALLBACK_BADGES = [
+  { field: "freeDelivery", name: "Free Delivery", icon: "truck" },
+  { field: "bestDiscount", name: "Best Discount", icon: "bag" },
+  { field: "cartvanBox", name: "Gift Box", icon: "gift" },
 ];
 
-export default function OfferBar({ activeFilter, onFilterChange }) {
-  const handleClick = (filter) => {
-    onFilterChange(activeFilter === filter ? null : filter);
+export default function OfferBar({ badges, activeFilter, onFilterChange }) {
+  const list =
+    Array.isArray(badges) && badges.length > 0 ? badges : FALLBACK_BADGES;
+
+  const handleClick = (field) => {
+    onFilterChange(activeFilter === field ? null : field);
   };
 
   return (
-    <div className="flex flex-nowrap justify-center items-center gap-1 md:gap-8 lg:gap-14 w-full px-1">
-      {badges.map((b) => {
-        const isActive = activeFilter === b.key;
+    <div className="grid grid-cols-3 sm:flex sm:flex-wrap sm:justify-center gap-1.5 sm:gap-3 w-full px-1">
+      {list.map((badge) => {
+        const key = badge.field;
+        const b = { ...(THEME_MAP[key] || DEFAULT_THEME) };
+        const Icon = ICON_MAP[badge.icon] || FaGift;
+        const isActive = activeFilter === key;
 
         return (
           <motion.button
-            key={b.key}
-            onClick={() => handleClick(b.key)}
+            key={badge._id || key}
+            onClick={() => handleClick(key)}
             whileTap={{ scale: 0.91 }}
             animate={
               isActive
                 ? { scale: [1, 1.07, 1.04], transition: { duration: 0.28 } }
                 : { scale: 1 }
             }
-            className={`relative flex items-center gap-1 md:gap-1.5
-              px-2 py-1 md:px-2.5 md:py-1.5 lg:px-3 lg:py-1.5 rounded-md
+            className={`relative flex sm:inline-flex items-center justify-center gap-0.5 md:gap-2
+              w-full sm:w-fit min-w-0 flex-shrink-0
+              px-0 py-1 sm:px-3.5 sm:py-2 lg:px-4 lg:py-2.5 rounded-md
               cursor-pointer border overflow-hidden
               transition-colors duration-300
               ${
@@ -153,13 +169,13 @@ export default function OfferBar({ activeFilter, onFilterChange }) {
                   ease: "easeInOut",
                 }}
               >
-                <b.Icon className="text-[10px] md:text-[12px] lg:text-[14px]" />
+                <Icon className="text-[10px] md:text-[12px] lg:text-[14px]" />
               </motion.div>
             </div>
 
-            {/* ── Label ── */}
-            <span className="relative text-[13px] md:text-[18px] lg:text-[20px] font-medium whitespace-nowrap">
-              {b.label}
+            {/* ── Label — এডমিন প্যানেল থেকে দেওয়া নাম ── */}
+            <span className="relative min-w-0 truncate sm:whitespace-nowrap sm:overflow-visible sm:text-clip text-[11px] sm:text-[14px] lg:text-[15px] font-medium">
+              {badge.name}
             </span>
           </motion.button>
         );
