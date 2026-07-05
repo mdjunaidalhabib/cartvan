@@ -6,7 +6,7 @@ import sharp from "sharp";
 import { toBool, normalizeCategoryOrders } from "../../utils/category/index.js";
 import { moveToTrash } from "../../utils/trash/trash.helpers.js";
 
-/* ================== CATEGORY IMAGE RULE ================== */
+/* ================== CATEGORY IMAGE RULE ================= */
 const CATEGORY_IMAGE_RULE = {
   mime: "image/webp",
   width: 300,
