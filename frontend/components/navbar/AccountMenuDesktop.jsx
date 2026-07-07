@@ -84,7 +84,7 @@ export default function AccountMenuDesktop() {
             alt={me.name}
             width={28}
             height={28}
-            className="rounded-full"
+            className="w-7 h-7 rounded-full object-cover aspect-square shrink-0"
           />
         ) : (
           <FaUser className="w-5 h-5" />
@@ -111,7 +111,7 @@ export default function AccountMenuDesktop() {
                   alt={me.name}
                   width={36}
                   height={36}
-                  className="rounded-full"
+                  className="w-9 h-9 rounded-full object-cover aspect-square shrink-0"
                 />
               ) : (
                 <FaUser className="w-6 h-6" />

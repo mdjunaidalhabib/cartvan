@@ -91,7 +91,7 @@ export default function AboutPage() {
     <div className="bg-pink-50">
       {/* Hero */}
       <section className="relative overflow-hidden bg-pink-100">
-        <div className="relative max-w-7xl mx-auto px-6 py-8 lg:py-32">
+        <div className="relative max-w-7xl mx-auto px-6 py-8 lg:py-14">
           <div className="max-w-4xl mx-auto text-center ">
             {hero.badge && (
               <span className="inline-flex items-center rounded-full border border-pink-300 px-4 py-2 text-sm text-indigo-600">
@@ -99,7 +99,7 @@ export default function AboutPage() {
               </span>
             )}
 
-            <h1 className="mt-6 text-4xl md:text-6xl font-bold leading-tight">
+            <h1 className="mt-6 text-xl md:text-4xl font-bold leading-tight">
               {hero.titleLine1}
               <span className="block">{hero.titleLine2}</span>
             </h1>
@@ -138,7 +138,7 @@ export default function AboutPage() {
             </span>
           )}
 
-          <h2 className="text-4xl font-bold text-slate-900 mt-3 mb-6">
+          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mt-3 mb-6">
             {story.heading}
           </h2>
 
@@ -163,7 +163,7 @@ export default function AboutPage() {
                 key={index}
                 className="bg-pink-100 rounded-3xl p-8 text-center shadow-sm border border-slate-100"
               >
-                <h3 className="text-4xl font-bold text-indigo-600">
+                <h3 className="text-3xl font-bold text-indigo-600">
                   {item.value}
                 </h3>
                 <p className="mt-2 text-slate-600">{item.label}</p>
@@ -185,7 +185,7 @@ export default function AboutPage() {
                 <Target className="text-pink-600" size={28} />
               </div>
 
-              <h3 className="text-2xl font-bold mt-6 mb-4">{mission.title}</h3>
+              <h3 className="text-xl font-bold mt-6 mb-4">{mission.title}</h3>
 
               <p className="text-slate-600 leading-8">{mission.description}</p>
             </div>
@@ -195,7 +195,7 @@ export default function AboutPage() {
                 <Eye className="text-pink-600" size={28} />
               </div>
 
-              <h3 className="text-2xl font-bold mt-6 mb-4">{vision.title}</h3>
+              <h3 className="text-xl font-bold mt-6 mb-4">{vision.title}</h3>
 
               <p className="text-slate-600 leading-8">{vision.description}</p>
             </div>
@@ -213,7 +213,7 @@ export default function AboutPage() {
               </span>
             )}
 
-            <h2 className="text-4xl font-bold mt-3">
+            <h2 className="text-2xl md:text-3xl font-bold mt-3">
               {featuresSection.heading}
             </h2>
 
@@ -254,7 +254,7 @@ export default function AboutPage() {
       {/* CTA */}
       <section className="px-6 pb-20">
         <div className="max-w-6xl mx-auto rounded-[32px] bg-pink-100 p-10 md:p-16 text-center">
-          <h2 className="text-3xl md:text-5xl font-bold">{cta.title}</h2>
+          <h2 className="text-2xl md:text-4xl font-bold">{cta.title}</h2>
 
           {cta.description && (
             <p className="mt-5 text-lg text-slate-600 max-w-2xl mx-auto">

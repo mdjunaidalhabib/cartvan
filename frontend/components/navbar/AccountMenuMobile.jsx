@@ -98,7 +98,7 @@ export default function AccountMenuMobile({ onOpen }) {
             alt={me.name}
             width={28}
             height={28}
-            className="rounded-full"
+            className="w-7 h-7 rounded-full object-cover aspect-square"
           />
         ) : (
           <FaUser className="w-5 h-5 text-pink-600" />
@@ -130,7 +130,7 @@ export default function AccountMenuMobile({ onOpen }) {
                     alt={me.name}
                     width={30}
                     height={30}
-                    className="rounded-full"
+                    className="w-[30px] h-[30px] rounded-full object-cover aspect-square shrink-0"
                   />
                 ) : (
                   <FaUser className="w-8 h-8" />
