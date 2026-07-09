@@ -117,12 +117,13 @@ function buildInvoiceHtml(order) {
   const { datePart, timePart } = formatDateTime(order.createdAt);
 
   const itemRows = (order.items || [])
-    .map((item) => {
+    .map((item, index) => {
       const price = formatCurrency(item.price);
       const total = formatCurrency(item.qty * item.price);
 
       return `
         <div class="row">
+          <span>${index + 1}</span>
           <span>${escapeHtml(truncate(item.name))}</span>
           <span>${price}</span>
           <span>${item.qty}</span>
