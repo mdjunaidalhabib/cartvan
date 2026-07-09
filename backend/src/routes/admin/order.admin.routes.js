@@ -1,6 +1,10 @@
 import express from "express";
 import Order from "../../models/Order.js";
 import { moveToTrash } from "../../../utils/trash/trash.helpers.js";
+import {
+  regenerateInvoiceInBackground,
+  invalidateInvoiceCache,
+} from "../../utils/invoice/invoiceService.js";
 
 const router = express.Router();
 
@@ -152,6 +156,10 @@ router.post("/", async (req, res) => {
       createdByName,
       createdById,
     });
+
+    // ✅ Pre-generate the invoice PDF in the background so it's ready
+    // instantly whenever it's downloaded later.
+    regenerateInvoiceInBackground(created._id);
 
     res.status(201).json(created);
   } catch (err) {
@@ -380,6 +388,14 @@ router.put("/:id", async (req, res) => {
       new: true,
       runValidators: true,
     });
+
+    // ✅ Invoice-visible fields changed -> old cached PDF is stale.
+    // Wipe it and rebuild in the background so downloads stay instant.
+    const invoiceAffectingFields = ["billing", "discount", "total"];
+    if (invoiceAffectingFields.some((k) => updateData[k] !== undefined)) {
+      await invalidateInvoiceCache(updated._id);
+      regenerateInvoiceInBackground(updated._id);
+    }
 
     res.json(updated);
   } catch (err) {

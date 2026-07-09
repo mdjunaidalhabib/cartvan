@@ -6,6 +6,10 @@ import DeliveryCharge from "../../models/DeliveryCharge.js";
 // ✅ correct relative path
 import { getOrderMailSendSettings } from "../../../utils/mail/index.js";
 import { sendAdminOrderEmail } from "../../../utils/mail/index.js";
+import {
+  regenerateInvoiceInBackground,
+  invalidateInvoiceCache,
+} from "../../utils/invoice/invoiceService.js";
 
 const router = express.Router();
 
@@ -284,6 +288,11 @@ router.post("/", async (req, res) => {
       });
     }
 
+    // ✅ Instant-download invoice: generate the PDF now in the background
+    // so it's already sitting on disk by the time the customer clicks
+    // "Download Invoice" — the response below doesn't wait for this.
+    regenerateInvoiceInBackground(savedOrder._id);
+
     // ✅ Admin Email Notify (DB settings)
     // Admin Email Notify (DB settings)
     try {
@@ -422,6 +431,15 @@ router.put("/:id", async (req, res) => {
     }
 
     await order.save();
+
+    // ✅ Invoice-visible fields changed -> old cached PDF is now stale.
+    // Wipe it and rebuild in the background so the next download is
+    // still instant instead of falling back to slow on-demand generation.
+    if (billing || status === "cancelled") {
+      await invalidateInvoiceCache(order._id);
+      regenerateInvoiceInBackground(order._id);
+    }
+
     return res.json(order);
   } catch (err) {
     console.error("❌ Order update error:", err);

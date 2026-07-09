@@ -105,6 +105,15 @@ const orderSchema = new mongoose.Schema(
     ============================ */
     trackingId: { type: String, default: null },
     cancelReason: { type: String, default: null },
+
+    /* ===========================
+       ✅ INVOICE PDF CACHE
+       (pre-generated on order create, invalidated on billing/total change)
+    ============================ */
+    invoice: {
+      cachedAt: { type: Date, default: null },
+      version: { type: Number, default: 0 },
+    },
   },
   { timestamps: true },
 );

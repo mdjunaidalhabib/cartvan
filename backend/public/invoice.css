@@ -74,15 +74,26 @@ body {
 .items {
   margin-top: 70px;
   padding: 0 50px;
-  font-size: 14px;
+  font-size: 13px;
+
+  /* 🔥 main config: ekhane row height o column width set kora, ei section
+     jaiga na howar karone onno section ke thele soriye dibe na */
+  --row-h: 26px;
+  --col-sn: 40px;
+  --col-item: 6fr;
+  --col-price: 1.5fr;
+  --col-qty: 1fr;
+  --col-total: 1fr;
 }
 
 /* TABLE HEADER */
 .table-header {
   display: grid;
-  grid-template-columns: 6fr 1.5fr 1fr 1fr;
+  grid-template-columns: var(--col-sn) var(--col-item) var(--col-price) var(--col-qty) var(--col-total);
+  align-items: center;
+  height: var(--row-h);
   font-weight: 700;
-  padding: 12px 10px;
+  padding: 0 10px;
 
   border-bottom: 2px solid #111827;
   background: #ff36ac;
@@ -91,39 +102,36 @@ body {
   letter-spacing: 0.3px;
 }
 
+.table-header span {
+  text-align: center;
+}
+
 /* SINGLE ROW */
 .row {
   display: grid;
-  grid-template-columns: 6fr 1.5fr 1fr 1fr;
-  padding: 12px 10px;
+  grid-template-columns: var(--col-sn) var(--col-item) var(--col-price) var(--col-qty) var(--col-total);
+  align-items: center;
+  height: var(--row-h);
+  padding: 0 10px;
 
   border-bottom: 1px solid #ffc7f3;
-  min-height: 38px;
-
-  align-items: center;
-}
-
-/* ZEBRA EFFECT */
-.row:nth-child(even) {
   background: #ffffff;
 }
 
-/* ITEM NAME */
-.row span:first-child {
+/* ZEBRA EFFECT: odd = white, even = halka pink */
+.row:nth-child(even) {
+  background: #ffe6f5;
+}
+
+/* SL + ITEM NAME + SOB TEXT CENTER */
+.row span {
+  text-align: center;
+  color: #111827;
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #111827;
 }
-
-/* RIGHT ALIGN NUMBERS */
-.row span:not(:first-child),
-.table-header span:not(:first-child) {
-  text-align: right;
-  color: #ffffff;
-  font-weight: 500;
-}
-
 
 /* keep space visible but blank */
 .row.empty span {

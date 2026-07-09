@@ -40,6 +40,9 @@ node_modules
 # vercel
 .vercel
 
+# generated invoice PDF cache
+/uploads/invoices
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
