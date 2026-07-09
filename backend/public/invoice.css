@@ -247,7 +247,7 @@ body {
 
 .note-box .note-label::after {
   content: ":";
-}
+} 
 
 .note-box .note-value {
   word-break: break-word;
