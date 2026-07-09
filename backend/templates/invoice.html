@@ -22,7 +22,7 @@
 
         <!-- 🔥 BILLING CARD -->
         <div class="billing-card">
-          <div class="billing-title">Customer  Details</div>
+          <div class="billing-title">Customer Details</div>
 
           <div class="row-bill">
             <span class="label">Name</span>
@@ -37,11 +37,6 @@
           <div class="row-bill">
             <span class="label">Address</span>
             <span class="value">{{address}}</span>
-          </div>
-
-          <div class="row-bill">
-            <span class="label">Note</span>
-            <span class="value">{{note}}</span>
           </div>
         </div>
       </div>
@@ -85,6 +80,12 @@
       </div>
 
       <div class="total">Total: {{total}} tk</div>
+
+      <!-- 🔥 NOTE — sobar niche, highlight kora -->
+      <div class="note-box">
+        <span class="note-label">Note</span>
+        <span class="note-value">{{note}}</span>
+      </div>
     </div>
   </body>
 </html>

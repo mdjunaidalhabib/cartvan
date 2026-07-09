@@ -112,11 +112,31 @@ function escapeHtml(str = "") {
 
 /* ================= HTML BUILD ================= */
 
+// minimum rows the items table should always show; real rows fill in from
+// the top and any leftover slots stay blank so the table keeps its shape
+// on orders with only 1-2 items. Orders with more items than this simply
+// grow past it — nothing gets cut off.
+const MIN_ITEM_ROWS = 8;
+
+function buildEmptyRow() {
+  return `
+        <div class="row empty">
+          <span>&nbsp;</span>
+          <span>&nbsp;</span>
+          <span>&nbsp;</span>
+          <span>&nbsp;</span>
+          <span>&nbsp;</span>
+        </div>
+      `;
+}
+
 function buildInvoiceHtml(order) {
   const { htmlTemplate, bgImageBase64 } = loadStaticAssets();
   const { datePart, timePart } = formatDateTime(order.createdAt);
 
-  const itemRows = (order.items || [])
+  const items = order.items || [];
+
+  const filledRows = items
     .map((item, index) => {
       const price = formatCurrency(item.price);
       const total = formatCurrency(item.qty * item.price);
@@ -133,20 +153,30 @@ function buildInvoiceHtml(order) {
     })
     .join("");
 
+  const emptyRowsNeeded = Math.max(MIN_ITEM_ROWS - items.length, 0);
+  const emptyRows = Array.from({ length: emptyRowsNeeded }, buildEmptyRow).join(
+    "",
+  );
+
+  const itemRows = filledRows + emptyRows;
+
   const finalHtml = htmlTemplate
     .replace("{{orderId}}", escapeHtml(order._id.toString()))
     .replace("{{date}}", escapeHtml(datePart))
     .replace("{{time}}", escapeHtml(timePart))
-    .replace("{{payment}}", escapeHtml((order.paymentMethod || "").toUpperCase()))
+    .replace(
+      "{{payment}}",
+      escapeHtml((order.paymentMethod || "").toUpperCase()),
+    )
     .replace("{{name}}", escapeHtml(order.billing?.name || ""))
     .replace("{{phone}}", escapeHtml(order.billing?.phone || ""))
     .replace("{{address}}", escapeHtml(order.billing?.address || ""))
-    .replace("{{note}}", escapeHtml(order.billing?.note || ""))
     .replace("{{items}}", itemRows)
     .replace("{{subtotal}}", formatCurrency(order.subtotal))
     .replace("{{delivery}}", formatCurrency(order.deliveryCharge))
     .replace("{{discount}}", formatCurrency(order.discount || 0))
-    .replace("{{total}}", formatCurrency(order.total));
+    .replace("{{total}}", formatCurrency(order.total))
+    .replace("{{note}}", escapeHtml(order.billing?.note || ""));
 
   return { finalHtml, bgImageBase64 };
 }

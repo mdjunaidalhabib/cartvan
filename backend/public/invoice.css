@@ -30,7 +30,7 @@ body {
 /* ORDER INFO */
 .order-info {
   position: absolute;
-  top: 250px;
+  top: 220px;
   right: 60px;
   font-size: 14px;
   line-height: 1.8;
@@ -39,9 +39,9 @@ body {
 /* 🔥 BILLING CARD */
 .billing-card {
   position: absolute;
-  top: 210px;
-  left: 40px;
-  width: 420px;
+  top: 190px;
+  left: 60px;
+  width: 400px;
   padding: 12px 15px;
   border-radius: 8px;
 }
@@ -54,12 +54,16 @@ body {
 
 .row-bill {
   display: grid;
-  grid-template-columns: 70px 1fr;
-  margin-bottom: 4px;
+  grid-template-columns: 100px 1fr;
+  column-gap: 10px;
+  margin-bottom: 2px;
+  font-size: 20px;
+  line-height: 1.25;
 }
 
 .label {
   font-weight: bold;
+  white-space: nowrap;
 }
 
 .label::after {
@@ -72,7 +76,7 @@ body {
 
 /* ITEMS SECTION WRAPPER */
 .items {
-  margin-top: 70px;
+  margin-top: 30px;
   padding: 0 50px;
   font-size: 13px;
 
@@ -89,7 +93,9 @@ body {
 /* TABLE HEADER */
 .table-header {
   display: grid;
-  grid-template-columns: var(--col-sn) var(--col-item) var(--col-price) var(--col-qty) var(--col-total);
+  grid-template-columns:
+    var(--col-sn) var(--col-item) var(--col-price) var(--col-qty)
+    var(--col-total);
   align-items: center;
   height: var(--row-h);
   font-weight: 700;
@@ -109,7 +115,9 @@ body {
 /* SINGLE ROW */
 .row {
   display: grid;
-  grid-template-columns: var(--col-sn) var(--col-item) var(--col-price) var(--col-qty) var(--col-total);
+  grid-template-columns:
+    var(--col-sn) var(--col-item) var(--col-price) var(--col-qty)
+    var(--col-total);
   align-items: center;
   height: var(--row-h);
   padding: 0 10px;
@@ -139,10 +147,10 @@ body {
 }
 /* SUMMARY CARD */
 .summary {
-  margin-top: 130px;
+  margin-top: 10px;
   margin-right: 80px;
   margin-left: auto;
-  width: 300px;
+  width: 250px;
 
   background: #ffffff;
   border: 1px solid #e5e7eb;
@@ -171,7 +179,7 @@ body {
   align-items: center;
 
   font-size: 14px;
-  padding: 6px 0;
+  padding: 4px 0;
   color: #111827;
 }
 
@@ -195,17 +203,52 @@ body {
 .total {
   margin-top: 12px;
   margin-right: 80px;
+  margin-left: auto;
+  width: 280px;
+  box-sizing: border-box;
   text-align: right;
 
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 800;
 
   color: #ffffff;
-  background: linear-gradient(135deg, #da2c83, #ff36ac
-  );
+  background: linear-gradient(135deg, #da2c83, #ff36ac);
 
   padding: 12px 16px;
   border-radius: 10px;
 
   box-shadow: 0 6px 18px rgba(109, 40, 217, 0.25);
+}
+
+/* NOTE BOX — left-aligned, sits under the total row but on the left side */
+.note-box {
+  margin-top: 10px;
+  margin-left: 60px;
+  margin-right: auto;
+  width: 400px;
+  box-sizing: border-box;
+
+  background: #fff6cf;
+  border-left: 4px solid #ff36ac;
+  border-radius: 8px;
+
+  padding: 8px 14px;
+  font-size: 12px;
+  color: #111827;
+
+  display: flex;
+  gap: 6px;
+}
+
+.note-box .note-label {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.note-box .note-label::after {
+  content: ":";
+}
+
+.note-box .note-value {
+  word-break: break-word;
 }
