@@ -30,16 +30,16 @@ body {
 /* ORDER INFO */
 .order-info {
   position: absolute;
-  top: 220px;
+  top: 230px;
   right: 60px;
   font-size: 14px;
-  line-height: 1.8;
+  line-height: 1.6;
 }
 
 /* 🔥 BILLING CARD */
 .billing-card {
   position: absolute;
-  top: 190px;
+  top: 180px;
   left: 60px;
   width: 400px;
   padding: 12px 15px;
@@ -49,16 +49,16 @@ body {
 .billing-title {
   font-weight: 700;
   margin-bottom: 6px;
-  font-size: 16px;
+  font-size: 20px;
 }
 
 .row-bill {
   display: grid;
-  grid-template-columns: 100px 1fr;
-  column-gap: 10px;
-  margin-bottom: 2px;
-  font-size: 20px;
-  line-height: 1.25;
+  grid-template-columns: auto 1fr;
+  column-gap: 6px;
+  margin-bottom: 3px;
+  font-size: 17px;
+  line-height: 1.4;
 }
 
 .label {
@@ -80,8 +80,6 @@ body {
   padding: 0 50px;
   font-size: 13px;
 
-  /* 🔥 main config: ekhane row height o column width set kora, ei section
-     jaiga na howar karone onno section ke thele soriye dibe na */
   --row-h: 26px;
   --col-sn: 40px;
   --col-item: 6fr;
@@ -123,15 +121,13 @@ body {
   padding: 0 10px;
 
   border-bottom: 1px solid #ffc7f3;
-  background: #ffffff;
-}
-
-/* ZEBRA EFFECT: odd = white, even = halka pink */
-.row:nth-child(even) {
   background: #ffe6f5;
 }
 
-/* SL + ITEM NAME + SOB TEXT CENTER */
+.row:nth-child(even) {
+  background: #ffffff;
+}
+
 .row span {
   text-align: center;
   color: #111827;
@@ -141,88 +137,77 @@ body {
   text-overflow: ellipsis;
 }
 
-/* keep space visible but blank */
 .row.empty span {
   color: transparent;
 }
-/* SUMMARY CARD */
+
+/* SUMMARY CARD — ekhon Total eita r bhitorei thakbe */
 .summary {
   margin-top: 10px;
   margin-right: 80px;
   margin-left: auto;
-  width: 250px;
+  width: 220px;
 
   background: #ffffff;
   border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 16px 18px;
+  border-radius: 10px;
+  padding: 10px 14px;
 
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  overflow: hidden; /* total box er radius jate card er baire na chhoranor */
 }
 
-/* TITLE (optional add) */
 .summary::before {
   content: "Order Summary";
   display: block;
   font-weight: 700;
-  font-size: 15px;
-  margin-bottom: 12px;
+  font-size: 13px;
+  margin-bottom: 6px;
   color: #111827;
   border-bottom: 1px dashed #e5e7eb;
-  padding-bottom: 8px;
+  padding-bottom: 5px;
 }
 
-/* ROW STYLE */
 .summary-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
 
-  font-size: 14px;
-  padding: 4px 0;
+  font-size: 12px;
+  padding: 2px 0;
   color: #111827;
 }
 
-/* LABEL */
 .summary-row span:first-child {
   color: #111827;
 }
 
-/* VALUE */
 .summary-row span:last-child {
   font-weight: 600;
   color: #111827;
 }
 
-/* DIVIDER EFFECT */
 .summary-row:not(:last-child) {
   border-bottom: 1px solid #f3f4f6;
 }
 
-/* TOTAL BOX (IMPORTANT) */
-.total {
-  margin-top: 12px;
-  margin-right: 80px;
-  margin-left: auto;
-  width: 280px;
-  box-sizing: border-box;
-  text-align: right;
-
-  font-size: 18px;
-  font-weight: 800;
-
-  color: #ffffff;
-  background: linear-gradient(135deg, #da2c83, #ff36ac);
-
-  padding: 12px 16px;
-  border-radius: 10px;
-
-  box-shadow: 0 6px 18px rgba(109, 40, 217, 0.25);
+/* Highlight the Total row */
+.summary-row:last-child {
+  margin-top: 4px;
+  border-radius: 6px;
+  padding: 5px 8px;
+  background: #ffe6f5;
 }
 
-/* NOTE BOX — left-aligned, sits under the total row but on the left side */
+.summary-row:last-child span:first-child,
+.summary-row:last-child span:last-child {
+  font-weight: 700;
+  color: #ff36ac;
+}
+
+/* NOTE BOX */
 .note-box {
-  margin-top: 10px;
+  margin-top: 30px;
   margin-left: 60px;
   margin-right: auto;
   width: 400px;
@@ -247,7 +232,7 @@ body {
 
 .note-box .note-label::after {
   content: ":";
-} 
+}
 
 .note-box .note-value {
   word-break: break-word;

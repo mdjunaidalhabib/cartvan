@@ -80,17 +80,27 @@ async function getBrowser() {
 function formatDateTime(date) {
   const d = new Date(date);
   return {
+    // 🔥 timeZone lock kora holo Asia/Dhaka e, nahole server UTC e
+    // thakle invoice e vul (UTC) time show hoy customer'r real time er bodole
     datePart: d.toLocaleDateString("en-GB", {
       day: "2-digit",
       month: "long",
       year: "numeric",
+      timeZone: "Asia/Dhaka",
     }),
     timePart: d.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
       hour12: true,
+      timeZone: "Asia/Dhaka",
     }),
   };
+}
+
+// 🔥 short, readable Order ID (e.g. #8F3AB2) instead of the full 24-char
+// Mongo ObjectId — same short id is used in the PDF footer for consistency
+function shortOrderId(id) {
+  return `#${id.toString().slice(-6).toUpperCase()}`;
 }
 
 function truncate(text = "", max = 35) {
@@ -130,6 +140,22 @@ function buildEmptyRow() {
       `;
 }
 
+/**
+ * 🔥 FIX: String.prototype.replace(placeholder, value) treats certain
+ * "$" sequences in the *replacement string* as special patterns
+ * ($&, $`, $', $1, $$ ...). If any customer-entered field (name, phone,
+ * address, note) happens to contain a "$", the previously-replaced or
+ * surrounding template text could get spliced into the output — which is
+ * exactly what caused fields to bleed into each other on the PDF.
+ *
+ * Using a function as the replacement value sidesteps this entirely:
+ * whatever the function returns is inserted literally, with zero special
+ * pattern interpretation.
+ */
+function safeReplace(str, placeholder, value) {
+  return str.replace(placeholder, () => value);
+}
+
 function buildInvoiceHtml(order) {
   const { htmlTemplate, bgImageBase64 } = loadStaticAssets();
   const { datePart, timePart } = formatDateTime(order.createdAt);
@@ -160,23 +186,28 @@ function buildInvoiceHtml(order) {
 
   const itemRows = filledRows + emptyRows;
 
-  const finalHtml = htmlTemplate
-    .replace("{{orderId}}", escapeHtml(order._id.toString()))
-    .replace("{{date}}", escapeHtml(datePart))
-    .replace("{{time}}", escapeHtml(timePart))
-    .replace(
-      "{{payment}}",
-      escapeHtml((order.paymentMethod || "").toUpperCase()),
-    )
-    .replace("{{name}}", escapeHtml(order.billing?.name || ""))
-    .replace("{{phone}}", escapeHtml(order.billing?.phone || ""))
-    .replace("{{address}}", escapeHtml(order.billing?.address || ""))
-    .replace("{{items}}", itemRows)
-    .replace("{{subtotal}}", formatCurrency(order.subtotal))
-    .replace("{{delivery}}", formatCurrency(order.deliveryCharge))
-    .replace("{{discount}}", formatCurrency(order.discount || 0))
-    .replace("{{total}}", formatCurrency(order.total))
-    .replace("{{note}}", escapeHtml(order.billing?.note || ""));
+  // 🔥 all placeholder values collected up-front, then swapped in via a
+  // single regex pass — one scan of the template instead of 13, and the
+  // function-replacement form keeps "$" characters in user data literal.
+  const values = {
+    orderId: escapeHtml(shortOrderId(order._id)),
+    date: escapeHtml(datePart),
+    time: escapeHtml(timePart),
+    payment: escapeHtml((order.paymentMethod || "").toUpperCase()),
+    name: escapeHtml(order.billing?.name || ""),
+    phone: escapeHtml(order.billing?.phone || ""),
+    address: escapeHtml(order.billing?.address || ""),
+    items: itemRows,
+    subtotal: formatCurrency(order.subtotal),
+    delivery: formatCurrency(order.deliveryCharge),
+    discount: formatCurrency(order.discount || 0),
+    total: formatCurrency(order.total),
+    note: escapeHtml(order.billing?.note || ""),
+  };
+
+  const finalHtml = htmlTemplate.replace(/\{\{(\w+)\}\}/g, (match, key) =>
+    Object.prototype.hasOwnProperty.call(values, key) ? values[key] : match,
+  );
 
   return { finalHtml, bgImageBase64 };
 }
@@ -213,7 +244,7 @@ async function generateInvoicePdfBuffer(order) {
           justify-content: space-between;
           color: #666;
         ">
-          <span>Invoice #${order._id.toString().slice(-6)}</span>
+          <span>Invoice ${shortOrderId(order._id)}</span>
           <span>
             Page <span class="pageNumber"></span> of
             <span class="totalPages"></span>
