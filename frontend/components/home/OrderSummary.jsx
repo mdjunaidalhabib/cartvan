@@ -123,7 +123,7 @@ export default function OrderSummary({ orderId }) {
       {/* Actions */}
       <div className="flex gap-2 p-3">
         <a
-          href={`/api/api/invoice/${orderId}`}
+          href={`/api/invoice/${orderId}`}
           target="_blank"
           rel="noreferrer"
           className="flex-1 bg-blue-600 text-white py-1.5 rounded text-center hover:bg-blue-700 text-xs"

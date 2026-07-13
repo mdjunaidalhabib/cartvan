@@ -1,7 +1,16 @@
 import mongoose from "mongoose";
+import Counter from "./Counter.js";
 
 const orderSchema = new mongoose.Schema(
   {
+    /* ===========================
+       ✅ ORDER NUMBER (auto-increment, human-readable)
+       - Separate from Mongo's _id
+       - Used on invoice/receipt instead of the ObjectId
+       - Sequential: 1001, 1002, 1003, ...
+    ============================ */
+    orderNumber: { type: Number, unique: true, index: true },
+
     /* ===========================
        ✅ ITEMS
     ============================ */
@@ -117,6 +126,25 @@ const orderSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+// ✅ Pre-save hook to auto-increment orderNumber safely
+// (same Counter-based pattern already used for User.userId)
+orderSchema.pre("save", async function (next) {
+  if (this.isNew && (this.orderNumber === undefined || this.orderNumber === null)) {
+    try {
+      const counter = await Counter.findOneAndUpdate(
+        { name: "orderNumber" },
+        { $inc: { seq: 1 } },
+        { new: true, upsert: true },
+      );
+      this.orderNumber = counter?.seq ?? 1001;
+    } catch (e) {
+      // fallback if counter fails — still lets the order save
+      this.orderNumber = Date.now();
+    }
+  }
+  next();
+});
 
 const Order = mongoose.models.Order || mongoose.model("Order", orderSchema);
 export default Order;

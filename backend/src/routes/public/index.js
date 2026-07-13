@@ -30,7 +30,7 @@ router.use("/navbar", navbarRoutes);
 router.use("/footer", footerRoutes);
 router.use("/receipts", receiptRoutes);
 router.use("/slider-images", sliderRoutes);
-router.use("/api", invoiceRoute);
+router.use("/invoice", invoiceRoute);
 router.use("/deliveryCharge", deliveryCharge);
 router.use("/profile", profileUploadRoutes);
 router.use("/users", userRoutes); 

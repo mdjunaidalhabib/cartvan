@@ -523,22 +523,7 @@ export default function CategoryTabsSection() {
                       </button>
                     </div>
 
-                    {/* ✅ ৬টা বা তার বেশি প্রোডাক্ট থাকলে mobile-এ ঠিক ২টা
-                        card পুরোপুরি + ৩নং কার্ডের একটা অংশ (peek) দেখা
-                        যায়, desktop-এ ~5টা কার্ড পুরোপুরি + পরের কার্ডের
-                        কিছু অংশ (peek) দেখা যায় যাতে বোঝা যায় আরও প্রোডাক্ট
-                        আছে (HorizontalScrollRow + drag scroll)।
-                        ✅ ৫টা বা তার কম প্রোডাক্ট থাকলে normal wrap grid
-                        দেখায়, যাতে card গুলো ফাঁকা জায়গা রেখে "সরু/সুতো"
-                        না দেখিয়ে স্বাভাবিক size ধরে সারিতে বসে।
-
-                        📐 mobile width হিসাব (gap-2 = 0.5rem, ২টা gap ধরে):
-                        containerWidth = 2×card + 0.4×card(peek) + 2×gap
-                                       = 2.4×card + 1rem
-                        => card = (100% - 1rem) / 2.4
-                        → w-[calc((100%-1rem)/2.4)]
-                        (২.৪ সংখ্যাটা কমালে peek বেশি দেখাবে, বাড়ালে কম) */}
-                    {catProducts.length <= 5 ? (
+                    {catProducts.length <= 2 ? (
                       <div className="flex flex-wrap gap-2 sm:gap-3">
                         {catProducts.map((prod) => (
                           <div
@@ -554,7 +539,7 @@ export default function CategoryTabsSection() {
                         {catProducts.map((prod) => (
                           <div
                             key={prod._id}
-                            className="w-[calc((100%-1rem)/2.4)] md:w-[19%] flex-shrink-0"
+                            className="w-[calc((100%-1rem)/2.1)] md:w-[19%] flex-shrink-0"
                           >
                             <ProductCard product={prod} />
                           </div>

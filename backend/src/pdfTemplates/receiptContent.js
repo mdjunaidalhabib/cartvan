@@ -73,7 +73,9 @@ export function generateReceiptPDF(order, res) {
     .fontSize(14)
     .text("অর্ডারের তথ্য", { underline: true });
   doc.fillColor("black").fontSize(12);
-  doc.text(`অর্ডার আইডি: ${order?._id || "-"}`);
+  doc.text(
+    `অর্ডার আইডি: ${order?.orderNumber != null ? `#${order.orderNumber}` : order?._id || "-"}`
+  );
   doc.text(`তারিখ: ${dayjs(order?.createdAt).format("DD/MM/YYYY HH:mm")}`);
   doc.text(`স্ট্যাটাস: ${order?.status || "-"}`);
   doc.moveDown(0.5);

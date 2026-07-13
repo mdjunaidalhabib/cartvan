@@ -9,7 +9,7 @@ const router = express.Router();
 
 /* ================= ROUTE ================= */
 
-router.get("/invoice/:id", async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).send("Order not found");

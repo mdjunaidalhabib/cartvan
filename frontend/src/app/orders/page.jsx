@@ -231,7 +231,7 @@ export default function OrdersPage() {
                 <div className="flex justify-between font-medium">
                   <span>Order</span>
                   <span className="truncate max-w-[60%]">
-                    {order.orderId || order._id}
+                    {order.orderNumber ? `#${order.orderNumber}` : order._id}
                   </span>
                 </div>
 
@@ -289,7 +289,9 @@ export default function OrdersPage() {
               <tbody>
                 {paginatedOrders.map((order) => (
                   <tr key={order._id} className="border-t">
-                    <td className="p-3">{order.orderId || order._id}</td>
+                    <td className="p-3">
+                      {order.orderNumber ? `#${order.orderNumber}` : order._id}
+                    </td>
                     <td className="p-3">{formatDateTime(order.createdAt)}</td>
                     <td className="p-3 capitalize">{order.status}</td>
                     <td className="p-3">৳{order.total}</td>

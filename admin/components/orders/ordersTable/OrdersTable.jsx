@@ -185,7 +185,7 @@ export default function OrdersTable({
                     {/* ORDER INFO */}
                     <td className="p-2">
                       <div className="font-mono text-xs text-gray-500">
-                        #{o._id}
+                        #{o.orderNumber ?? o._id}
                       </div>
 
                       {isAdminCreated && (
@@ -362,7 +362,7 @@ export default function OrdersTable({
 
                         {/* Invoice */}
                         <a
-                          href={`/api/api/invoice/${o._id}`}
+                          href={`/api/invoice/${o._id}`}
                           target="_blank"
                           rel="noreferrer"
                           className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm flex items-center gap-1 transition"

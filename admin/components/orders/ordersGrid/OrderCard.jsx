@@ -104,7 +104,9 @@ export default function OrderCard({
                 </span>
               )}
 
-              <span className="font-mono">#{o._id.slice(-6)}</span>
+              <span className="font-mono">
+                #{o.orderNumber ?? o._id.slice(-6)}
+              </span>
               <span>• {formatOrderTime(o)}</span>
               <span>• {itemCount} items</span>
             </div>
@@ -250,7 +252,7 @@ export default function OrderCard({
               )}
 
               <a
-                href={`/api/api/invoice/${o._id}`}
+                href={`/api/invoice/${o._id}`}
                 target="_blank"
                 rel="noreferrer"
                 className="bg-blue-600 hover:bg-blue-700 text-white p-3  rounded-lg transition flex items-center justify-center"

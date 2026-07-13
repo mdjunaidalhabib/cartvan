@@ -97,9 +97,13 @@ function formatDateTime(date) {
   };
 }
 
-// 🔥 short, readable Order ID (e.g. #8F3AB2) instead of the full 24-char
-// Mongo ObjectId — same short id is used in the PDF footer for consistency
-function shortOrderId(id) {
+// 🔥 human-readable, sequential Order Number (e.g. #1024) used across the
+// invoice instead of the 24-char Mongo ObjectId. Falls back to the old
+// shortened-ObjectId format for legacy orders created before orderNumber
+// existed (should not happen after the backfill script has been run).
+function shortOrderId(order) {
+  if (order?.orderNumber != null) return `#${order.orderNumber}`;
+  const id = order?._id ?? order;
   return `#${id.toString().slice(-6).toUpperCase()}`;
 }
 
@@ -190,7 +194,7 @@ function buildInvoiceHtml(order) {
   // single regex pass — one scan of the template instead of 13, and the
   // function-replacement form keeps "$" characters in user data literal.
   const values = {
-    orderId: escapeHtml(shortOrderId(order._id)),
+    orderId: escapeHtml(shortOrderId(order)),
     date: escapeHtml(datePart),
     time: escapeHtml(timePart),
     payment: escapeHtml((order.paymentMethod || "").toUpperCase()),
@@ -244,7 +248,7 @@ async function generateInvoicePdfBuffer(order) {
           justify-content: space-between;
           color: #666;
         ">
-          <span>Invoice ${shortOrderId(order._id)}</span>
+          <span>Invoice ${shortOrderId(order)}</span>
           <span>
             Page <span class="pageNumber"></span> of
             <span class="totalPages"></span>
