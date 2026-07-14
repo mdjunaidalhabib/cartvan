@@ -144,16 +144,15 @@ body {
 /* SUMMARY CARD — ekhon Total eita r bhitorei thakbe */
 .summary {
   margin-top: 10px;
-  margin-right: 80px;
+  margin-right: 50px;
   margin-left: auto;
   width: 220px;
 
   background: #ffffff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #ff36ac;
   border-radius: 10px;
   padding: 10px 14px;
 
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
   overflow: hidden; /* total box er radius jate card er baire na chhoranor */
 }
 

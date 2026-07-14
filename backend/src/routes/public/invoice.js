@@ -14,7 +14,9 @@ router.get("/:id", async (req, res) => {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).send("Order not found");
 
-    const filename = `invoice-${order._id}.pdf`;
+    const orderRef =
+      order.orderNumber ?? order._id.toString().slice(-6).toUpperCase();
+    const filename = `invoice-${orderRef}.pdf`;
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
 

@@ -245,10 +245,9 @@ async function generateInvoicePdfBuffer(order) {
           font-size: 10px;
           padding: 0 40px 10px;
           display: flex;
-          justify-content: space-between;
+          justify-content: flex-end;
           color: #666;
         ">
-          <span>Invoice ${shortOrderId(order)}</span>
           <span>
             Page <span class="pageNumber"></span> of
             <span class="totalPages"></span>
