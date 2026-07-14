@@ -67,11 +67,14 @@ const orderSchema = new mongoose.Schema(
 
     /* ===========================
        ✅ PAYMENT
+       - paymentMethod is now a free-form string: "cod" or the
+         PaymentMethod name (e.g. "bKash", "Nagad", "Rocket") since
+         admin can add/remove methods dynamically.
     ============================ */
     paymentMethod: {
       type: String,
-      enum: ["cod", "bkash"],
       default: "cod",
+      trim: true,
       index: true,
     },
     paymentStatus: {
@@ -79,6 +82,15 @@ const orderSchema = new mongoose.Schema(
       enum: ["pending", "paid", "failed"],
       default: "pending",
       index: true,
+    },
+
+    // ✅ Manual mobile-banking verification details (bKash/Nagad/etc.)
+    // Filled only when paymentMethod !== "cod"
+    paymentDetails: {
+      methodId: { type: mongoose.Schema.Types.ObjectId, default: null },
+      methodName: { type: String, default: null }, // snapshot, in case method is later renamed/deleted
+      senderNumber: { type: String, default: null },
+      transactionId: { type: String, default: null, uppercase: true, trim: true },
     },
 
     /* ===========================
@@ -126,6 +138,12 @@ const orderSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+// ✅ Speeds up duplicate-TrxID lookup during checkout (fraud check)
+orderSchema.index({
+  "paymentDetails.methodName": 1,
+  "paymentDetails.transactionId": 1,
+});
 
 // ✅ Pre-save hook to auto-increment orderNumber safely
 // (same Counter-based pattern already used for User.userId)

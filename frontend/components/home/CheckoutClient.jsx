@@ -73,6 +73,15 @@ export default function CheckoutPage() {
   // ✅ Payment Method (COD default)
   const [paymentMethod, setPaymentMethod] = useState("cod");
 
+  // ✅ Dynamic mobile-banking payment methods (bKash/Nagad/Rocket etc.)
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [methodsLoading, setMethodsLoading] = useState(true);
+
+  // ✅ Manual payment verification fields
+  const [senderNumber, setSenderNumber] = useState("");
+  const [transactionId, setTransactionId] = useState("");
+  const [numberCopied, setNumberCopied] = useState(false);
+
   // ✅ Delivery Charge from DB (public api)
   const [deliveryCharge, setDeliveryCharge] = useState(0);
   const [deliveryLoading, setDeliveryLoading] = useState(true);
@@ -82,6 +91,8 @@ export default function CheckoutPage() {
     name: false,
     phone: false,
     address: false,
+    senderNumber: false,
+    transactionId: false,
   });
   const [submitted, setSubmitted] = useState(false);
   const [loadingOrder, setLoadingOrder] = useState(false);
@@ -107,6 +118,17 @@ export default function CheckoutPage() {
       setCheckoutItems([]);
     }
   }, [decodedItems]);
+
+  // ✅ Active payment methods load (bKash/Nagad/Rocket etc.)
+  useEffect(() => {
+    apiFetch("/payment-methods")
+      .then((data) => setPaymentMethods(Array.isArray(data) ? data : []))
+      .catch((err) => {
+        console.error("❌ Failed to load payment methods", err);
+        setPaymentMethods([]);
+      })
+      .finally(() => setMethodsLoading(false));
+  }, []);
 
   // ✅ Delivery charge load from DB
   useEffect(() => {
@@ -302,10 +324,23 @@ export default function CheckoutPage() {
   const total = subtotal + effectiveDeliveryCharge;
 
   const phoneValid = /^(01[3-9]\d{8})$/.test(phone);
+
+  // ✅ কোন mobile-banking method সিলেক্ট করা আছে (COD ছাড়া)
+  const selectedMethod = useMemo(
+    () => paymentMethods.find((m) => m.name === paymentMethod) || null,
+    [paymentMethods, paymentMethod]
+  );
+  const isManualPayment = paymentMethod !== "cod" && !!selectedMethod;
+
+  const senderNumberValid = /^(01[3-9]\d{8})$/.test(senderNumber);
+  const transactionIdValid = /^[A-Za-z0-9]{6,20}$/.test(transactionId.trim());
+
   const errors = {
     name: !name.trim(),
     phone: !phone.trim() || !phoneValid,
     address: !address.trim(),
+    senderNumber: isManualPayment && !senderNumberValid,
+    transactionId: isManualPayment && !transactionIdValid,
   };
 
   const fieldClass = (hasError) =>
@@ -327,7 +362,14 @@ export default function CheckoutPage() {
   async function placeOrder() {
     setSubmitted(true);
 
-    if (errors.name || errors.phone || errors.address || !cartItems.length) {
+    if (
+      errors.name ||
+      errors.phone ||
+      errors.address ||
+      errors.senderNumber ||
+      errors.transactionId ||
+      !cartItems.length
+    ) {
       showToast("⚠️ সঠিক তথ্য প্রদান করুন!", "error");
       return;
     }
@@ -348,6 +390,12 @@ export default function CheckoutPage() {
       paymentStatus: "pending",
       status: "pending",
       userId: me?.userId || null,
+      ...(isManualPayment && {
+        paymentDetails: {
+          senderNumber,
+          transactionId: transactionId.trim().toUpperCase(),
+        },
+      }),
     };
 
     try {
@@ -371,16 +419,11 @@ export default function CheckoutPage() {
 
       const orderId = data._id || data.id;
 
-      // ✅ Pay Now → bKash Redirect (use backend total ✅)
-      if (paymentMethod === "paynow") {
-        window.location.href = `/bkash-payment?orderId=${orderId}&amount=${data.total}`;
-        return;
-      }
-
-      // ✅ COD → Order Summary Redirect
+      // ✅ Order Summary Redirect (COD বা Manual Payment — উভয় ক্ষেত্রেই।
+      // Manual payment এর জন্য admin ম্যানুয়ালি verify করে paymentStatus আপডেট করবে)
       window.location.href = `/order-summary/${orderId}`;
     } catch (err) {
-      showToast("🚨 অর্ডার সম্পন্ন হয়নি!", "error");
+      showToast(err?.message || "🚨 অর্ডার সম্পন্ন হয়নি!", "error");
       setLoadingOrder(false);
     }
   }
@@ -449,7 +492,7 @@ export default function CheckoutPage() {
             />
           </label>
 
-          {/* ✅ Payment Options (COD default + Pay Now) */}
+          {/* ✅ Payment Options (COD + dynamic mobile-banking methods) */}
           <div className="space-y-2">
             <span className="text-sm font-medium text-gray-700">
               পেমেন্ট মেথড সিলেক্ট করুন *
@@ -468,18 +511,106 @@ export default function CheckoutPage() {
                 Cash on Delivery
               </button>
 
-              <button
-                type="button"
-                onClick={() => setPaymentMethod("paynow")}
-                className={`py-3 px-2 border rounded-xl text-xs font-bold transition-all ${
-                  paymentMethod === "paynow"
-                    ? "bg-pink-600 text-white border-pink-600 shadow-lg scale-105"
-                    : "bg-white text-gray-700 border-gray-300 hover:border-pink-300"
-                }`}
-              >
-                Pay Now
-              </button>
+              {methodsLoading ? (
+                <div className="py-3 px-2 border rounded-xl text-xs font-bold bg-gray-50 text-gray-300 animate-pulse text-center">
+                  Loading...
+                </div>
+              ) : (
+                paymentMethods.map((m) => (
+                  <button
+                    key={m._id}
+                    type="button"
+                    onClick={() => setPaymentMethod(m.name)}
+                    className={`py-3 px-2 border rounded-xl text-xs font-bold transition-all ${
+                      paymentMethod === m.name
+                        ? "bg-pink-600 text-white border-pink-600 shadow-lg scale-105"
+                        : "bg-white text-gray-700 border-gray-300 hover:border-pink-300"
+                    }`}
+                  >
+                    {m.name}
+                  </button>
+                ))
+              )}
             </div>
+
+            {/* ✅ Manual Payment Verification Card (bKash/Nagad/Rocket ইত্যাদি) */}
+            {isManualPayment && (
+              <div className="p-4 bg-pink-50 border border-pink-100 rounded-xl space-y-3">
+                <p className="text-xs text-gray-700">
+                  <b>{selectedMethod.name}</b>{" "}
+                  {selectedMethod.accountType === "merchant"
+                    ? "মার্চেন্ট"
+                    : selectedMethod.accountType === "agent"
+                    ? "এজেন্ট"
+                    : "পার্সোনাল"}{" "}
+                  নাম্বারে <b>{selectedMethod.actionLabel || "Send Money"}</b>{" "}
+                  করে নিচে তথ্য দিন:
+                </p>
+
+                <div className="flex items-center justify-between bg-white border border-pink-200 rounded-lg px-3 py-2">
+                  <span className="font-bold text-pink-700 tracking-wide text-sm">
+                    {selectedMethod.number}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(selectedMethod.number);
+                      setNumberCopied(true);
+                      setTimeout(() => setNumberCopied(false), 1500);
+                    }}
+                    className="text-[11px] font-bold text-pink-600 border border-pink-300 rounded-md px-2 py-1 hover:bg-pink-100"
+                  >
+                    {numberCopied ? "✅ কপি হয়েছে" : "📋 কপি করুন"}
+                  </button>
+                </div>
+
+                {selectedMethod.instructions && (
+                  <p className="text-[11px] text-gray-500 leading-relaxed">
+                    {selectedMethod.instructions}
+                  </p>
+                )}
+
+                <label className="block">
+                  <span className="text-xs font-medium text-gray-700">
+                    যে নম্বর থেকে টাকা পাঠিয়েছেন *
+                  </span>
+                  <input
+                    type="tel"
+                    value={senderNumber}
+                    onChange={(e) => setSenderNumber(e.target.value)}
+                    onBlur={() =>
+                      setTouched((t) => ({ ...t, senderNumber: true }))
+                    }
+                    className={fieldClass(
+                      (submitted || touched.senderNumber) &&
+                        errors.senderNumber
+                    )}
+                    placeholder="01XXXXXXXXX"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-xs font-medium text-gray-700">
+                    Transaction ID (TrxID) *
+                  </span>
+                  <input
+                    type="text"
+                    value={transactionId}
+                    onChange={(e) =>
+                      setTransactionId(e.target.value.toUpperCase())
+                    }
+                    onBlur={() =>
+                      setTouched((t) => ({ ...t, transactionId: true }))
+                    }
+                    className={fieldClass(
+                      (submitted || touched.transactionId) &&
+                        errors.transactionId
+                    )}
+                    placeholder="যেমন: 8N7A9X2K1B"
+                  />
+                </label>
+              </div>
+            )}
 
             <div className="p-3 bg-yellow-50 border border-yellow-100 rounded-xl text-yellow-700 text-xs font-medium">
               🚚 ডেলিভারি চার্জ:{" "}
@@ -654,6 +785,7 @@ export default function CheckoutPage() {
                   disabled={
                     productsLoading ||
                     deliveryLoading ||
+                    methodsLoading ||
                     loadingOrder ||
                     cartItems.length === 0 ||
                     anyOutOfStock
@@ -661,8 +793,8 @@ export default function CheckoutPage() {
                   label={
                     anyOutOfStock
                       ? "Out of Stock Items!"
-                      : paymentMethod === "paynow"
-                      ? "Payment with bKash"
+                      : isManualPayment
+                      ? `Confirm Order (${selectedMethod.name})`
                       : "Confirm Order"
                   }
                 />

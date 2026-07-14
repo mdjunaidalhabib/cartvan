@@ -17,6 +17,7 @@ import FloatingActionButton from "./FloatingActionButton.route.js";
 import homeBadgeRoutes from "./homeBadge.js";
 import facebookGroupRoutes from "./facebookGroup.routes.js";
 import aboutRoutes from "./about.routes.js";
+import paymentMethodRoutes from "./paymentMethod.routes.js";
 
 
 
@@ -39,5 +40,6 @@ router.use("/contact-button", FloatingActionButton);
 router.use("/homeBadges", homeBadgeRoutes);
 router.use("/facebook-group", facebookGroupRoutes);
 router.use("/about", aboutRoutes);
+router.use("/payment-methods", paymentMethodRoutes);
 
 export default router;

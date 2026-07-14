@@ -2,6 +2,7 @@ import express from "express";
 import Order from "../../models/Order.js";
 import Product from "../../models/Product.js";
 import DeliveryCharge from "../../models/DeliveryCharge.js";
+import PaymentMethod from "../../models/PaymentMethod.js";
 
 // ✅ correct relative path
 import { getOrderMailSendSettings } from "../../../utils/mail/index.js";
@@ -20,11 +21,32 @@ const toNumber = (val, fallback = 0) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
-const normalizePaymentMethod = (method) => {
-  const m = String(method || "").toLowerCase();
-  if (m === "paynow" || m === "bkash") return "bkash";
-  return "cod";
+/**
+ * ✅ paymentMethod এখন dynamic (bKash/Nagad/Rocket/...)।
+ * "cod" ছাড়া অন্য যেকোনো ভ্যালুকে DB-তে থাকা active PaymentMethod-এর
+ * নামের সাথে case-insensitive মিলিয়ে verify করা হয় — যাতে ভুয়া/arbitrary
+ * মেথড নাম দিয়ে অর্ডার তৈরি করা না যায়।
+ */
+const resolvePaymentMethod = async (method) => {
+  const raw = String(method || "cod").trim();
+
+  if (!raw || raw.toLowerCase() === "cod") {
+    return { paymentMethod: "cod", methodDoc: null };
+  }
+
+  const methodDoc = await PaymentMethod.findOne({
+    active: true,
+    name: new RegExp(`^${raw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
+  });
+
+  if (!methodDoc) return { paymentMethod: null, methodDoc: null };
+
+  return { paymentMethod: methodDoc.name, methodDoc };
 };
+
+// ✅ bKash-স্টাইল TrxID: সাধারণত 8-15 ক্যারেক্টার alphanumeric
+const isValidTrxId = (id) => /^[A-Za-z0-9]{6,20}$/.test(String(id || ""));
+const isValidSenderNumber = (num) => /^01[3-9]\d{8}$/.test(String(num || ""));
 
 const normalizeString = (s) =>
   String(s || "")
@@ -211,6 +233,7 @@ router.post("/", async (req, res) => {
       userId,
       paymentMethod,
       paymentStatus,
+      paymentDetails,
     } = req.body;
 
     // ✅ Validation
@@ -226,8 +249,57 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // ✅ Payment normalize
-    const normalizedPaymentMethod = normalizePaymentMethod(paymentMethod);
+    // ✅ Payment method resolve (dynamic: cod / bKash / Nagad / ...)
+    const { paymentMethod: normalizedPaymentMethod, methodDoc } =
+      await resolvePaymentMethod(paymentMethod);
+
+    if (!normalizedPaymentMethod) {
+      return res.status(400).json({
+        error: "এই পেমেন্ট মেথডটি এখন সাপোর্টেড নয়। পেজ রিফ্রেশ করে আবার চেষ্টা করুন।",
+      });
+    }
+
+    // ✅ Non-COD হলে sender number + TrxID বাধ্যতামূলক
+    let finalPaymentDetails = null;
+    if (normalizedPaymentMethod !== "cod") {
+      const senderNumber = String(paymentDetails?.senderNumber || "").trim();
+      const transactionId = String(paymentDetails?.transactionId || "")
+        .trim()
+        .toUpperCase();
+
+      if (!isValidSenderNumber(senderNumber)) {
+        return res.status(400).json({
+          error: "সঠিক sender মোবাইল নম্বর দিন (যে নম্বর থেকে টাকা পাঠিয়েছেন)।",
+        });
+      }
+
+      if (!isValidTrxId(transactionId)) {
+        return res.status(400).json({
+          error: "সঠিক Transaction ID (TrxID) দিন।",
+        });
+      }
+
+      // ✅ Duplicate TrxID protection (একই মেথডে একই TrxID দিয়ে বারবার অর্ডার আটকানো)
+      const duplicate = await Order.findOne({
+        "paymentDetails.methodName": normalizedPaymentMethod,
+        "paymentDetails.transactionId": transactionId,
+        status: { $ne: "cancelled" },
+      });
+
+      if (duplicate) {
+        return res.status(409).json({
+          error:
+            "এই Transaction ID দিয়ে ইতিমধ্যে একটি অর্ডার আছে। সঠিক TrxID টি আবার চেক করুন।",
+        });
+      }
+
+      finalPaymentDetails = {
+        methodId: methodDoc?._id || null,
+        methodName: normalizedPaymentMethod,
+        senderNumber,
+        transactionId,
+      };
+    }
 
     // ✅ DeliveryCharge DB driven
     const baseDeliveryFee = await getDeliveryFeeFromDB();
@@ -259,7 +331,8 @@ router.post("/", async (req, res) => {
       promoCode: promoCode || "",
       userId: userId || null,
       paymentMethod: normalizedPaymentMethod,
-      paymentStatus: paymentStatus || "pending",
+      paymentStatus: "pending",
+      paymentDetails: finalPaymentDetails,
       status: "pending",
     });
 

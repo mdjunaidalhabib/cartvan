@@ -10,6 +10,7 @@ import {
   Settings,
   LayoutDashboard,
   Trash2,
+  Wallet,
 } from "lucide-react";
 
 export const navItems = [
@@ -19,6 +20,7 @@ export const navItems = [
     href: "/admin/dashboard",
   },
   { icon: <ShoppingCart size={18} />, label: "Orders", href: "/admin/orders" },
+  { icon: <Wallet size={18} />, label: "Payments", href: "/admin/payments" },
   { icon: <Package size={18} />, label: "Products", href: "/admin/products" },
   {
     icon: <ChartBarStacked size={18} />,

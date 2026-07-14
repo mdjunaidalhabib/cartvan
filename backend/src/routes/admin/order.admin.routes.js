@@ -321,6 +321,12 @@ router.put("/:id", async (req, res) => {
     if (req.body.paymentMethod !== undefined)
       updateData.paymentMethod = req.body.paymentMethod;
 
+    if (
+      req.body.paymentStatus !== undefined &&
+      ["pending", "paid", "failed"].includes(req.body.paymentStatus)
+    )
+      updateData.paymentStatus = req.body.paymentStatus;
+
     if (req.body.cancelReason !== undefined)
       updateData.cancelReason = req.body.cancelReason;
 
