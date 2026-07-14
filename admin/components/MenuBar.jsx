@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import LogoutButton from "./LogoutButton";
 import AdminHeaderCard from "./AdminHeaderCard";
 
 export default function MenuBar({
@@ -13,6 +12,7 @@ export default function MenuBar({
   settingsChildren = [],
   onItemClick,
   vertical = true,
+  collapsed = false,
 }) {
   const pathname = usePathname();
   const [openSettings, setOpenSettings] = useState(false);
@@ -21,16 +21,19 @@ export default function MenuBar({
     if (pathname && pathname.startsWith("/settings")) setOpenSettings(true);
   }, [pathname]);
 
-  return (
-    // ✅ full height sidebar, column layout
-    <nav className="flex flex-col h-full">
-      {/* ✅ Top fixed header */}
-      <div className="shrink-0 p-2">
-        <AdminHeaderCard />
-      </div>
+  // Collapse করলে সাবমেনু বন্ধ রাখি, যাতে আইকন-অনলি ভিউ পরিষ্কার থাকে
+  useEffect(() => {
+    if (collapsed) setOpenSettings(false);
+  }, [collapsed]);
 
-      {/* ✅ Middle menu (this part scrolls if needed) */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2">
+  return (
+    <nav className="flex flex-col h-full">
+      <div className={collapsed ? "shrink-0 pt-1 pb-2" : "shrink-0 p-2"}>
+        <AdminHeaderCard collapsed={collapsed} />
+      </div>
+      {!collapsed && <div className="mx-2 mb-1 border-b border-gray-100" />}
+
+      <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2 sidebar-scroll">
         <div
           className={`${
             vertical ? "flex-col space-y-1" : "flex-row space-x-2"
@@ -45,7 +48,10 @@ export default function MenuBar({
                   <button
                     onClick={() => setOpenSettings((s) => !s)}
                     aria-expanded={openSettings}
-                    className={`w-full flex items-center justify-between gap-2 px-4 py-2 rounded transition ${
+                    title={collapsed ? label : undefined}
+                    className={`w-full flex items-center gap-2 px-4 py-2 rounded transition ${
+                      collapsed ? "justify-center px-2" : "justify-between"
+                    } ${
                       parentActive
                         ? "bg-gray-200 font-semibold text-blue-600"
                         : "hover:bg-rose-50"
@@ -53,17 +59,19 @@ export default function MenuBar({
                   >
                     <span className="flex items-center gap-2">
                       {icon}
-                      <span>{label}</span>
+                      {!collapsed && <span>{label}</span>}
                     </span>
-                    <ChevronDown
-                      className={`transition-transform ${
-                        openSettings ? "rotate-180" : "rotate-0"
-                      }`}
-                    />
+                    {!collapsed && (
+                      <ChevronDown
+                        className={`transition-transform ${
+                          openSettings ? "rotate-180" : "rotate-0"
+                        }`}
+                      />
+                    )}
                   </button>
 
                   <AnimatePresence initial={false}>
-                    {openSettings && (
+                    {openSettings && !collapsed && (
                       <motion.div
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
@@ -104,22 +112,22 @@ export default function MenuBar({
                 key={label}
                 href={href}
                 onClick={onItemClick}
+                title={collapsed ? label : undefined}
                 className={`flex items-center gap-2 px-4 py-2 rounded transition ${
+                  collapsed ? "justify-center px-2" : ""
+                } ${
                   active
                     ? "bg-rose-50 font-semibold text-rose-600"
                     : "hover:bg-rose-50"
                 }`}
               >
                 {icon}
-                <span>{label}</span>
+                {!collapsed && <span>{label}</span>}
               </Link>
             );
           })}
         </div>
       </div>
-        <div className="shrink-0 pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)]">
-          <LogoutButton />
-        </div>
     </nav>
   );
 }

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import AdminHeaderCardSkeleton from "./Skeleton/AdminHeaderCardSkeleton";
 
-export default function AdminHeaderCard() {
+export default function AdminHeaderCard({ collapsed = false }) {
   const API_BASE = "/api";
   const [admin, setAdmin] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,6 +31,23 @@ export default function AdminHeaderCard() {
 
   // if still no admin after load
   if (!admin) return <AdminHeaderCardSkeleton />;
+
+  // ✅ Collapsed: neat, centered avatar-only mini card
+  if (collapsed) {
+    return (
+      <div className="flex justify-center py-1">
+        <img
+          src={admin.avatar || "/default-avatar.png"}
+          alt="avatar"
+          title={admin.name}
+          className={`w-10 h-10 rounded-full object-cover border-2 shrink-0 ${
+            admin.status === "suspended" ? "border-red-400" : "border-green-400"
+          }`}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white shadow rounded-2xl p-2">
       {/* ✅ Top row: logo left, role+status right (upore-niche) */}

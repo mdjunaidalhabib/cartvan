@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LogOut } from "lucide-react";
 
 export default function LogoutButton() {
   const [loading, setLoading] = useState(false);
@@ -40,13 +41,17 @@ export default function LogoutButton() {
     <button
       onClick={handleLogout}
       disabled={loading}
-      className={`px-3 py-2 rounded-lg text-white transition-all ${
+      title="Logout"
+      className={`flex items-center justify-center gap-1.5 rounded-full sm:rounded-lg h-9 w-9 sm:h-auto sm:w-auto sm:px-3.5 sm:py-2 text-white text-sm font-medium shadow-sm transition-all ${
         loading
           ? "bg-gray-400 cursor-not-allowed"
-          : "bg-red-500 hover:bg-red-600"
+          : "bg-red-500 hover:bg-red-600 active:scale-95"
       }`}
     >
-      {loading ? "Logging out..." : "Logout"}
+      <LogOut size={16} />
+      <span className="hidden sm:inline">
+        {loading ? "Logging out..." : "Logout"}
+      </span>
     </button>
   );
 }
