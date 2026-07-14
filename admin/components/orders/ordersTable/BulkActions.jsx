@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { STATUS_OPTIONS, STATUS_LABEL, STATUS_FLOW } from "../shared/constants";
+import { needsPaymentVerification } from "../shared/utils";
 import Toast from "../../Toast";
 
 export default function BulkActions({
@@ -25,6 +26,10 @@ export default function BulkActions({
   const allowedNext = STATUS_FLOW[bulkStatus] || [];
   const disabled = selected.length === 0;
 
+  // 🔒 Any selected order still awaiting payment verification blocks
+  // the bulk status change (cancel is exempt, same as backend rule).
+  const hasPaymentHold = selectedOrders.some((o) => needsPaymentVerification(o));
+
   return (
     <>
       {/* TOAST */}
@@ -43,14 +48,31 @@ export default function BulkActions({
           {selected.length} Selected
         </span>
 
+        {/* PAYMENT HOLD NOTICE */}
+        {hasPaymentHold && (
+          <span
+            className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5"
+            title="Selected এর মধ্যে কিছু order এর Payment এখনো verify করা হয়নি"
+          >
+            ⏳ Payment Pending
+          </span>
+        )}
+
         {/* BULK STATUS (ALWAYS RENDER, SOMETIMES DISABLED) */}
         {sameStatus && bulkStatus && (
           <select
             className="rounded-full px-2 py-1 text-xs bg-white border"
             value={bulkStatus}
-            disabled={disabled}
+            disabled={disabled || hasPaymentHold}
             onChange={async (e) => {
               const nextStatus = e.target.value;
+
+              if (hasPaymentHold && nextStatus !== "cancelled") {
+                showToast(
+                  "কিছু Order এর Payment এখনো verify করা হয়নি। আগে Payments পেজ থেকে Accept/Reject করুন।",
+                );
+                return;
+              }
 
               if (!allowedNext.includes(nextStatus)) {
                 showToast("এই status এ bulk update করা যাবে না");

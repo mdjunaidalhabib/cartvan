@@ -9,6 +9,7 @@ import {
   FileText,
 } from "lucide-react";
 import Badge from "../../Badge";
+import CopyButton from "../../CopyButton";
 import CourierStatus from "../../CourierStatus";
 
 import {
@@ -18,7 +19,7 @@ import {
   STATUS_FLOW,
   READY_STATUS,
 } from "../shared/constants";
-import { formatOrderTime } from "../shared/utils";
+import { formatOrderTime, needsPaymentVerification } from "../shared/utils";
 
 export default function OrderCard({
   o,
@@ -36,6 +37,7 @@ export default function OrderCard({
   onFinalStatusSync,
 }) {
   const locked = LOCKED_STATUSES.includes(o.status);
+  const paymentHold = !locked && needsPaymentVerification(o);
   const itemCount = o.items?.reduce((s, it) => s + (it.qty || 0), 0) || 0;
   const firstTwo = o.items?.slice(0, 2) || [];
   const moreCount = (o.items?.length || 0) - firstTwo.length;
@@ -201,27 +203,82 @@ export default function OrderCard({
             </div>
           </div>
 
+          <div className="rounded-lg bg-white border border-gray-100 p-2 shadow-sm text-[11px] space-y-1">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[9px] font-bold text-gray-400 uppercase">
+                Payment
+              </span>
+              <Badge>{o.paymentMethod?.toUpperCase()}</Badge>
+              {o.paymentMethod !== "cod" && (
+                <span
+                  className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full border ${
+                    o.paymentStatus === "paid"
+                      ? "bg-green-50 text-green-700 border-green-200"
+                      : o.paymentStatus === "failed"
+                        ? "bg-red-50 text-red-700 border-red-200"
+                        : "bg-amber-50 text-amber-700 border-amber-200"
+                  }`}
+                >
+                  {o.paymentStatus === "paid"
+                    ? "Verified"
+                    : o.paymentStatus === "failed"
+                      ? "Rejected"
+                      : "Pending"}
+                </span>
+              )}
+            </div>
+
+            {o.paymentMethod !== "cod" && o.paymentDetails?.transactionId && (
+              <div className="flex items-center gap-1 text-gray-600">
+                <span className="text-gray-400">TrxID:</span>
+                <span className="font-mono font-semibold text-gray-800 truncate">
+                  {o.paymentDetails.transactionId}
+                </span>
+                <CopyButton value={o.paymentDetails.transactionId} />
+              </div>
+            )}
+
+            {o.paymentMethod !== "cod" && o.paymentDetails?.senderNumber && (
+              <div className="text-gray-500">
+                Sender: {o.paymentDetails.senderNumber}
+              </div>
+            )}
+          </div>
+
+          {paymentHold && (
+            <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
+              ⏳ Payment verify হয়নি — status hold করা আছে। Payments পেজ থেকে Accept/Reject করুন।
+            </div>
+          )}
+
           <div className="flex items-center gap-2 w-full overflow-x-auto">
             {/* STATUS */}
-            <select
-              className="h-10 min-w-[140px] rounded-lg border border-gray-200 px-3 text-[11px] font-bold bg-white focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
-              value={o.status}
-              disabled={locked || updatingId === o._id}
-              onChange={(e) => handleStatusUpdate(o._id, e.target.value, o)}
-            >
-              <option value={o.status} disabled>
-                {STATUS_LABEL[o.status]} (Current)
-              </option>
-
-              {STATUS_OPTIONS.filter(
-                (s) =>
-                  (STATUS_FLOW[o.status] || []).includes(s) && s !== o.status,
-              ).map((s) => (
-                <option key={s} value={s}>
-                  {STATUS_LABEL[s]}
+            {paymentHold ? (
+              <div className="h-10 min-w-[140px] flex items-center justify-center rounded-lg border border-amber-200 bg-amber-50 px-3 text-[11px] font-bold text-amber-700 shadow-sm">
+                🔒 Payment Pending
+              </div>
+            ) : (
+              <select
+                className="h-10 min-w-[140px] rounded-lg border border-gray-200 px-3 text-[11px] font-bold bg-white focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
+                value={o.status}
+                disabled={locked || updatingId === o._id}
+                onChange={(e) => handleStatusUpdate(o._id, e.target.value, o)}
+              >
+                <option value={o.status} disabled>
+                  {STATUS_LABEL[o.status]} (Current)
                 </option>
-              ))}
-            </select>
+
+                {STATUS_OPTIONS.filter(
+                  (s) =>
+                    (STATUS_FLOW[o.status] || []).includes(s) &&
+                    s !== o.status,
+                ).map((s) => (
+                  <option key={s} value={s}>
+                    {STATUS_LABEL[s]}
+                  </option>
+                ))}
+              </select>
+            )}
 
             {/* ACTIONS */}
             <div className="flex items-center gap-1.5 shrink-0">

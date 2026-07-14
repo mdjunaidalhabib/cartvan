@@ -27,9 +27,9 @@ export default function Sidebar() {
   }, []);
 
   return (
-    <aside className="hidden md:flex flex-col w-60 h-screen p-4 bg-white shadow-lg">
+    <aside className="hidden md:flex flex-col w-60 h-screen p-4 bg-white shadow-lg overflow-hidden">
       {/* FULL HEIGHT menubar */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-h-0">
         <MenuBar
           items={navItems}
           settingsChildren={settingsChildren}

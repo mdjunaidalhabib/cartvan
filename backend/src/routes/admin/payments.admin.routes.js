@@ -123,6 +123,34 @@ router.get("/pending", async (req, res) => {
   }
 });
 
+// GET already-verified orders (paymentMethod != cod, paymentStatus = paid/failed)
+// so admin can still look up the TrxID (e.g. for accounting / dispute) after
+// accepting/rejecting it — the "pending" list stops showing it once verified.
+router.get("/verified", async (req, res) => {
+  try {
+    const { paymentStatus } = req.query; // optional filter: "paid" | "failed"
+
+    const filter = {
+      paymentMethod: { $ne: "cod" },
+      paymentStatus: ["paid", "failed"].includes(paymentStatus)
+        ? paymentStatus
+        : { $in: ["paid", "failed"] },
+    };
+
+    const orders = await Order.find(filter)
+      .sort({ updatedAt: -1 })
+      .limit(200)
+      .select(
+        "orderNumber billing total paymentMethod paymentStatus paymentDetails createdAt updatedAt status cancelReason",
+      );
+
+    res.json(orders);
+  } catch (err) {
+    console.error("❌ Failed to load verified payments:", err);
+    res.status(500).json({ error: "Failed to load verified payments" });
+  }
+});
+
 // PATCH verify/reject a single order's payment
 router.patch("/:orderId/verify", async (req, res) => {
   try {
@@ -155,6 +183,14 @@ router.patch("/:orderId/verify", async (req, res) => {
       } catch (restockErr) {
         console.error("❌ Restock on payment-reject failed:", restockErr);
       }
+    }
+
+    // ✅ Payment accept (paid) হলে — order যেহেতু এতক্ষণ payment verification
+    // এর জন্য "pending" এ hold হয়ে ছিল, এখন সেটা automatically পরের
+    // step ("ready_to_delivery") এ চলে যাবে, admin কে আলাদা করে status
+    // আপডেট করতে হবে না।
+    if (paymentStatus === "paid" && order.status === "pending") {
+      order.status = "ready_to_delivery";
     }
 
     await order.save();

@@ -23,6 +23,27 @@ const STATUS_FLOW = {
 
 /**
  * ================================
+ * 🔒 PAYMENT VERIFICATION HOLD
+ * ================================
+ * Manual/mobile-banking payments (bKash/Nagad/etc.) must be verified
+ * (accepted or rejected) by admin from the Payments > Pending queue
+ * before the order is allowed to move forward in the status flow.
+ * COD orders are exempt — cash is collected on delivery, so payment
+ * is naturally settled later and shouldn't block dispatch.
+ */
+function needsPaymentVerification(order) {
+  return (
+    order?.paymentMethod &&
+    order.paymentMethod !== "cod" &&
+    order.paymentStatus === "pending"
+  );
+}
+
+const PAYMENT_HOLD_MESSAGE =
+  "এই অর্ডারের Payment এখনো verify করা হয়নি। Payments > Pending Verification থেকে আগে Accept/Reject করুন, তারপর order status পরিবর্তন করা যাবে।";
+
+/**
+ * ================================
  * GET all orders
  * ================================
  */
@@ -210,6 +231,7 @@ router.put("/bulk/status", async (req, res) => {
     const result = {
       updated: [],
       skipped: [],
+      paymentHold: [],
       errors: [],
     };
 
@@ -217,6 +239,12 @@ router.put("/bulk/status", async (req, res) => {
       try {
         if (["delivered", "cancelled"].includes(o.status)) {
           result.skipped.push(o._id);
+          continue;
+        }
+
+        // 🔒 Payment not verified yet — hold, unless admin is cancelling
+        if (needsPaymentVerification(o) && status !== "cancelled") {
+          result.paymentHold.push(o._id);
           continue;
         }
 
@@ -240,6 +268,13 @@ router.put("/bulk/status", async (req, res) => {
       } catch (e) {
         result.errors.push({ id: o._id, error: e.message });
       }
+    }
+
+    if (result.paymentHold.length && !result.updated.length) {
+      return res.status(400).json({
+        ...result,
+        error: `${result.paymentHold.length} টি অর্ডারের Payment এখনো verify করা হয়নি। Payments > Pending Verification থেকে আগে Accept/Reject করুন।`,
+      });
     }
 
     res.json(result);
@@ -367,6 +402,18 @@ router.put("/:id", async (req, res) => {
       updateData.status !== undefined &&
       updateData.status !== current.status
     ) {
+      // 🔒 Hold: payment not verified yet — block status advance
+      // (cancelling is still allowed since it doesn't need payment to be confirmed)
+      if (
+        needsPaymentVerification(current) &&
+        updateData.status !== "cancelled"
+      ) {
+        return res.status(400).json({
+          error: PAYMENT_HOLD_MESSAGE,
+          code: "PAYMENT_VERIFICATION_REQUIRED",
+        });
+      }
+
       const allowedNext = STATUS_FLOW[current.status] || [];
       if (!allowedNext.includes(updateData.status)) {
         return res.status(400).json({

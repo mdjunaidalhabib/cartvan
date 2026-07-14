@@ -19,6 +19,57 @@ function RowsSkeleton() {
 }
 
 /* =========================================================
+   ✅ Copy-to-clipboard button (used for TrxID etc.)
+========================================================= */
+function CopyButton({ value, showToast }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy(e) {
+    e.stopPropagation();
+    if (!value || value === "—") return;
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+      } else {
+        // fallback for older/insecure contexts
+        const ta = document.createElement("textarea");
+        ta.value = value;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+
+      setCopied(true);
+      showToast?.("✅ TrxID কপি হয়েছে!", "success");
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      showToast?.("❌ Copy করা যায়নি!", "error");
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      disabled={!value || value === "—"}
+      title="Copy TrxID"
+      className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border transition ${
+        copied
+          ? "bg-green-50 text-green-600 border-green-200"
+          : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100"
+      } disabled:opacity-40 disabled:cursor-not-allowed`}
+    >
+      {copied ? "Copied ✓" : "Copy"}
+    </button>
+  );
+}
+
+/* =========================================================
    ✅ TAB 1: Pending Verification Queue
 ========================================================= */
 function PendingVerificationTab({ showToast }) {
@@ -103,11 +154,15 @@ function PendingVerificationTab({ showToast }) {
                     {o.paymentDetails?.senderNumber || "—"}
                   </b>
                 </span>
-                <span>
+                <span className="inline-flex items-center gap-1.5">
                   TrxID:{" "}
                   <b className="text-gray-800 tracking-wide">
                     {o.paymentDetails?.transactionId || "—"}
                   </b>
+                  <CopyButton
+                    value={o.paymentDetails?.transactionId}
+                    showToast={showToast}
+                  />
                 </span>
                 <span>
                   Amount: <b className="text-gray-800">৳{o.total}</b>
@@ -161,6 +216,120 @@ function PendingVerificationTab({ showToast }) {
         }
       />
     </>
+  );
+}
+
+/* =========================================================
+   ✅ TAB 3: Verified Payments (Accept/Reject হয়ে যাওয়া গুলো)
+   — admin accept করার পরও TrxID এখানে থেকে যায়, 1-click copy করা যায়
+========================================================= */
+function VerifiedPaymentsTab({ showToast }) {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("all"); // "all" | "paid" | "failed"
+
+  const load = useCallback(() => {
+    setLoading(true);
+    const qs = filter !== "all" ? `?paymentStatus=${filter}` : "";
+    apiFetch(`/admin/payments/verified${qs}`)
+      .then((data) => setOrders(Array.isArray(data) ? data : []))
+      .catch(() => showToast("❌ Verified payment history লোড করা যায়নি!", "error"))
+      .finally(() => setLoading(false));
+  }, [filter, showToast]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return (
+    <div>
+      <div className="flex bg-gray-100 rounded-lg p-1 w-fit mb-4">
+        {[
+          { key: "all", label: "সব" },
+          { key: "paid", label: "✅ Accepted" },
+          { key: "failed", label: "❌ Rejected" },
+        ].map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setFilter(t.key)}
+            className={`px-3 py-1.5 text-xs font-bold rounded-md transition ${
+              filter === t.key
+                ? "bg-white shadow text-pink-600"
+                : "text-gray-500"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <RowsSkeleton />
+      ) : !orders.length ? (
+        <div className="text-center py-16 text-gray-400">
+          <p className="text-3xl mb-2">📄</p>
+          <p className="text-sm font-medium">এখনো কোনো verified payment নেই।</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {orders.map((o) => (
+            <div
+              key={o._id}
+              className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-3"
+            >
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-bold text-gray-800">
+                    #{o.orderNumber}
+                  </span>
+                  <span className="text-[10px] font-bold uppercase bg-pink-50 text-pink-600 border border-pink-100 px-2 py-0.5 rounded-full">
+                    {o.paymentMethod}
+                  </span>
+                  <span
+                    className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${
+                      o.paymentStatus === "paid"
+                        ? "bg-green-50 text-green-600 border-green-200"
+                        : "bg-red-50 text-red-600 border-red-200"
+                    }`}
+                  >
+                    {o.paymentStatus === "paid" ? "Accepted" : "Rejected"}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {o.billing?.name} · {o.billing?.phone}
+                  </span>
+                </div>
+
+                <div className="text-xs text-gray-600 flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <span>
+                    Sender:{" "}
+                    <b className="text-gray-800">
+                      {o.paymentDetails?.senderNumber || "—"}
+                    </b>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    TrxID:{" "}
+                    <b className="text-gray-800 tracking-wide">
+                      {o.paymentDetails?.transactionId || "—"}
+                    </b>
+                    <CopyButton
+                      value={o.paymentDetails?.transactionId}
+                      showToast={showToast}
+                    />
+                  </span>
+                  <span>
+                    Amount: <b className="text-gray-800">৳{o.total}</b>
+                  </span>
+                </div>
+
+                <p className="text-[10px] text-gray-400">
+                  Verified: {new Date(o.updatedAt).toLocaleString("bn-BD")}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -524,6 +693,16 @@ export default function PaymentsPage() {
             Pending Verification
           </button>
           <button
+            onClick={() => setTab("verified")}
+            className={`px-4 py-2 text-sm font-bold rounded-md transition ${
+              tab === "verified"
+                ? "bg-white shadow text-pink-600"
+                : "text-gray-500"
+            }`}
+          >
+            Verified / TrxID
+          </button>
+          <button
             onClick={() => setTab("methods")}
             className={`px-4 py-2 text-sm font-bold rounded-md transition ${
               tab === "methods"
@@ -538,6 +717,8 @@ export default function PaymentsPage() {
 
       {tab === "pending" ? (
         <PendingVerificationTab showToast={showToast} />
+      ) : tab === "verified" ? (
+        <VerifiedPaymentsTab showToast={showToast} />
       ) : (
         <PaymentMethodsTab showToast={showToast} />
       )}

@@ -49,7 +49,7 @@ export default function Header() {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "tween", duration: 0.3 }}
-              className="fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-50 p-4 overflow-y-auto"
+              className="fixed top-0 left-0 h-[100dvh] w-64 bg-white shadow-lg z-50 p-4 pb-[env(safe-area-inset-bottom,0px)] overflow-y-auto"
             >
               <MenuBar
                 items={navItems}

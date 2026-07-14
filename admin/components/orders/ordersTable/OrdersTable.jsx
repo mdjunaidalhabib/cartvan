@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Send, FileText, Edit2, Trash2 } from "lucide-react";
 
 import Badge from "../../Badge";
+import CopyButton from "../../CopyButton";
 import CourierStatus from "../../CourierStatus";
 
 import {
@@ -14,7 +15,7 @@ import {
   READY_STATUS,
 } from "../shared/constants";
 
-import { formatOrderTime } from "../shared/utils";
+import { formatOrderTime, needsPaymentVerification } from "../shared/utils";
 import useOrdersManager from "../hooks/useOrdersManager";
 import StatusTabs from "./StatusTabs";
 import BulkActions from "./BulkActions";
@@ -165,6 +166,7 @@ export default function OrdersTable({
                 const locked = LOCKED_STATUSES.includes(o.status);
                 const allowedNext = STATUS_FLOW[o.status] || [];
                 const isAdminCreated = o?.createdBy === "admin";
+                const paymentHold = !locked && needsPaymentVerification(o);
 
                 return (
                   <tr
@@ -265,8 +267,47 @@ export default function OrdersTable({
                       </div>
                     </td>
                     {/* PAYMENT */}
-                    <td className="p-3">
-                      <Badge>{o.paymentMethod?.toUpperCase()}</Badge>
+                    <td className="p-2 space-y-1 min-w-[150px]">
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <Badge>{o.paymentMethod?.toUpperCase()}</Badge>
+                        {o.paymentMethod !== "cod" && (
+                          <span
+                            className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full border ${
+                              o.paymentStatus === "paid"
+                                ? "bg-green-50 text-green-700 border-green-200"
+                                : o.paymentStatus === "failed"
+                                  ? "bg-red-50 text-red-700 border-red-200"
+                                  : "bg-amber-50 text-amber-700 border-amber-200"
+                            }`}
+                          >
+                            {o.paymentStatus === "paid"
+                              ? "Verified"
+                              : o.paymentStatus === "failed"
+                                ? "Rejected"
+                                : "Pending"}
+                          </span>
+                        )}
+                      </div>
+
+                      {o.paymentMethod !== "cod" &&
+                        o.paymentDetails?.transactionId && (
+                          <div className="text-[11px] text-gray-600 flex items-center gap-1">
+                            <span className="text-gray-400">TrxID:</span>
+                            <span className="font-mono font-semibold text-gray-800 truncate max-w-[90px]">
+                              {o.paymentDetails.transactionId}
+                            </span>
+                            <CopyButton
+                              value={o.paymentDetails.transactionId}
+                            />
+                          </div>
+                        )}
+
+                      {o.paymentMethod !== "cod" &&
+                        o.paymentDetails?.senderNumber && (
+                          <div className="text-[11px] text-gray-500">
+                            Sender: {o.paymentDetails.senderNumber}
+                          </div>
+                        )}
                     </td>
                     {/* STATUS INFO */}
                     <td className="p-2 space-y-2">
@@ -294,29 +335,44 @@ export default function OrdersTable({
                           {o.cancelReason}
                         </div>
                       )}
+
+                      {paymentHold && (
+                        <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 max-w-[180px]">
+                          ⏳ Payment verify হয়নি — status hold করা আছে। Payments পেজ থেকে Accept/Reject করুন।
+                        </div>
+                      )}
                     </td>
                     {/* CONTROL COLUMN */}
                     <td className="p-3">
-                      <select
-                        className="border rounded px-2 py-1 text-sm w-full"
-                        value={o.status}
-                        disabled={locked || updatingId === o._id}
-                        onChange={(e) =>
-                          handleChange(o._id, { status: e.target.value }, o)
-                        }
-                      >
-                        <option value={o.status} disabled>
-                          {STATUS_LABEL[o.status]}
-                        </option>
-
-                        {STATUS_OPTIONS.filter((s) =>
-                          allowedNext.includes(s),
-                        ).map((s) => (
-                          <option key={s} value={s}>
-                            {STATUS_LABEL[s]}
+                      {paymentHold ? (
+                        <div
+                          className="text-xs text-amber-700 border border-amber-200 bg-amber-50 rounded px-2 py-1.5 text-center"
+                          title="Payment এখনো verify করা হয়নি, তাই status পরিবর্তন করা যাবে না"
+                        >
+                          🔒 Payment Pending
+                        </div>
+                      ) : (
+                        <select
+                          className="border rounded px-2 py-1 text-sm w-full"
+                          value={o.status}
+                          disabled={locked || updatingId === o._id}
+                          onChange={(e) =>
+                            handleChange(o._id, { status: e.target.value }, o)
+                          }
+                        >
+                          <option value={o.status} disabled>
+                            {STATUS_LABEL[o.status]}
                           </option>
-                        ))}
-                      </select>
+
+                          {STATUS_OPTIONS.filter((s) =>
+                            allowedNext.includes(s),
+                          ).map((s) => (
+                            <option key={s} value={s}>
+                              {STATUS_LABEL[s]}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </td>
 
                     {/* ACTIONS */}

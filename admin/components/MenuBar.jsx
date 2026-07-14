@@ -117,7 +117,9 @@ export default function MenuBar({
           })}
         </div>
       </div>
-        <LogoutButton />
+        <div className="shrink-0 pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)]">
+          <LogoutButton />
+        </div>
     </nav>
   );
 }
