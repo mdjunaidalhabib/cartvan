@@ -37,7 +37,7 @@ export default function MenuBar({
         <div
           className={`${
             vertical ? "flex-col space-y-1" : "flex-row space-x-2"
-          } flex`}
+          } flex ${collapsed ? "items-center" : ""}`}
         >
           {items.map(({ icon, label, href }) => {
             if (label === "Settings") {
@@ -49,8 +49,8 @@ export default function MenuBar({
                     onClick={() => setOpenSettings((s) => !s)}
                     aria-expanded={openSettings}
                     title={collapsed ? label : undefined}
-                    className={`w-full flex items-center gap-2 px-4 py-2 rounded transition ${
-                      collapsed ? "justify-center px-2" : "justify-between"
+                    className={`w-full flex items-center gap-2 py-2 rounded transition ${
+                      collapsed ? "justify-center px-2" : "justify-between px-4"
                     } ${
                       parentActive
                         ? "bg-gray-200 font-semibold text-blue-600"
@@ -58,7 +58,9 @@ export default function MenuBar({
                     }`}
                   >
                     <span className="flex items-center gap-2">
-                      {icon}
+                      <span className="flex items-center justify-center w-5 h-5 shrink-0">
+                        {icon}
+                      </span>
                       {!collapsed && <span>{label}</span>}
                     </span>
                     {!collapsed && (
@@ -113,15 +115,17 @@ export default function MenuBar({
                 href={href}
                 onClick={onItemClick}
                 title={collapsed ? label : undefined}
-                className={`flex items-center gap-2 px-4 py-2 rounded transition ${
-                  collapsed ? "justify-center px-2" : ""
+                className={`flex items-center gap-2 py-2 rounded transition ${
+                  collapsed ? "justify-center px-2" : "px-4"
                 } ${
                   active
                     ? "bg-rose-50 font-semibold text-rose-600"
                     : "hover:bg-rose-50"
                 }`}
               >
-                {icon}
+                <span className="flex items-center justify-center w-5 h-5 shrink-0">
+                  {icon}
+                </span>
                 {!collapsed && <span>{label}</span>}
               </Link>
             );

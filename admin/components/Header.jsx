@@ -29,17 +29,21 @@ export default function Header() {
     loadAdmin();
   }, []);
 
-  const firstName = adminName ? adminName.split(" ")[0] : "Admin";
+  const displayName = adminName || "Admin";
 
   return (
     <header className="bg-white shadow p-2 md:px-6 md:py-2.5 flex items-center justify-between gap-2 relative">
       {/* বাম দিকে: Admin কে লক্ষ্য করে ওয়েলকাম মেসেজ */}
-      <div className="min-w-0">
-        <h1 className="text-sm md:text-base font-bold text-gray-800 truncate">
-          স্বাগতম, {firstName} 👋
+      <div className="min-w-0 flex-1">
+        <h1
+          className="text-sm md:text-base font-bold text-gray-800 truncate"
+          title={`স্বাগতম, ${displayName}`}
+        >
+          স্বাগতম, {displayName} 
         </h1>
         <p className="hidden md:block text-xs text-gray-500 truncate">
-          আজকের কার্যক্রম পরিচালনা করতে প্রস্তুত? আপনার ড্যাশবোর্ডে সব কিছু গুছানো আছে।
+          আজকের কার্যক্রম পরিচালনা করতে প্রস্তুত? আপনার ড্যাশবোর্ডে সব কিছু
+          গুছানো আছে।
         </p>
       </div>
 

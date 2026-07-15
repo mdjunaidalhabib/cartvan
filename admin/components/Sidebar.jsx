@@ -45,7 +45,7 @@ export default function Sidebar() {
   return (
     <aside
       className={`hidden md:flex flex-col h-screen bg-white shadow-lg relative transition-all duration-300 ${
-        collapsed ? "w-20 p-3" : "w-60 p-4"
+        collapsed ? "w-16 p-3" : "w-60 p-4"
       }`}
     >
       {/* Collapse / Expand toggle - always visible, never clipped */}

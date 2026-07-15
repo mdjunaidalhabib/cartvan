@@ -146,25 +146,25 @@ body {
   margin-top: 10px;
   margin-right: 50px;
   margin-left: auto;
-  width: 220px;
+  width: 190px; /* 160px theke bariye 190px */
 
   background: #ffffff;
   border: 1px solid #ff36ac;
-  border-radius: 10px;
-  padding: 10px 14px;
+  border-radius: 8px;
+  padding: 9px 12px;
 
-  overflow: hidden; /* total box er radius jate card er baire na chhoranor */
+  overflow: hidden;
 }
 
 .summary::before {
   content: "Order Summary";
   display: block;
   font-weight: 700;
-  font-size: 13px;
-  margin-bottom: 6px;
+  font-size: 12px;
+  margin-bottom: 5px;
   color: #111827;
   border-bottom: 1px dashed #e5e7eb;
-  padding-bottom: 5px;
+  padding-bottom: 4px;
 }
 
 .summary-row {
@@ -173,16 +173,18 @@ body {
   align-items: center;
 
   font-size: 12px;
+  font-weight: 600; /* age normal chilo, ekhon bold-ish */
   padding: 2px 0;
   color: #111827;
 }
 
 .summary-row span:first-child {
   color: #111827;
+  font-weight: 600;
 }
 
 .summary-row span:last-child {
-  font-weight: 600;
+  font-weight: 700; /* value ta aro bold */
   color: #111827;
 }
 
@@ -193,14 +195,14 @@ body {
 /* Highlight the Total row */
 .summary-row:last-child {
   margin-top: 4px;
-  border-radius: 6px;
-  padding: 5px 8px;
+  border-radius: 5px;
+  padding: 5px 7px;
   background: #ffe6f5;
 }
 
 .summary-row:last-child span:first-child,
 .summary-row:last-child span:last-child {
-  font-weight: 700;
+  font-weight: 800; /* Total row aro besh bold */
   color: #ff36ac;
 }
 
