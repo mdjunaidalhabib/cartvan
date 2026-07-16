@@ -11,9 +11,9 @@ const router = express.Router();
 // FINAL path: POST /api/v1/admin/send-order
 router.post("/send-order", async (req, res) => {
   try {
-    const { invoice, name, phone, address, cod_amount } = req.body;
+    const { invoice, name, phone, address } = req.body;
 
-    if (!invoice || !name || !phone || !address || !cod_amount)
+    if (!invoice || !name || !phone || !address)
       return res
         .status(400)
         .json({ success: false, message: "Missing required fields" });
@@ -28,6 +28,20 @@ router.post("/send-order", async (req, res) => {
     const { courier, apiKey, secretKey, baseUrl } = activeCourier;
 
     console.log("🚚 Active Courier:", courier);
+
+    // 🔹 2️⃣ Compute the real COD amount from the order — exclude the
+    // delivery charge if it was already paid online (bKash/Nagad, verified)
+    const order = await Order.findById(invoice);
+    if (!order)
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found in database!" });
+
+    const isManualPayment = (order.paymentMethod || "cod") !== "cod";
+    const isAdvancePaid = isManualPayment && order.paymentStatus === "paid";
+    const cod_amount = isAdvancePaid
+      ? Math.max(0, Number(order.total || 0) - Number(order.deliveryCharge || 0))
+      : Number(order.total || 0);
 
     // 🔹 2️⃣ Prepare payload based on courier
     let payload = {};

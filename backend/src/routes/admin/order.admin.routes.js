@@ -444,7 +444,13 @@ router.put("/:id", async (req, res) => {
 
     // ✅ Invoice-visible fields changed -> old cached PDF is stale.
     // Wipe it and rebuild in the background so downloads stay instant.
-    const invoiceAffectingFields = ["billing", "discount", "total"];
+    const invoiceAffectingFields = [
+      "billing",
+      "discount",
+      "total",
+      "paymentStatus",
+      "paymentMethod",
+    ];
     if (invoiceAffectingFields.some((k) => updateData[k] !== undefined)) {
       await invalidateInvoiceCache(updated._id);
       regenerateInvoiceInBackground(updated._id);

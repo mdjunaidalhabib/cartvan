@@ -617,14 +617,18 @@ export default function CheckoutPage() {
             )}
 
             <div className="p-3 bg-yellow-50 border border-yellow-100 rounded-xl text-yellow-700 text-xs font-medium">
-              {deliveryLabel}:{" "}
-              <b>
-                {deliveryLoading
-                  ? "Loading..."
-                  : isFreeDeliveryOrder
-                  ? "Free"
-                  : `৳${effectiveDeliveryCharge}`}
-              </b>
+              {deliveryLoading ? (
+                "Loading..."
+              ) : (
+                <>
+                  {deliveryLabel}:{" "}
+                  <b>
+                    {isFreeDeliveryOrder
+                      ? "Free"
+                      : `৳${effectiveDeliveryCharge}`}
+                  </b>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -128,6 +128,7 @@ const orderSchema = new mongoose.Schema(
       trackingId: { type: String, default: null },
       consignmentId: { type: String, default: null },
       status: { type: String, default: null },
+      codAmountSent: { type: Number, default: null },
       rawResponse: { type: mongoose.Schema.Types.Mixed, default: null },
       sentAt: { type: Date, default: null },
     },

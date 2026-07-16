@@ -165,7 +165,7 @@ function PendingVerificationTab({ showToast }) {
                   />
                 </span>
                 <span>
-                  Amount: <b className="text-gray-800">৳{o.total}</b>
+                  Amount: <b className="text-gray-800">৳{o.deliveryCharge}</b>
                 </span>
               </div>
 
@@ -369,7 +369,7 @@ function VerifiedPaymentsTab({ showToast }) {
                     />
                   </span>
                   <span>
-                    Amount: <b className="text-gray-800">৳{o.total}</b>
+                    Amount: <b className="text-gray-800">৳{o.deliveryCharge}</b>
                   </span>
                 </div>
 

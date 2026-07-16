@@ -155,7 +155,6 @@ const sendCourierDirect = (order) =>
           name: order.billing?.name,
           phone: order.billing?.phone,
           address: order.billing?.address,
-          cod_amount: order.total,
         }),
       });
 

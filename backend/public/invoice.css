@@ -36,6 +36,26 @@ body {
   line-height: 1.6;
 }
 
+/* 🔥 PAYMENT STATUS — its own line in order-info, right under "Payment:".
+   Only rendered for manual (bKash/Nagad) payments — omitted entirely for
+   COD, since there's no verification status to show. */
+.payment-status {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.payment-status.paid {
+  color: #059669;
+}
+
+.payment-status.pending {
+  color: #b45309;
+}
+
+.payment-status.failed {
+  color: #dc2626;
+}
+
 /* 🔥 BILLING CARD */
 .billing-card {
   position: absolute;
@@ -192,17 +212,44 @@ body {
   border-bottom: 1px solid #f3f4f6;
 }
 
-/* Highlight the Total row */
-.summary-row:last-child {
+/* Highlight the Total row (always, regardless of its position among the
+   other rows — Advance Payment / COD rows may come after it) */
+.summary-row.total-row {
   margin-top: 4px;
   border-radius: 5px;
   padding: 5px 7px;
   background: #ffe6f5;
 }
 
-.summary-row:last-child span:first-child,
-.summary-row:last-child span:last-child {
+.summary-row.total-row span:first-child,
+.summary-row.total-row span:last-child {
   font-weight: 800; /* Total row aro besh bold */
+  color: #ff36ac;
+}
+
+/* 🔥 EXTRA SUMMARY ROWS — Advance Payment / COD (shown only when the
+   delivery charge was already paid online via bKash/Nagad) */
+.summary-row.advance {
+  margin-top: 6px;
+}
+
+.summary-row.advance span:last-child {
+  color: #059669;
+}
+
+/* 🔥 COD row highlight — this is the amount still to be collected on
+   delivery, so it gets the same solid-box treatment as the Total row */
+.summary-row.codrow {
+  margin-top: 4px;
+  border-radius: 5px;
+  padding: 5px 7px;
+  background: #ffe6f5;
+  border: 1px solid #ff36ac;
+}
+
+.summary-row.codrow span:first-child,
+.summary-row.codrow span:last-child {
+  font-weight: 800;
   color: #ff36ac;
 }
 

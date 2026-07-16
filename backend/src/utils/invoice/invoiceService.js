@@ -160,6 +160,61 @@ function safeReplace(str, placeholder, value) {
   return str.replace(placeholder, () => value);
 }
 
+// Only when the delivery charge was already paid online (bKash/Nagad,
+// verified) do we split the summary into "Advance Payment" + "COD" rows.
+// Plain COD orders (or manual payments still pending verification) keep
+// the summary exactly as before — just Subtotal/Delivery/Discount/Total.
+function buildExtraSummaryRowsHtml(order) {
+  const isManualPayment = (order.paymentMethod || "cod") !== "cod";
+  const isAdvancePaid = isManualPayment && order.paymentStatus === "paid";
+
+  if (!isAdvancePaid) return "";
+
+  const deliveryCharge = Number(order.deliveryCharge || 0);
+  const total = Number(order.total || 0);
+  const codAmount = Math.max(0, total - deliveryCharge);
+
+  return `
+        <div class="summary-row advance">
+          <span class="label">Advance Payment</span><span>${formatCurrency(deliveryCharge)} tk</span>
+        </div>
+        <div class="summary-row codrow">
+          <span class="label">COD</span><span>${formatCurrency(codAmount)} tk</span>
+        </div>
+  `;
+}
+
+// Plain payment method text shown next to "Payment:" — no highlight/badge.
+function buildPaymentValueHtml(order) {
+  return escapeHtml((order.paymentMethod || "cod").toUpperCase());
+}
+
+// 🔥 Payment Status is its own separate line in the header now (not crammed
+// next to "Payment:", not in the note box). Only manual payments (bKash/
+// Nagad) have a verification status to show — for plain COD there's
+// nothing to verify, so this whole line is omitted for COD orders.
+function buildPaymentStatusLineHtml(order) {
+  const isManualPayment = (order.paymentMethod || "cod") !== "cod";
+  if (!isManualPayment) return "";
+
+  let statusHtml;
+  if (order.paymentStatus === "paid") {
+    statusHtml = `<span class="payment-status paid">Verified ✅</span>`;
+  } else if (order.paymentStatus === "failed") {
+    statusHtml = `<span class="payment-status failed">Rejected ❌</span>`;
+  } else {
+    statusHtml = `<span class="payment-status pending">Pending Verification ⚠️</span>`;
+  }
+
+  return `<div><strong>Payment Status:</strong> ${statusHtml}</div>`;
+}
+
+// Customer note only. Payment info now has its own place next to the
+// Payment field in the header, so it no longer needs to be repeated here.
+function buildNoteLineHtml(order) {
+  return escapeHtml(order.billing?.note || "") || "—";
+}
+
 function buildInvoiceHtml(order) {
   const { htmlTemplate, bgImageBase64 } = loadStaticAssets();
   const { datePart, timePart } = formatDateTime(order.createdAt);
@@ -197,7 +252,8 @@ function buildInvoiceHtml(order) {
     orderId: escapeHtml(shortOrderId(order)),
     date: escapeHtml(datePart),
     time: escapeHtml(timePart),
-    payment: escapeHtml((order.paymentMethod || "").toUpperCase()),
+    payment: buildPaymentValueHtml(order),
+    paymentStatusLine: buildPaymentStatusLineHtml(order),
     name: escapeHtml(order.billing?.name || ""),
     phone: escapeHtml(order.billing?.phone || ""),
     address: escapeHtml(order.billing?.address || ""),
@@ -206,7 +262,8 @@ function buildInvoiceHtml(order) {
     delivery: formatCurrency(order.deliveryCharge),
     discount: formatCurrency(order.discount || 0),
     total: formatCurrency(order.total),
-    note: escapeHtml(order.billing?.note || ""),
+    extraSummaryRows: buildExtraSummaryRowsHtml(order),
+    noteLine: buildNoteLineHtml(order),
   };
 
   const finalHtml = htmlTemplate.replace(/\{\{(\w+)\}\}/g, (match, key) =>

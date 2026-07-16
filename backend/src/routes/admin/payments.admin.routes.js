@@ -3,6 +3,10 @@ import PaymentMethod from "../../models/PaymentMethod.js";
 import Order from "../../models/Order.js";
 import { restockOrderItems } from "../../utils/inventory/restock.js";
 import { moveToTrash } from "../../../utils/trash/trash.helpers.js";
+import {
+  invalidateInvoiceCache,
+  regenerateInvoiceInBackground,
+} from "../../utils/invoice/invoiceService.js";
 
 const router = express.Router();
 
@@ -119,7 +123,7 @@ router.get("/pending", async (req, res) => {
     })
       .sort({ createdAt: -1 })
       .select(
-        "orderNumber billing total paymentMethod paymentDetails createdAt status",
+        "orderNumber billing total deliveryCharge paymentMethod paymentDetails createdAt status",
       );
 
     res.json(orders);
@@ -150,7 +154,7 @@ router.get("/verified", async (req, res) => {
       .sort({ updatedAt: -1 })
       .limit(200)
       .select(
-        "orderNumber billing total paymentMethod paymentStatus paymentDetails createdAt updatedAt status cancelReason",
+        "orderNumber billing total deliveryCharge paymentMethod paymentStatus paymentDetails createdAt updatedAt status cancelReason",
       );
 
     res.json(orders);
@@ -231,6 +235,9 @@ router.patch("/:orderId/verify", async (req, res) => {
     }
 
     await order.save();
+
+    await invalidateInvoiceCache(order._id);
+    regenerateInvoiceInBackground(order._id);
 
     res.json(order);
   } catch (err) {

@@ -62,16 +62,15 @@ router.post("/send-order", async (req, res) => {
       name,
       phone,
       address,
-      cod_amount,
       note,
       item_description,
     } = req.body || {};
 
-    if (!invoice || !name || !phone || !address || cod_amount === undefined) {
+    if (!invoice || !name || !phone || !address) {
       return res.status(400).json({
         ok: false,
         requestId,
-        error: "invoice, name, phone, address, cod_amount are required",
+        error: "invoice, name, phone, address are required",
       });
     }
 
@@ -83,6 +82,17 @@ router.post("/send-order", async (req, res) => {
         error: "Order not found",
       });
     }
+
+    // ✅ COD amount is always computed server-side from the order itself —
+    // never trust a client-supplied value here. If the delivery charge was
+    // already collected online (bKash/Nagad, verified/paid), the courier
+    // should only collect the remaining product amount, otherwise the
+    // customer gets charged for delivery twice.
+    const isManualPayment = (order.paymentMethod || "cod") !== "cod";
+    const isAdvancePaid = isManualPayment && order.paymentStatus === "paid";
+    const codAmount = isAdvancePaid
+      ? Math.max(0, Number(order.total || 0) - Number(order.deliveryCharge || 0))
+      : Number(order.total || 0);
 
     const courier = await getActiveCourier("steadfast");
 
@@ -102,7 +112,7 @@ router.post("/send-order", async (req, res) => {
       recipient_name: name,
       recipient_phone: phone,
       recipient_address: address,
-      cod_amount: Number(cod_amount),
+      cod_amount: codAmount,
       delivery_type: 0,
       note: note || "",
       item_description: item_description || "",
@@ -139,6 +149,7 @@ router.post("/send-order", async (req, res) => {
       trackingId: data?.consignment?.tracking_code || "",
       consignmentId: data?.consignment?.consignment_id || null,
       status: data?.consignment?.status || "in_review",
+      codAmountSent: codAmount,
       rawResponse: data,
       sentAt: new Date(),
     };

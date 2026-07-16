@@ -188,6 +188,75 @@ export function generateReceiptPDF(order, res) {
       underline: true,
     });
 
+  // ✅ Payment / Advance summary — makes it clear on the printed invoice
+  // whether the delivery charge was already paid online (bKash/Nagad),
+  // so the delivery man doesn't collect it again by mistake.
+  doc.moveDown(1);
+
+  const isManualPayment = (order?.paymentMethod || "cod") !== "cod";
+  const isAdvancePaid = isManualPayment && order?.paymentStatus === "paid";
+  const deliveryCharge = Number(order?.deliveryCharge || 0);
+  const grandTotal = Number(order?.total || 0);
+  const cashToCollect = isAdvancePaid
+    ? Math.max(0, grandTotal - deliveryCharge)
+    : grandTotal;
+
+  const boxLeft = doc.page.margins.left;
+  const boxWidth =
+    doc.page.width - doc.page.margins.left - doc.page.margins.right;
+  const boxTop = doc.y;
+  const boxHeight = isManualPayment ? 78 : 52;
+
+  doc.save();
+  doc
+    .roundedRect(boxLeft, boxTop, boxWidth, boxHeight, 6)
+    .fill(isAdvancePaid ? "#ECFDF5" : "#FFF7ED");
+  doc.restore();
+  doc
+    .roundedRect(boxLeft, boxTop, boxWidth, boxHeight, 6)
+    .strokeColor(isAdvancePaid ? "#10B981" : "#F59E0B")
+    .lineWidth(1)
+    .stroke();
+
+  let ty = boxTop + 10;
+
+  if (isManualPayment) {
+    doc
+      .fontSize(11)
+      .fillColor(isAdvancePaid ? "#166534" : "#B45309")
+      .text(
+        isAdvancePaid
+          ? `✅ ডেলিভারি চার্জ ${formatCurrency(deliveryCharge)} ইতিমধ্যে ${
+              order?.paymentDetails?.methodName || order.paymentMethod
+            }-এর মাধ্যমে অগ্রিম পরিশোধিত হয়েছে${
+              order?.paymentDetails?.transactionId
+                ? ` (TrxID: ${order.paymentDetails.transactionId})`
+                : ""
+            }।`
+          : `⚠️ ${order.paymentMethod} পেমেন্ট এখনো Verify হয়নি — সম্পূর্ণ টাকা ডেলিভারির সময় সংগ্রহ করুন।`,
+        boxLeft + 12,
+        ty,
+        { width: boxWidth - 24 }
+      );
+    ty = doc.y + 6;
+  }
+
+  doc
+    .fontSize(13)
+    .fillColor("#111827")
+    .text("ডেলিভারির সময় সংগ্রহযোগ্য (Cash to Collect):", boxLeft + 12, ty, {
+      continued: false,
+    });
+  doc
+    .fontSize(18)
+    .fillColor("#DC2626")
+    .text(formatCurrency(cashToCollect), boxLeft + 12, doc.y + 2, {
+      width: boxWidth - 24,
+      align: "right",
+    });
+
+  doc.y = boxTop + boxHeight + 10;
+
   // footer
   doc.moveDown(1);
   doc

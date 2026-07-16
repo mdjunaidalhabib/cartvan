@@ -18,6 +18,7 @@
           <div><strong>Order NO:</strong> {{orderId}}</div>
           <div><strong>Date:</strong> {{date}} ; {{time}}</div>
           <div><strong>Payment:</strong> {{payment}}</div>
+          {{paymentStatusLine}}
         </div>
 
         <!-- 🔥 BILLING CARD -->
@@ -77,15 +78,16 @@
         <div class="summary-row">
           <span class="label">Discount</span><span>{{discount}} tk</span>
         </div>
-        <div class="summary-row">
+        <div class="summary-row total-row">
           <span class="label">Total</span><span>{{total}} tk</span>
         </div>
+        {{extraSummaryRows}}
       </div>
 
-      <!-- 🔥 NOTE — sobar niche, highlight kora -->
+      <!-- NOTE — payment info moved next to the Payment field above -->
       <div class="note-box">
         <span class="note-label">Note</span>
-        <span class="note-value">{{note}}</span>
+        <span class="note-value">{{noteLine}}</span>
       </div>
     </div>
   </body>
