@@ -18,16 +18,21 @@ router.get("/", async (req, res) => {
 // ✅ Admin Update
 router.patch("/", async (req, res) => {
   try {
-    const { fee } = req.body;
+    const { fee, label } = req.body;
 
-    if (!Number.isFinite(Number(fee))) {
+    if (fee !== undefined && !Number.isFinite(Number(fee))) {
       return res.status(400).json({ error: "Invalid fee" });
+    }
+
+    if (label !== undefined && !String(label).trim()) {
+      return res.status(400).json({ error: "Label খালি রাখা যাবে না" });
     }
 
     let data = await DeliveryCharge.findOne();
     if (!data) data = await DeliveryCharge.create({ fee: 120 });
 
-    data.fee = Number(fee);
+    if (fee !== undefined) data.fee = Number(fee);
+    if (label !== undefined) data.label = String(label).trim();
     await data.save();
 
     res.json(data);

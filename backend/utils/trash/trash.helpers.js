@@ -3,6 +3,7 @@ import Product from "../../src/models/Product.js";
 import Category from "../../src/models/Category.js";
 import Slider from "../../src/models/Slider.js";
 import Order from "../../src/models/Order.js";
+import PaymentMethod from "../../src/models/PaymentMethod.js";
 import {
   deleteFromCloudinary,
   deleteByPublicId,
@@ -17,6 +18,7 @@ const MODEL_MAP = {
   Category,
   Slider,
   Order,
+  PaymentMethod,
 };
 
 // ✅ Trash list এ দেখানোর জন্য একটা readable label বানানো
@@ -32,6 +34,8 @@ const getLabel = (collectionName, data) => {
       return data?.billing?.name
         ? `Order - ${data.billing.name}`
         : `Order #${String(data?._id || "").slice(-6)}`;
+    case "PaymentMethod":
+      return data?.name ? `Payment Method - ${data.name}` : "Unnamed payment method";
     default:
       return data?.name || data?.title || String(data?._id || "Item");
   }

@@ -84,6 +84,7 @@ export default function CheckoutPage() {
 
   // ✅ Delivery Charge from DB (public api)
   const [deliveryCharge, setDeliveryCharge] = useState(0);
+  const [deliveryLabel, setDeliveryLabel] = useState("🚚 ডেলিভারি চার্জ");
   const [deliveryLoading, setDeliveryLoading] = useState(true);
 
   const [toast, setToast] = useState({ message: "", type: "" });
@@ -136,6 +137,9 @@ export default function CheckoutPage() {
       .then((data) => {
         const fee = Number(data?.fee);
         setDeliveryCharge(Number.isFinite(fee) ? fee : 0);
+
+        const label = data?.label?.trim();
+        if (label) setDeliveryLabel(label);
       })
       .catch((err) => {
         console.error("❌ Failed to load delivery fee", err);
@@ -613,7 +617,7 @@ export default function CheckoutPage() {
             )}
 
             <div className="p-3 bg-yellow-50 border border-yellow-100 rounded-xl text-yellow-700 text-xs font-medium">
-              🚚 ডেলিভারি চার্জ:{" "}
+              {deliveryLabel}:{" "}
               <b>
                 {deliveryLoading
                   ? "Loading..."

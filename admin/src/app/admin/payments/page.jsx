@@ -103,7 +103,7 @@ function PendingVerificationTab({ showToast }) {
         paymentStatus === "paid"
           ? "✅ Payment Verified হয়েছে!"
           : "❌ Payment Rejected করা হয়েছে!",
-        paymentStatus === "paid" ? "success" : "error"
+        paymentStatus === "paid" ? "success" : "error",
       );
     } catch (err) {
       showToast("❌ আপডেট ব্যর্থ হয়েছে!", "error");
@@ -212,7 +212,8 @@ function PendingVerificationTab({ showToast }) {
         message={confirmAction?.label}
         onCancel={() => setConfirmAction(null)}
         onConfirm={() =>
-          confirmAction && updateStatus(confirmAction.orderId, confirmAction.status)
+          confirmAction &&
+          updateStatus(confirmAction.orderId, confirmAction.status)
         }
       />
     </>
@@ -227,48 +228,99 @@ function VerifiedPaymentsTab({ showToast }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all"); // "all" | "paid" | "failed"
+  const [showHidden, setShowHidden] = useState(false); // false = normal view, true = "removed" items
+  const [busyId, setBusyId] = useState(null);
+  const [confirmTarget, setConfirmTarget] = useState(null); // order pending remove/restore confirm
 
   const load = useCallback(() => {
     setLoading(true);
-    const qs = filter !== "all" ? `?paymentStatus=${filter}` : "";
+    const params = new URLSearchParams();
+    if (filter !== "all") params.set("paymentStatus", filter);
+    if (showHidden) params.set("hidden", "true");
+    const qs = params.toString() ? `?${params.toString()}` : "";
+
     apiFetch(`/admin/payments/verified${qs}`)
       .then((data) => setOrders(Array.isArray(data) ? data : []))
-      .catch(() => showToast("❌ Verified payment history লোড করা যায়নি!", "error"))
+      .catch(() =>
+        showToast("❌ Verified payment history লোড করা যায়নি!", "error"),
+      )
       .finally(() => setLoading(false));
-  }, [filter, showToast]);
+  }, [filter, showHidden, showToast]);
 
   useEffect(() => {
     load();
   }, [load]);
 
+  async function setVisibility(orderId, hidden) {
+    setBusyId(orderId);
+    try {
+      // ✅ Order delete/trash করা হচ্ছে না — শুধু এই flag টা টগল হচ্ছে,
+      // Order নিজে Orders পেজে ঠিকই থেকে যায়।
+      await apiFetch(`/admin/payments/verified/${orderId}/visibility`, {
+        method: "PATCH",
+        body: JSON.stringify({ hidden }),
+      });
+      setOrders((prev) => prev.filter((o) => o._id !== orderId));
+      showToast(
+        hidden
+          ? "🗑️ Payments history থেকে সরানো হয়েছে!"
+          : "♻️ Payments history-তে ফিরিয়ে আনা হয়েছে!",
+        "success",
+      );
+    } catch {
+      showToast("❌ আপডেট ব্যর্থ হয়েছে!", "error");
+    } finally {
+      setBusyId(null);
+      setConfirmTarget(null);
+    }
+  }
+
   return (
     <div>
-      <div className="flex bg-gray-100 rounded-lg p-1 w-fit mb-4">
-        {[
-          { key: "all", label: "সব" },
-          { key: "paid", label: "✅ Accepted" },
-          { key: "failed", label: "❌ Rejected" },
-        ].map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setFilter(t.key)}
-            className={`px-3 py-1.5 text-xs font-bold rounded-md transition ${
-              filter === t.key
-                ? "bg-white shadow text-pink-600"
-                : "text-gray-500"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+        <div className="flex bg-gray-100 rounded-lg p-1 w-fit">
+          {[
+            { key: "all", label: "সব" },
+            { key: "paid", label: "✅ Accepted" },
+            { key: "failed", label: "❌ Rejected" },
+          ].map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setFilter(t.key)}
+              className={`px-3 py-1.5 text-xs font-bold rounded-md transition ${
+                filter === t.key
+                  ? "bg-white shadow text-pink-600"
+                  : "text-gray-500"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* ✅ Removed/hidden items এখান থেকে দেখে আবার Restore করা যাবে */}
+        <button
+          onClick={() => setShowHidden((v) => !v)}
+          className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition ${
+            showHidden
+              ? "bg-gray-800 text-white border-gray-800"
+              : "bg-white text-gray-500 border-gray-300 hover:bg-gray-50"
+          }`}
+        >
+          {showHidden ? "🗂️ Normal View দেখাও" : "🙈 Removed Items দেখাও"}
+        </button>
       </div>
 
       {loading ? (
         <RowsSkeleton />
       ) : !orders.length ? (
         <div className="text-center py-16 text-gray-400">
-          <p className="text-3xl mb-2">📄</p>
-          <p className="text-sm font-medium">এখনো কোনো verified payment নেই।</p>
+          <p className="text-3xl mb-2">{showHidden ? "🙈" : "📄"}</p>
+          <p className="text-sm font-medium">
+            {showHidden
+              ? "কোনো removed item নেই।"
+              : "এখনো কোনো verified payment নেই।"}
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -325,10 +377,40 @@ function VerifiedPaymentsTab({ showToast }) {
                   Verified: {new Date(o.updatedAt).toLocaleString("bn-BD")}
                 </p>
               </div>
+
+              <div className="flex gap-2 shrink-0">
+                {showHidden ? (
+                  <button
+                    disabled={busyId === o._id}
+                    onClick={() => setVisibility(o._id, false)}
+                    className="px-3 py-2 text-xs font-bold rounded-lg bg-green-50 text-green-600 border border-green-200 hover:bg-green-100 disabled:opacity-50"
+                  >
+                    {busyId === o._id ? "..." : "♻️ Restore"}
+                  </button>
+                ) : (
+                  <button
+                    disabled={busyId === o._id}
+                    onClick={() => setConfirmTarget(o)}
+                    className="px-3 py-2 text-xs font-bold rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 disabled:opacity-50"
+                  >
+                    {busyId === o._id ? "..." : "🗑️ Remove"}
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        show={!!confirmTarget}
+        title="Remove Verified Payment"
+        message={`অর্ডার #${confirmTarget?.orderNumber} এই লিস্ট থেকে সরাতে চান? Order নিজে Orders পেজে ঠিকই থেকে যাবে, শুধু এই Payments history-তে আর দেখা যাবে না — পরে "Removed Items" থেকে আবার Restore করা যাবে।`}
+        onCancel={() => setConfirmTarget(null)}
+        onConfirm={() =>
+          confirmTarget && setVisibility(confirmTarget._id, true)
+        }
+      />
     </div>
   );
 }
@@ -408,7 +490,7 @@ function PaymentMethodsTab({ showToast }) {
           body: JSON.stringify(form),
         });
         setMethods((prev) =>
-          prev.map((m) => (m._id === editingId ? updated : m))
+          prev.map((m) => (m._id === editingId ? updated : m)),
         );
         showToast("✅ Payment method আপডেট হয়েছে!", "success");
       } else {
@@ -443,7 +525,7 @@ function PaymentMethodsTab({ showToast }) {
     try {
       await apiFetch(`/admin/payments/methods/${id}`, { method: "DELETE" });
       setMethods((prev) => prev.filter((m) => m._id !== id));
-      showToast("🗑️ Payment method মুছে ফেলা হয়েছে!", "success");
+      showToast("🗑️ Payment method Trash-এ পাঠানো হয়েছে!", "success");
     } catch {
       showToast("❌ মুছতে ব্যর্থ হয়েছে!", "error");
     } finally {
@@ -649,7 +731,7 @@ function PaymentMethodsTab({ showToast }) {
       <ConfirmDialog
         show={!!deleteTarget}
         title="Delete Payment Method"
-        message={`"${deleteTarget?.name}" মুছে ফেলতে চান? এটি checkout থেকে সরে যাবে।`}
+        message={`"${deleteTarget?.name}" Trash-এ পাঠাতে চান? এটি checkout থেকে সরে যাবে, পরে Trash থেকে Restore করা যাবে।`}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={() => deleteTarget && deleteMethod(deleteTarget._id)}
       />

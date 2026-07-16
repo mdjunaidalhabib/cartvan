@@ -2,6 +2,7 @@ import express from "express";
 import PaymentMethod from "../../models/PaymentMethod.js";
 import Order from "../../models/Order.js";
 import { restockOrderItems } from "../../utils/inventory/restock.js";
+import { moveToTrash } from "../../../utils/trash/trash.helpers.js";
 
 const router = express.Router();
 
@@ -86,11 +87,16 @@ router.put("/methods/:id", async (req, res) => {
 // DELETE method
 router.delete("/methods/:id", async (req, res) => {
   try {
-    const deleted = await PaymentMethod.findByIdAndDelete(req.params.id);
-    if (!deleted) {
+    const method = await PaymentMethod.findById(req.params.id);
+    if (!method) {
       return res.status(404).json({ error: "Payment method পাওয়া যায়নি" });
     }
-    res.json({ message: "Payment method deleted" });
+
+    // ✅ hard-delete এর বদলে Trash এ move — অন্যান্য (Product/Category/Slider/Order)
+    // এর মতোই এখান থেকেও Restore করা যাবে বা কিছুদিন পর auto-purge হবে।
+    await moveToTrash("PaymentMethod", method);
+
+    res.json({ message: "✅ Payment method Trash-এ পাঠানো হয়েছে" });
   } catch (err) {
     console.error("❌ Failed to delete payment method:", err);
     res.status(500).json({ error: "Failed to delete payment method" });
@@ -128,13 +134,16 @@ router.get("/pending", async (req, res) => {
 // accepting/rejecting it — the "pending" list stops showing it once verified.
 router.get("/verified", async (req, res) => {
   try {
-    const { paymentStatus } = req.query; // optional filter: "paid" | "failed"
+    const { paymentStatus, hidden } = req.query; // hidden="true" -> show only removed/hidden ones
 
     const filter = {
       paymentMethod: { $ne: "cod" },
       paymentStatus: ["paid", "failed"].includes(paymentStatus)
         ? paymentStatus
         : { $in: ["paid", "failed"] },
+      // ✅ default view: hide করা orders বাদে সব দেখাও
+      // ?hidden=true দিলে শুধু hide করা orders দেখাবে, যাতে দরকার হলে Restore করা যায়
+      hiddenFromPaymentsView: hidden === "true" ? true : { $ne: true },
     };
 
     const orders = await Order.find(filter)
@@ -148,6 +157,34 @@ router.get("/verified", async (req, res) => {
   } catch (err) {
     console.error("❌ Failed to load verified payments:", err);
     res.status(500).json({ error: "Failed to load verified payments" });
+  }
+});
+
+// PATCH — Remove from (hide) or Restore back to the Verified/TrxID view.
+// Order কখনোই delete/trash হয় না, শুধু এই flag টা টগল হয়।
+router.patch("/verified/:orderId/visibility", async (req, res) => {
+  try {
+    const { hidden } = req.body; // true = remove from view, false = restore
+
+    const order = await Order.findByIdAndUpdate(
+      req.params.orderId,
+      { hiddenFromPaymentsView: !!hidden },
+      { new: true },
+    ).select("_id hiddenFromPaymentsView");
+
+    if (!order) {
+      return res.status(404).json({ error: "Order পাওয়া যায়নি" });
+    }
+
+    res.json({
+      message: hidden
+        ? "✅ Payments history থেকে সরানো হয়েছে"
+        : "✅ Payments history-তে ফিরিয়ে আনা হয়েছে",
+      order,
+    });
+  } catch (err) {
+    console.error("❌ Failed to update payment view visibility:", err);
+    res.status(500).json({ error: "Failed to update visibility" });
   }
 });
 

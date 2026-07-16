@@ -5,6 +5,7 @@ const TYPE_BADGE_STYLE = {
   Category: "bg-blue-100 border-blue-200 text-blue-700",
   Order: "bg-amber-100 border-amber-200 text-amber-700",
   Slider: "bg-rose-100 border-rose-200 text-rose-700",
+  PaymentMethod: "bg-emerald-100 border-emerald-200 text-emerald-700",
 };
 
 const TYPE_ICON = {
@@ -12,6 +13,7 @@ const TYPE_ICON = {
   Category: "📁",
   Order: "🧾",
   Slider: "🖼️",
+  PaymentMethod: "💳",
 };
 
 function getImage(it) {
@@ -44,6 +46,9 @@ function getSubtitle(it) {
   }
   if (it.collectionName === "Order") {
     return `৳ ${d.total ?? 0} · ${d.status || "pending"}`;
+  }
+  if (it.collectionName === "PaymentMethod") {
+    return `${d.number || ""} · ${d.accountType || "personal"}`;
   }
   return "";
 }

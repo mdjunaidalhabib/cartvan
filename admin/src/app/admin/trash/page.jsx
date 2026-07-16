@@ -10,6 +10,7 @@ const TYPE_TABS = [
   { key: "Category", label: "📁 Category" },
   { key: "Order", label: "🧾 Order" },
   { key: "Slider", label: "🖼️ Slider" },
+  { key: "PaymentMethod", label: "💳 Payment Method" },
 ];
 
 const TTL_DAYS = 3;

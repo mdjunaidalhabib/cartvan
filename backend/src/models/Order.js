@@ -90,8 +90,19 @@ const orderSchema = new mongoose.Schema(
       methodId: { type: mongoose.Schema.Types.ObjectId, default: null },
       methodName: { type: String, default: null }, // snapshot, in case method is later renamed/deleted
       senderNumber: { type: String, default: null },
-      transactionId: { type: String, default: null, uppercase: true, trim: true },
+      transactionId: {
+        type: String,
+        default: null,
+        uppercase: true,
+        trim: true,
+      },
     },
+
+    // ✅ Admin panel-এর "Payments > Verified / TrxID" লিস্ট থেকে "Remove"
+    // চাপলে Order নিজে delete/trash না করে শুধু এই flag true করা হয় —
+    // Order (এবং তার accounting/history value) অক্ষত থাকে, Orders পেজে
+    // ঠিক আগের মতোই দেখা যায়, শুধু Payments history-তে আর দেখানো হয় না।
+    hiddenFromPaymentsView: { type: Boolean, default: false },
 
     /* ===========================
        ✅ ORDER STATUS
@@ -148,7 +159,10 @@ orderSchema.index({
 // ✅ Pre-save hook to auto-increment orderNumber safely
 // (same Counter-based pattern already used for User.userId)
 orderSchema.pre("save", async function (next) {
-  if (this.isNew && (this.orderNumber === undefined || this.orderNumber === null)) {
+  if (
+    this.isNew &&
+    (this.orderNumber === undefined || this.orderNumber === null)
+  ) {
     try {
       const counter = await Counter.findOneAndUpdate(
         { name: "orderNumber" },

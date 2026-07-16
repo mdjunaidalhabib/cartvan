@@ -14,9 +14,14 @@ function Skeleton() {
   );
 }
 
+const DEFAULT_LABEL = "🚚 ডেলিভারি চার্জ";
+
 export default function AdminDeliveryChargePage() {
   const [fee, setFee] = useState(0);
   const [originalFee, setOriginalFee] = useState(0);
+
+  const [label, setLabel] = useState(DEFAULT_LABEL);
+  const [originalLabel, setOriginalLabel] = useState(DEFAULT_LABEL);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -32,6 +37,10 @@ export default function AdminDeliveryChargePage() {
         const loadedFee = Number(data?.fee ?? 0);
         setFee(Number.isFinite(loadedFee) ? loadedFee : 0);
         setOriginalFee(Number.isFinite(loadedFee) ? loadedFee : 0);
+
+        const loadedLabel = data?.label?.trim() || DEFAULT_LABEL;
+        setLabel(loadedLabel);
+        setOriginalLabel(loadedLabel);
       })
       .catch(() =>
         setToast({
@@ -48,6 +57,11 @@ export default function AdminDeliveryChargePage() {
       return;
     }
 
+    if (!label.trim()) {
+      setToast({ message: "❌ Text খালি রাখা যাবে না!", type: "error" });
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -56,7 +70,7 @@ export default function AdminDeliveryChargePage() {
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fee }),
+          body: JSON.stringify({ fee, label: label.trim() }),
         }
       );
 
@@ -64,6 +78,7 @@ export default function AdminDeliveryChargePage() {
       if (!res.ok) throw new Error(data.error || "Failed");
 
       setOriginalFee(fee);
+      setOriginalLabel(label.trim());
       setIsEditing(false); // ✅ back to read mode after save
       setToast({ message: "✅ Delivery charge updated!", type: "success" });
     } catch (err) {
@@ -75,8 +90,11 @@ export default function AdminDeliveryChargePage() {
 
   function cancelEdit() {
     setFee(originalFee);
+    setLabel(originalLabel);
     setIsEditing(false);
   }
+
+  const isUnchanged = fee === originalFee && label === originalLabel;
 
   return (
     <>
@@ -130,6 +148,12 @@ export default function AdminDeliveryChargePage() {
                 </span>
                 <span className="text-lg font-bold text-gray-900">৳ {fee}</span>
               </div>
+              <div className="flex items-center justify-between bg-gray-50 border rounded-lg p-2 mt-2">
+                <span className="text-sm font-medium text-gray-700">Text</span>
+                <span className="text-sm font-semibold text-gray-900 text-right">
+                  {label}
+                </span>
+              </div>
               <p className="mt-3 text-xs text-gray-400">
                 Click <span className="font-semibold">Edit</span> to update.
               </p>
@@ -150,11 +174,28 @@ export default function AdminDeliveryChargePage() {
                 />
               </label>
 
+              <label className="block mb-4">
+                <span className="text-sm font-medium text-gray-700">
+                  Text (checkout পেজে দেখাবে)
+                </span>
+                <input
+                  type="text"
+                  value={label}
+                  onChange={(e) => setLabel(e.target.value)}
+                  placeholder={DEFAULT_LABEL}
+                  className="mt-1 w-full border p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-400"
+                />
+                <p className="mt-1 text-xs text-gray-400">
+                  যেমন: &ldquo;🚚 ডেলিভারি চার্জ&rdquo; — checkout পেজে এই টেক্সট ও
+                  পাশে চার্জ দেখানো হবে।
+                </p>
+              </label>
+
               <button
                 onClick={saveFee}
-                disabled={saving || fee === originalFee}
+                disabled={saving || isUnchanged}
                 className={`w-full text-white py-2 rounded-md font-bold transition ${
-                  saving || fee === originalFee
+                  saving || isUnchanged
                     ? "bg-pink-400 cursor-not-allowed"
                     : "bg-pink-600 hover:bg-pink-700"
                 }`}
@@ -162,7 +203,7 @@ export default function AdminDeliveryChargePage() {
                 {saving ? "Saving..." : "Save"}
               </button>
 
-              {fee === originalFee && (
+              {isUnchanged && (
                 <p className="text-xs text-gray-400 mt-2 text-center">
                   No changes to save.
                 </p>

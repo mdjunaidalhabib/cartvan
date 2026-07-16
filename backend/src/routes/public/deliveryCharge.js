@@ -11,7 +11,7 @@ router.get("/", async (req, res) => {
     // যদি DB তে না থাকে, auto create
     if (!data) data = await DeliveryCharge.create({ fee: 120 });
 
-    res.json({ fee: data.fee });
+    res.json({ fee: data.fee, label: data.label });
   } catch (err) {
     res.status(500).json({ error: "Failed to load delivery fee" });
   }

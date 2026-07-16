@@ -74,6 +74,7 @@ body {
   word-break: break-word;
 }
 
+/* ITEMS SECTION WRAPPER */
 .items {
   margin-top: 30px;
   padding: 0 50px;
@@ -201,7 +202,7 @@ body {
 
 .summary-row:last-child span:first-child,
 .summary-row:last-child span:last-child {
-  font-weight: 800; 
+  font-weight: 800; /* Total row aro besh bold */
   color: #ff36ac;
 }
 
