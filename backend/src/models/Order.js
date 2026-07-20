@@ -50,6 +50,20 @@ const orderSchema = new mongoose.Schema(
        ✅ OPTIONAL META
     ============================ */
     promoCode: { type: String, default: null },
+    promo: {
+      promoId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Promo",
+        default: null,
+      },
+      code: { type: String, default: null },
+      title: { type: String, default: "" },
+      discountType: { type: String, default: null },
+      discountValue: { type: Number, default: 0 },
+      eligibleSubtotal: { type: Number, default: 0 },
+      discountAmount: { type: Number, default: 0 },
+      shippingDiscount: { type: Number, default: 0 },
+    },
     userId: { type: String, default: null },
 
     /* ===========================

@@ -193,7 +193,7 @@ export default function OrderCard({
             </div>
             {!!o.discount && (
               <div className="flex justify-between text-red-500 font-medium">
-                <span>Discount</span>
+                <span>Discount{o.promo?.code ? ` (${o.promo.code})` : ""}</span>
                 <span>-৳{o.discount}</span>
               </div>
             )}

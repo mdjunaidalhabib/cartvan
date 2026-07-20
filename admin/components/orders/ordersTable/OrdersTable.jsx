@@ -256,7 +256,7 @@ export default function OrdersTable({
 
                       {!!o.discount && (
                         <div className="flex justify-between text-red-600">
-                          <span>Discount</span>
+                          <span>Discount{o.promo?.code ? ` (${o.promo.code})` : ""}</span>
                           <span>-৳{o.discount}</span>
                         </div>
                       )}

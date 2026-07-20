@@ -29,6 +29,15 @@ export default function OrderSummary({ orderId }) {
       </p>
     );
 
+  const itemPromoDiscount = Math.max(
+    Number(order.discount || 0),
+    Number(order.promo?.discountAmount || 0),
+  );
+  const shippingDiscount = Math.max(
+    0,
+    Number(order.promo?.shippingDiscount || 0),
+  );
+
   return (
     <div className="max-w-sm mx-auto my-4 bg-white shadow rounded-lg divide-y divide-gray-200 text-sm">
       {/* Header */}
@@ -114,7 +123,20 @@ export default function OrderSummary({ orderId }) {
       <div className="p-3 text-right space-y-0.5">
         <p>Subtotal: ৳{order.subtotal}</p>
         <p>Delivery: ৳{order.deliveryCharge}</p>
-        {order.discount > 0 && <p>Discount: -৳{order.discount}</p>}
+        {itemPromoDiscount > 0 && (
+          <p className="text-green-700">
+            Promo discount
+            {order.promo?.code ? ` (${order.promo.code})` : ""}: -৳
+            {itemPromoDiscount}
+          </p>
+        )}
+        {shippingDiscount > 0 && (
+          <p className="text-green-700">
+            Delivery promo saved
+            {order.promo?.code ? ` (${order.promo.code})` : ""}: ৳
+            {shippingDiscount}
+          </p>
+        )}
         <p className="text-green-700 font-semibold text-sm">
           Total: ৳{order.total}
         </p>

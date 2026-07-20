@@ -9,6 +9,7 @@ import QuantityController from "./QuantityController";
 import CheckoutButton from "./CheckoutButton";
 import Toast from "./Toast";
 import CheckoutSummarySkeleton from "../skeletons/CheckoutSummarySkeleton";
+import PromoCodeBox from "./PromoCodeBox";
 
 export default function CheckoutPage() {
   const { me } = useUser();
@@ -97,6 +98,7 @@ export default function CheckoutPage() {
   });
   const [submitted, setSubmitted] = useState(false);
   const [loadingOrder, setLoadingOrder] = useState(false);
+  const [promoResult, setPromoResult] = useState(null);
 
   const showToast = (message, type = "info") => {
     setToast({ message, type });
@@ -207,7 +209,7 @@ export default function CheckoutPage() {
             cartKey: it.color ? `${p._id}|${it.color}` : String(p._id),
             productId: p._id,
             name: p.name,
-            price: toNumber(p.price, 0),
+            price: toNumber(variant?.price ?? p.price, 0),
             qty: toNumber(it.qty, 1),
             image,
             stock,
@@ -246,7 +248,7 @@ export default function CheckoutPage() {
             : String(p._id),
           productId: p._id,
           name: p.name,
-          price: toNumber(p.price, 0),
+          price: toNumber(variant?.price ?? p.price, 0),
           qty: toNumber(checkoutQty, 1),
           image,
           stock,
@@ -283,7 +285,7 @@ export default function CheckoutPage() {
           cartKey: String(key),
           productId: p._id,
           name: p.name,
-          price: toNumber(p.price, 0),
+          price: toNumber(variant?.price ?? p.price, 0),
           qty,
           image,
           stock,
@@ -325,7 +327,13 @@ export default function CheckoutPage() {
     cartItems.length > 0 && cartItems.every((it) => it.freeDelivery);
   const effectiveDeliveryCharge = isFreeDeliveryOrder ? 0 : deliveryCharge;
 
-  const total = subtotal + effectiveDeliveryCharge;
+  const previewDeliveryCharge =
+    promoResult?.deliveryCharge ?? effectiveDeliveryCharge;
+  const promoDiscount = Number(promoResult?.discountAmount || 0);
+  const shippingDiscount = Number(promoResult?.shippingDiscount || 0);
+  const total =
+    promoResult?.total ??
+    subtotal + previewDeliveryCharge - promoDiscount;
 
   const phoneValid = /^(01[3-9]\d{8})$/.test(phone);
 
@@ -385,15 +393,20 @@ export default function CheckoutPage() {
 
     setLoadingOrder(true);
 
-    // ✅ ✅ deliveryCharge + total backend calculate করবে
+    // ✅ Backend productId + color দিয়ে DB থেকে price/subtotal/total rebuild করবে.
+    // Frontend price/subtotal কখনো authoritative নয়।
     const orderData = {
-      items: cartItems,
-      subtotal,
+      items: checkoutItemsPayload.map(({ productId, qty, color }) => ({
+        productId,
+        qty,
+        color,
+      })),
       billing: { name, phone, address, note },
       paymentMethod,
       paymentStatus: "pending",
       status: "pending",
       userId: me?.userId || null,
+      ...(promoResult?.promo?.code && { promoCode: promoResult.promo.code }),
       ...(isManualPayment && {
         paymentDetails: {
           senderNumber,
@@ -623,9 +636,9 @@ export default function CheckoutPage() {
                 <>
                   {deliveryLabel}:{" "}
                   <b>
-                    {isFreeDeliveryOrder
+                    {previewDeliveryCharge <= 0
                       ? "Free"
-                      : `৳${effectiveDeliveryCharge}`}
+                      : `৳${previewDeliveryCharge}`}
                   </b>
                 </>
               )}
@@ -757,6 +770,17 @@ export default function CheckoutPage() {
                 ))}
               </div>
 
+              <PromoCodeBox
+                items={checkoutItemsPayload}
+                userId={me?.userId || null}
+                phone={phone}
+                paymentMethod={paymentMethod}
+                onPromoChange={setPromoResult}
+                disabled={
+                  productsLoading || deliveryLoading || loadingOrder
+                }
+              />
+
               <div className="border-t border-dashed pt-4 space-y-2.5 text-sm font-sans">
                 <div className="flex justify-between text-gray-600">
                   <span>সাবটোটাল:</span>
@@ -772,11 +796,29 @@ export default function CheckoutPage() {
                   >
                     {deliveryLoading
                       ? "Loading..."
-                      : isFreeDeliveryOrder
+                      : previewDeliveryCharge <= 0
                       ? "Free"
-                      : `৳${effectiveDeliveryCharge}`}
+                      : `৳${previewDeliveryCharge}`}
                   </span>
                 </div>
+
+                {promoDiscount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>
+                      Promo discount ({promoResult?.promo?.code}):
+                    </span>
+                    <span className="font-bold">-৳{promoDiscount}</span>
+                  </div>
+                )}
+
+                {shippingDiscount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Delivery promo:</span>
+                    <span className="font-bold">
+                      -৳{shippingDiscount}
+                    </span>
+                  </div>
+                )}
 
                 <div className="flex justify-between text-xl font-extrabold text-pink-600 border-t pt-3 mt-2">
                   <span>মোট খরচ:</span>

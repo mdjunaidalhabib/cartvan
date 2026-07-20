@@ -3,6 +3,15 @@ import Order from "../../models/Order.js";
 import Product from "../../models/Product.js";
 import DeliveryCharge from "../../models/DeliveryCharge.js";
 import PaymentMethod from "../../models/PaymentMethod.js";
+import {
+  buildPricedOrderItemsFromDB,
+  calculateItemsSubtotal,
+} from "../../services/orderPricingService.js";
+import {
+  validatePromoForOrder,
+  reservePromoUsage,
+  releasePromoUsage,
+} from "../../services/promoService.js";
 
 // ✅ correct relative path
 import { getOrderMailSendSettings } from "../../../utils/mail/index.js";
@@ -66,6 +75,7 @@ const computeSoldOut = (product) => {
   const anyInStock = product.colors.some((c) => toNumber(c?.stock, 0) > 0);
   return !anyInStock;
 };
+
 
 /**
  * ✅ DB থেকে Latest delivery fee fetch
@@ -226,9 +236,7 @@ router.post("/", async (req, res) => {
   try {
     const {
       items,
-      subtotal,
       billing,
-      discount,
       promoCode,
       userId,
       paymentMethod,
@@ -237,7 +245,7 @@ router.post("/", async (req, res) => {
     } = req.body;
 
     // ✅ Validation
-    if (!items?.length || subtotal == null) {
+    if (!items?.length) {
       return res.status(400).json({
         error: "প্রয়োজনীয় তথ্য প্রদান করা হয়নি (Missing fields)",
       });
@@ -246,6 +254,17 @@ router.post("/", async (req, res) => {
     if (!billing?.name || !billing?.phone || !billing?.address) {
       return res.status(400).json({
         error: "Billing তথ্য সম্পূর্ণ নয় (name/phone/address required)",
+      });
+    }
+
+    // ✅ Never trust frontend price/subtotal. Rebuild every item from DB using
+    // productId + color, then calculate subtotal from those DB prices.
+    let trustedItems;
+    try {
+      trustedItems = await buildPricedOrderItemsFromDB(items);
+    } catch (pricingErr) {
+      return res.status(pricingErr?.statusCode || 400).json({
+        error: pricingErr?.message || "Invalid order items",
       });
     }
 
@@ -305,21 +324,47 @@ router.post("/", async (req, res) => {
     const baseDeliveryFee = await getDeliveryFeeFromDB();
 
     // ✅ যদি cart-এ কোনো Free Delivery প্রোডাক্ট থাকে → চার্জ 0
-    const isFreeDelivery = await isEntireCartFreeDelivery(items);
+    const isFreeDelivery = await isEntireCartFreeDelivery(trustedItems);
     const DELIVERY_CHARGE = isFreeDelivery ? 0 : baseDeliveryFee;
 
-    // ✅ backend-safe total calculation
-    const calculatedSubtotal = toNumber(subtotal, 0);
-    const calculatedDiscount = toNumber(discount, 0);
+    // ✅ backend-safe total calculation from DB-authoritative item prices
+    const calculatedSubtotal = calculateItemsSubtotal(trustedItems);
 
-    const calculatedTotal =
-      calculatedSubtotal + DELIVERY_CHARGE - calculatedDiscount;
+    // ✅ Frontend sends only promoCode. Backend validates the campaign and
+    // recalculates every discount from trusted product/variant prices.
+    let promoValidation = null;
+    if (String(promoCode || "").trim()) {
+      try {
+        promoValidation = await validatePromoForOrder({
+          code: promoCode,
+          items: trustedItems,
+          subtotal: calculatedSubtotal,
+          deliveryCharge: DELIVERY_CHARGE,
+          userId,
+          phone: billing.phone,
+          paymentMethod: normalizedPaymentMethod,
+        });
+      } catch (promoErr) {
+        return res.status(promoErr?.statusCode || 400).json({
+          error: promoErr?.message || "Promo code is not valid",
+          code: promoErr?.code || "PROMO_INVALID",
+        });
+      }
+    }
+
+    const calculatedDiscount = promoValidation?.discountAmount || 0;
+    const finalDeliveryCharge =
+      promoValidation?.finalDeliveryCharge ?? DELIVERY_CHARGE;
+    const calculatedTotal = Math.max(
+      0,
+      calculatedSubtotal + finalDeliveryCharge - calculatedDiscount,
+    );
 
     // ✅ SAVE ORDER
     const order = new Order({
-      items,
+      items: trustedItems,
       subtotal: calculatedSubtotal,
-      deliveryCharge: DELIVERY_CHARGE,
+      deliveryCharge: finalDeliveryCharge,
       discount: calculatedDiscount,
       total: calculatedTotal,
       billing: {
@@ -328,7 +373,19 @@ router.post("/", async (req, res) => {
         address: billing.address,
         note: billing.note || "",
       },
-      promoCode: promoCode || "",
+      promoCode: promoValidation?.promo?.code || null,
+      promo: promoValidation
+        ? {
+            promoId: promoValidation.promo._id,
+            code: promoValidation.promo.code,
+            title: promoValidation.promo.title || "",
+            discountType: promoValidation.promo.discountType,
+            discountValue: promoValidation.promo.discountValue || 0,
+            eligibleSubtotal: promoValidation.eligibleSubtotal,
+            discountAmount: promoValidation.discountAmount,
+            shippingDiscount: promoValidation.shippingDiscount,
+          }
+        : undefined,
       userId: userId || null,
       paymentMethod: normalizedPaymentMethod,
       paymentStatus: "pending",
@@ -338,12 +395,33 @@ router.post("/", async (req, res) => {
 
     const savedOrder = await order.save();
 
+    // ✅ Atomic global-limit reservation. If another checkout used the last
+    // available slot at the same time, this order is rolled back.
+    if (promoValidation) {
+      try {
+        await reservePromoUsage({
+          validation: promoValidation,
+          order: savedOrder,
+          userId,
+          phone: billing.phone,
+        });
+      } catch (promoReserveErr) {
+        await Order.findByIdAndDelete(savedOrder._id);
+        return res.status(promoReserveErr?.statusCode || 400).json({
+          error:
+            promoReserveErr?.message ||
+            "Promo usage could not be reserved",
+          code: promoReserveErr?.code || "PROMO_LIMIT_REACHED",
+        });
+      }
+    }
+
     /* ✅✅ STRICT INVENTORY UPDATE
        - If stock update fails => rollback order + return 400
     */
     try {
       await Promise.all(
-        items.map((item) => updateInventoryForItem(item, "decrease")),
+        trustedItems.map((item) => updateInventoryForItem(item, "decrease")),
       );
     } catch (stockErr) {
       console.error("❌ Stock/Sold Update Error:", stockErr);
@@ -351,6 +429,12 @@ router.post("/", async (req, res) => {
       // ✅ rollback order so fake order not saved
       try {
         await Order.findByIdAndDelete(savedOrder._id);
+        if (promoValidation) {
+          await releasePromoUsage({
+            promoId: promoValidation.promo._id,
+            orderId: savedOrder._id,
+          });
+        }
       } catch (rbErr) {
         console.error("❌ Rollback failed:", rbErr);
       }

@@ -55,8 +55,16 @@ export default function ProductDetailsClient({
   // ✅ quantity by cartKey
   const quantity = cart[String(cartKey)] || 0;
 
-  // ✅ numeric total price
-  const totalPrice = Number(product?.price || 0) * Number(quantity || 0);
+  // ✅ selected variant price is the source of truth for the UI
+  const currentPrice = Number(selectedColor?.price ?? product?.price ?? 0) || 0;
+  const currentOldPriceRaw = selectedColor?.oldPrice ?? product?.oldPrice ?? null;
+  const currentOldPrice =
+    currentOldPriceRaw === null || currentOldPriceRaw === undefined
+      ? null
+      : Number(currentOldPriceRaw);
+
+  // ✅ numeric total price (variant aware)
+  const totalPrice = currentPrice * Number(quantity || 0);
 
   // ✅ images choose from variant or fallback
   const images = useMemo(() => {
@@ -88,16 +96,12 @@ export default function ProductDetailsClient({
     return () => clearInterval(interval);
   }, [images]);
 
-  // ✅ oldPrice discount logic
+  // ✅ oldPrice discount logic (variant aware)
   const hasOldPrice =
-    product.oldPrice && Number(product.oldPrice) > Number(product.price || 0);
+    Number.isFinite(currentOldPrice) && currentOldPrice > currentPrice;
 
   const discountPct = hasOldPrice
-    ? (
-        ((Number(product.oldPrice) - Number(product.price)) /
-          Number(product.oldPrice)) *
-        100
-      ).toFixed(1)
+    ? (((currentOldPrice - currentPrice) / currentOldPrice) * 100).toFixed(1)
     : null;
 
   // ✅ wishlist normalize
@@ -128,7 +132,7 @@ return (
   <main className="container mx-auto px-4 sm:px-6 lg:px-8 mt-4 md:py-8">
     <ProductBreadcrumb product={product} category={category} />
 
-    <section className="bg-pink-50 rounded-2xl grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 overflow-hidden">
+    <section className="bg-pink-50 rounded-2xl grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 overflow-visible">
       {/* Product Gallery */}
       <div className="lg:col-span-7">
         <ProductGallery
@@ -148,6 +152,8 @@ return (
           isOutOfStock={isOutOfStock}
           currentStock={currentStock}
           soldCount={soldCount}
+          currentPrice={currentPrice}
+          currentOldPrice={currentOldPrice}
           hasOldPrice={hasOldPrice}
           discountPct={discountPct}
           isInWishlist={isInWishlist}

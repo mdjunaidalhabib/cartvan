@@ -18,6 +18,7 @@ import homeBadgeRoutes from "./homeBadge.js";
 import facebookGroupRoutes from "./facebookGroup.routes.js";
 import aboutRoutes from "./about.routes.js";
 import paymentMethodRoutes from "./paymentMethod.routes.js";
+import promoRoutes from "./promo.routes.js";
 
 
 
@@ -41,5 +42,6 @@ router.use("/homeBadges", homeBadgeRoutes);
 router.use("/facebook-group", facebookGroupRoutes);
 router.use("/about", aboutRoutes);
 router.use("/payment-methods", paymentMethodRoutes);
+router.use("/promos", promoRoutes);
 
 export default router;

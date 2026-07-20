@@ -247,6 +247,11 @@ export default function CartPage() {
           cartKey: key,
           selectedColor: color,
           colorVariant: variant,
+          price: Number(variant?.price ?? p.price ?? 0),
+          oldPrice:
+            variant?.oldPrice === null || variant?.oldPrice === undefined
+              ? p.oldPrice
+              : Number(variant.oldPrice),
           qty: cart[key],
           image,
         };

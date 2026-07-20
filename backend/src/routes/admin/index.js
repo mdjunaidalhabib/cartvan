@@ -20,6 +20,7 @@ import facebookGroupAdminRoutes from "./facebookGroup.admin.routes.js";
 import trashAdminRoutes from "./trash.admin.routes.js";
 import aboutAdminRoutes from "./about.admin.routes.js";
 import paymentsAdminRoutes from "./payments.admin.routes.js";
+import promoAdminRoutes from "./promo.admin.routes.js";
 
 
 
@@ -46,6 +47,7 @@ router.use("/facebook-group", facebookGroupAdminRoutes);
 router.use("/trash", trashAdminRoutes);
 router.use("/about", aboutAdminRoutes);
 router.use("/payments", paymentsAdminRoutes);
+router.use("/promos", promoAdminRoutes);
 
 
 export default router;

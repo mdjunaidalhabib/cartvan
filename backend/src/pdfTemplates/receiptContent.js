@@ -169,15 +169,29 @@ export function generateReceiptPDF(order, res) {
   // totals
   doc.fillColor("#B45309").fontSize(14).text("মূল্যসারণি", { underline: true });
   doc.fillColor("black").fontSize(12);
+  const itemDiscount = Math.max(
+    Number(order?.discount || 0),
+    Number(order?.promo?.discountAmount || 0),
+    0,
+  );
+  const shippingDiscount = Math.max(
+    Number(order?.promo?.shippingDiscount || 0),
+    0,
+  );
+  const displayedDelivery =
+    Number(order?.deliveryCharge || 0) + shippingDiscount;
+  const displayedDiscount = itemDiscount + shippingDiscount;
+
   doc.text(`মোট: ${formatCurrency(order?.subtotal)}`, { align: "right" });
-  doc.text(`ডেলিভারি চার্জ: ${formatCurrency(order?.deliveryCharge)}`, {
+  doc.text(`ডেলিভারি চার্জ: ${formatCurrency(displayedDelivery)}`, {
     align: "right",
   });
 
-  if ((order?.discount || 0) > 0) {
-    doc.text(`ডিসকাউন্ট: -${formatCurrency(order.discount)}`, {
-      align: "right",
-    });
+  if (displayedDiscount > 0) {
+    doc.text(
+      `প্রোমো ডিসকাউন্ট${order?.promo?.code ? ` (${order.promo.code})` : ""}: -${formatCurrency(displayedDiscount)}`,
+      { align: "right" },
+    );
   }
 
   doc

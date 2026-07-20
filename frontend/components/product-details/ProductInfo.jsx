@@ -1,5 +1,6 @@
 import { FaStar, FaHeart, FaFire } from "react-icons/fa";
 import VariantSelector from "./VariantSelector";
+import ShareProduct from "./ShareProduct";
 
 export default function ProductInfo({
   product,
@@ -7,6 +8,8 @@ export default function ProductInfo({
   isOutOfStock,
   currentStock,
   soldCount,
+  currentPrice,
+  currentOldPrice,
   hasOldPrice,
   discountPct,
   isInWishlist,
@@ -75,13 +78,13 @@ export default function ProductInfo({
         <div className="flex items-start md:items-center justify-between gap-3">
           <div className="flex flex-wrap items-end gap-x-2 md:gap-x-3 gap-y-1">
             <p className="text-indigo-600 md:text-blue-600 font-extrabold text-xl md:text-4xl tracking-tight">
-              ৳{product.price}
+              ৳{currentPrice}
             </p>
 
             {hasOldPrice && (
               <p className="text-gray-400 text-[12px] md:text-sm font-medium">
                 <span className="line-through decoration-gray-400 decoration-2">
-                  ৳{product.oldPrice}
+                  ৳{currentOldPrice}
                 </span>
               </p>
             )}
@@ -93,22 +96,27 @@ export default function ProductInfo({
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={() => toggleWishlist(product._id)}
-            className={`rounded-full transition-all shadow-sm md:shadow-md p-1 md:p-3 ${
-              isInWishlist
-                ? "bg-red-500 text-white"
-                : "bg-white text-gray-400 hover:text-red-500"
-            }`}
-          >
-            <FaHeart className="text-sm md:text-base" />
-          </button>
+          <div className="flex items-center gap-2">
+            <ShareProduct productName={product.name} />
+
+            <button
+              type="button"
+              onClick={() => toggleWishlist(product._id)}
+              aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
+              className={`rounded-full transition-all shadow-sm md:shadow-md p-1 md:p-3 ${
+                isInWishlist
+                  ? "bg-red-500 text-white"
+                  : "bg-white text-gray-400 hover:text-red-500"
+              }`}
+            >
+              <FaHeart className="text-sm md:text-base" />
+            </button>
+          </div>
         </div>
 
         {hasOldPrice && discountPct && (
           <p className="text-[10px] md:mt-1 md:text-sm text-emerald-600 font-semibold">
-            You save ৳{product.oldPrice - product.price}
+            You save ৳{currentOldPrice - currentPrice}
           </p>
         )}
       </div>

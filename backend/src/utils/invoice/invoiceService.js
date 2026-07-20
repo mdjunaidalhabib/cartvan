@@ -131,6 +131,28 @@ function escapeHtml(str = "") {
 // on orders with only 1-2 items. Orders with more items than this simply
 // grow past it — nothing gets cut off.
 const MIN_ITEM_ROWS = 8;
+const INVOICE_TEMPLATE_VERSION = 20260720;
+
+export function getInvoicePromoAmounts(order) {
+  const legacyDiscount = Math.max(0, Number(order?.discount || 0));
+  const snapshotDiscount = Math.max(
+    0,
+    Number(order?.promo?.discountAmount || 0),
+  );
+  const itemDiscount = Math.max(legacyDiscount, snapshotDiscount);
+  const shippingDiscount = Math.max(
+    0,
+    Number(order?.promo?.shippingDiscount || 0),
+  );
+
+  return {
+    itemDiscount,
+    shippingDiscount,
+    displayedDelivery:
+      Math.max(0, Number(order?.deliveryCharge || 0)) + shippingDiscount,
+    displayedDiscount: itemDiscount + shippingDiscount,
+  };
+}
 
 function buildEmptyRow() {
   return `
@@ -248,6 +270,8 @@ function buildInvoiceHtml(order) {
   // 🔥 all placeholder values collected up-front, then swapped in via a
   // single regex pass — one scan of the template instead of 13, and the
   // function-replacement form keeps "$" characters in user data literal.
+  const promoAmounts = getInvoicePromoAmounts(order);
+
   const values = {
     orderId: escapeHtml(shortOrderId(order)),
     date: escapeHtml(datePart),
@@ -259,8 +283,18 @@ function buildInvoiceHtml(order) {
     address: escapeHtml(order.billing?.address || ""),
     items: itemRows,
     subtotal: formatCurrency(order.subtotal),
-    delivery: formatCurrency(order.deliveryCharge),
-    discount: formatCurrency(order.discount || 0),
+    // deliveryCharge is stored after a free-shipping promo is applied. Add
+    // the shipping saving back here, then show the same amount in the promo
+    // discount row so Subtotal + Delivery - Discount still matches Total.
+    delivery: formatCurrency(promoAmounts.displayedDelivery),
+    discountLabel: escapeHtml(
+      order?.promo?.code
+        ? `Promo discount (${order.promo.code})`
+        : "Discount",
+    ),
+    // Prefer the immutable promo snapshot when older/legacy orders have a
+    // stale top-level discount value. Include free-shipping savings too.
+    discount: formatCurrency(promoAmounts.displayedDiscount),
     total: formatCurrency(order.total),
     extraSummaryRows: buildExtraSummaryRowsHtml(order),
     noteLine: buildNoteLineHtml(order),
@@ -349,7 +383,7 @@ export async function generateAndCacheInvoice(orderIdOrOrder) {
   await Order.findByIdAndUpdate(order._id, {
     invoice: {
       cachedAt: new Date(),
-      version: (order.invoice?.version || 0) + 1,
+      version: INVOICE_TEMPLATE_VERSION,
     },
   });
 
@@ -362,6 +396,9 @@ export async function generateAndCacheInvoice(orderIdOrOrder) {
  */
 export function getCachedInvoicePath(order) {
   if (!order?.invoice?.cachedAt) return null;
+  if (Number(order?.invoice?.version || 0) !== INVOICE_TEMPLATE_VERSION) {
+    return null;
+  }
   const filePath = getInvoiceFilePath(order._id.toString());
   return fs.existsSync(filePath) ? filePath : null;
 }
