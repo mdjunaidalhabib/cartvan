@@ -5,6 +5,7 @@ import {
   regenerateInvoiceInBackground,
   invalidateInvoiceCache,
 } from "../../utils/invoice/invoiceService.js";
+import { releasePromoUsage } from "../../services/promoService.js";
 
 const router = express.Router();
 
@@ -264,6 +265,20 @@ router.put("/bulk/status", async (req, res) => {
           new: true,
         });
 
+        if (status === "cancelled" && o.promo?.promoId) {
+          try {
+            await releasePromoUsage({
+              promoId: o.promo.promoId,
+              orderId: o._id,
+            });
+          } catch (promoReleaseErr) {
+            console.error(
+              "❌ Failed to release promo usage on bulk cancel:",
+              promoReleaseErr,
+            );
+          }
+        }
+
         result.updated.push(updated._id);
       } catch (e) {
         result.errors.push({ id: o._id, error: e.message });
@@ -303,6 +318,19 @@ router.post("/bulk/delete", async (req, res) => {
     // ✅ hard-delete এর বদলে Trash এ move — 3 দিন পর auto-purge হবে
     const orders = await Order.find({ _id: { $in: ids } });
     for (const o of orders) {
+      if (o.promo?.promoId) {
+        try {
+          await releasePromoUsage({
+            promoId: o.promo.promoId,
+            orderId: o._id,
+          });
+        } catch (promoReleaseErr) {
+          console.error(
+            "❌ Failed to release promo usage on delete:",
+            promoReleaseErr,
+          );
+        }
+      }
       await moveToTrash("Order", o);
     }
 
@@ -441,6 +469,26 @@ router.put("/:id", async (req, res) => {
       new: true,
       runValidators: true,
     });
+
+    // ✅ Order cancelled -> free up the promo code's usage slot so
+    // "Usage X/Y" on the Promo Codes page reflects only real, kept orders.
+    if (
+      updateData.status === "cancelled" &&
+      current.status !== "cancelled" &&
+      current.promo?.promoId
+    ) {
+      try {
+        await releasePromoUsage({
+          promoId: current.promo.promoId,
+          orderId: current._id,
+        });
+      } catch (promoReleaseErr) {
+        console.error(
+          "❌ Failed to release promo usage on cancel:",
+          promoReleaseErr,
+        );
+      }
+    }
 
     // ✅ Invoice-visible fields changed -> old cached PDF is stale.
     // Wipe it and rebuild in the background so downloads stay instant.

@@ -426,6 +426,25 @@ export default function PromoManagementPage() {
     }
   };
 
+  const permanentlyDeletePromo = async (promo) => {
+    if (
+      !window.confirm(
+        `${promo.code} promo code চিরতরে delete করবেন? এই action আর ফেরানো যাবে না।`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await apiFetch(`/admin/promos/${promo._id}/permanent`, {
+        method: "DELETE",
+      });
+      notify("Promo code permanently deleted");
+      loadPromos();
+    } catch (error) {
+      notify(error.message, "error");
+    }
+  };
+
   const restorePromo = async (promo) => {
     try {
       await apiFetch(`/admin/promos/${promo._id}/restore`, {
@@ -902,13 +921,22 @@ export default function PromoManagementPage() {
                             <Eye size={17} />
                           </button>
                           {promo.computedStatus === "archived" ? (
-                            <button
-                              title="Restore"
-                              onClick={() => restorePromo(promo)}
-                              className="rounded-lg px-2 py-1 text-xs font-bold text-emerald-600 hover:bg-emerald-50"
-                            >
-                              Restore
-                            </button>
+                            <>
+                              <button
+                                title="Restore"
+                                onClick={() => restorePromo(promo)}
+                                className="rounded-lg px-2 py-1 text-xs font-bold text-emerald-600 hover:bg-emerald-50"
+                              >
+                                Restore
+                              </button>
+                              <button
+                                title="Delete permanently"
+                                onClick={() => permanentlyDeletePromo(promo)}
+                                className="rounded-lg p-2 text-gray-500 hover:bg-red-50 hover:text-red-600"
+                              >
+                                <Trash2 size={17} />
+                              </button>
+                            </>
                           ) : (
                             <>
                               <button

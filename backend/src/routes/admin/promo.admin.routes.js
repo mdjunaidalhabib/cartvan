@@ -2,6 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import Promo from "../../models/Promo.js";
 import PromoRedemption from "../../models/PromoRedemption.js";
+import PromoCustomerUsage from "../../models/PromoCustomerUsage.js";
 import { protect } from "../../middlewares/adminAuthMiddleware.js";
 import { normalizePromoCode } from "../../services/promoService.js";
 import PromoSetting, {
@@ -397,6 +398,35 @@ router.delete("/:id", async (req, res) => {
     res
       .status(400)
       .json({ error: error.message || "Promo delete failed" });
+  }
+});
+
+// ✅ Permanent delete — only allowed once a promo is already archived.
+// Wipes the promo plus its redemption/customer-usage history so nothing
+// dangling is left behind.
+router.delete("/:id/permanent", async (req, res) => {
+  try {
+    const promo = await Promo.findById(req.params.id);
+    if (!promo) {
+      return res.status(404).json({ error: "Promo code not found" });
+    }
+    if (!promo.isArchived) {
+      return res.status(400).json({
+        error: "Permanently delete করার আগে promo code archive করুন।",
+      });
+    }
+
+    await Promise.all([
+      PromoRedemption.deleteMany({ promo: promo._id }),
+      PromoCustomerUsage.deleteMany({ promo: promo._id }),
+      Promo.findByIdAndDelete(promo._id),
+    ]);
+
+    res.json({ message: "Promo code permanently deleted" });
+  } catch (error) {
+    res
+      .status(400)
+      .json({ error: error.message || "Permanent delete failed" });
   }
 });
 
