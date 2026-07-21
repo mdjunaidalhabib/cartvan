@@ -1,121 +1,200 @@
-"use client";
+import ProductDetailsLoader from "./ProductDetailsLoader";
 
-import React, { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
-import { apiFetch } from "../../../../utils/api";
-import ProductDetailsClient from "../../../../components/product-details/ProductDetailsClient";
+const SITE_URL = "https://cartvan.com";
+const API_BASE = process.env.BACKEND_API_URL?.replace(/\/$/, "");
 
-import ProductDetailsSkeleton from "../../../../components/skeletons/ProductDetailsSkeleton";
+export const revalidate = 300;
 
-export default function ProductDetailsPage() {
-  const params = useParams();
-  const id = params?.id;
+async function fetchApi(path) {
+  if (!API_BASE) return null;
 
-  const [state, setState] = useState({
-    product: null,
-    category: null,
-    related: [],
-    loading: true,
-    error: null,
-  });
+  try {
+    const response = await fetch(`${API_BASE}${path}`, {
+      next: { revalidate },
+      headers: { Accept: "application/json" },
+    });
 
-  useEffect(() => {
-    if (!id) return;
+    if (!response.ok) return null;
+    return response.json();
+  } catch (error) {
+    console.error(`Product SEO fetch failed for ${path}:`, error);
+    return null;
+  }
+}
 
-    const fetchAllData = async () => {
-      try {
-        setState((prev) => ({ ...prev, loading: true, error: null }));
+async function getProductData(id) {
+  const product = await fetchApi(`/products/${encodeURIComponent(id)}`);
+  if (!product?._id) {
+    return { product: null, category: null, related: [] };
+  }
 
-        // ১. প্রোডাক্ট ডেটা লোড
-        const product = await apiFetch(`/products/${id}`);
+  const categoryId =
+    typeof product.category === "object"
+      ? product.category?._id
+      : product.category;
 
-        if (!product || !product._id) {
-          throw new Error("Product not found");
-        }
+  if (!categoryId) {
+    return { product, category: null, related: [] };
+  }
 
-        // ইমেজ ফলব্যাক লজিক
-        if (!product.image && product.images?.length > 0) {
-          product.image = product.images[0];
-        }
-        if (!product.image) {
-          product.image = "/no-image.png";
-        }
+  const [category, relatedResult] = await Promise.all([
+    fetchApi(`/categories/${encodeURIComponent(categoryId)}`),
+    fetchApi(`/products/category/${encodeURIComponent(categoryId)}`),
+  ]);
 
-        // ২. ক্যাটাগরি আইডি নির্ধারণ
-        const categoryId =
-          typeof product.category === "object"
-            ? product.category?._id
-            : product.category;
+  const related = Array.isArray(relatedResult)
+    ? relatedResult.filter((item) => item?._id !== id)
+    : [];
 
-        // ৩. ক্যাটাগরি এবং রিলেটেড প্রোডাক্ট একসাথে ফেচ করা (Parallel Fetch)
-        let categoryData = null;
-        let relatedData = [];
+  return { product, category, related };
+}
 
-        if (categoryId) {
-          const [cat, rel] = await Promise.all([
-            apiFetch(`/categories/${categoryId}`).catch(() => null),
-            apiFetch(`/products/category/${categoryId}`).catch(() => []),
-          ]);
-          categoryData = cat;
-          relatedData = Array.isArray(rel)
-            ? rel.filter((p) => p._id !== id)
-            : [];
-        }
+function plainText(value, fallback = "") {
+  const text = String(value || fallback)
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
-        setState({
-          product,
-          category: categoryData,
-          related: relatedData,
-          loading: false,
-          error: null,
-        });
-      } catch (err) {
-        console.error("❌ Data fetch error:", err);
-        setState((prev) => ({
-          ...prev,
-          loading: false,
-          error: err.message || "Something went wrong",
-        }));
-      }
+  return text;
+}
+
+function getProductImages(product) {
+  const variantImages = Array.isArray(product?.colors)
+    ? product.colors.flatMap((color) =>
+        Array.isArray(color?.images) ? color.images : [],
+      )
+    : [];
+
+  return [
+    product?.image,
+    ...(Array.isArray(product?.images) ? product.images : []),
+    ...variantImages,
+  ].filter((image, index, list) => image && list.indexOf(image) === index);
+}
+
+function getProductPrice(product) {
+  const variantPrices = Array.isArray(product?.colors)
+    ? product.colors
+        .map((color) => Number(color?.price))
+        .filter((price) => Number.isFinite(price) && price >= 0)
+    : [];
+
+  if (variantPrices.length > 0) return Math.min(...variantPrices);
+
+  const price = Number(product?.price);
+  return Number.isFinite(price) ? price : 0;
+}
+
+function isProductAvailable(product) {
+  if (product?.isSoldOut === true || product?.isSoldOut === "true") {
+    return false;
+  }
+
+  if (Array.isArray(product?.colors) && product.colors.length > 0) {
+    return product.colors.some((color) => Number(color?.stock || 0) > 0);
+  }
+
+  return Number(product?.stock || 0) > 0;
+}
+
+export async function generateMetadata({ params }) {
+  const { id } = await params;
+  const { product } = await getProductData(id);
+  const canonical = `/products/${id}`;
+
+  if (!product) {
+    return {
+      title: "Product Not Found",
+      description: "The requested Cartvan product could not be found.",
+      alternates: { canonical },
+      robots: { index: false, follow: false },
     };
-
-    fetchAllData();
-  }, [id]);
-
-  // যদি লোড হতে থাকে তবে স্কেলিটন দেখাবে
-  if (state.loading) {
-    return <ProductDetailsSkeleton />;
   }
 
-  // যদি এরর থাকে বা প্রোডাক্ট না পাওয়া যায়
-  if (state.error || !state.product) {
-    return (
-      <div className="container mx-auto px-4 py-20 text-center">
-        <div className="bg-white p-8 rounded-2xl shadow-sm inline-block">
-          <h2 className="text-2xl font-bold text-gray-800">
-            Oops! Product Not Found
-          </h2>
-          <p className="text-gray-500 mt-2">
-            The product might have been removed or the link is incorrect.
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 px-6 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const description = plainText(
+    product.description,
+    `Buy ${product.name} online from Cartvan with delivery across Bangladesh.`,
+  ).slice(0, 160);
+  const images = getProductImages(product);
 
-  // সফলভাবে ডাটা পেলে ক্লায়েন্ট কম্পোনেন্ট রেন্ডার
+  return {
+    title: product.name,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      type: "website",
+      url: canonical,
+      title: product.name,
+      description,
+      images: images.length > 0 ? images : ["/logo-512.png"],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: product.name,
+      description,
+      images: images.length > 0 ? images : ["/logo-512.png"],
+    },
+  };
+}
+
+export default async function ProductDetailsPage({ params }) {
+  const { id } = await params;
+  const data = await getProductData(id);
+  const product = data.product;
+
+  const structuredData = product
+    ? {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        name: product.name,
+        description: plainText(product.description, product.name),
+        image: getProductImages(product),
+        sku: String(product._id),
+        category:
+          typeof product.category === "object"
+            ? product.category?.name
+            : data.category?.name,
+        offers: {
+          "@type": "Offer",
+          url: `${SITE_URL}/products/${product._id}`,
+          priceCurrency: "BDT",
+          price: getProductPrice(product),
+          availability: isProductAvailable(product)
+            ? "https://schema.org/InStock"
+            : "https://schema.org/OutOfStock",
+          itemCondition: "https://schema.org/NewCondition",
+        },
+        ...(Number(product.rating) > 0 &&
+        Array.isArray(product.reviews) &&
+        product.reviews.length > 0
+          ? {
+              aggregateRating: {
+                "@type": "AggregateRating",
+                ratingValue: Number(product.rating),
+                reviewCount: product.reviews.length,
+              },
+            }
+          : {}),
+      }
+    : null;
+
   return (
-    <ProductDetailsClient
-      product={state.product}
-      category={state.category}
-      related={state.related}
-      loading={false}
-    />
+    <>
+      {structuredData ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
+          }}
+        />
+      ) : null}
+
+      <ProductDetailsLoader
+        id={id}
+        initialProduct={data.product}
+        initialCategory={data.category}
+        initialRelated={data.related}
+      />
+    </>
   );
 }
