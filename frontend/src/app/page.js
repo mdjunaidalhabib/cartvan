@@ -1,7 +1,3 @@
-export const metadata = {
-  alternates: { canonical: "/" },
-};
-
 import ImageSlider from "../../components/home/ImageSlider";
 import HomeAllProduct from "../../components/home/HomeAllProduct";
 import HomeSEO from "../../components/seo/HomeSEO";
