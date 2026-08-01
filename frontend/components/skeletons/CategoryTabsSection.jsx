@@ -241,7 +241,9 @@ export default function CategoryTabsSection() {
       <div className="space-y-10">
         {categories.map((cat) => {
           const catProducts = products.filter(
-            (p) => String(p.category?._id) === String(cat._id)
+            (p) =>
+              Array.isArray(p.categories) &&
+              p.categories.some((c) => String(c?._id ?? c) === String(cat._id)),
           );
           if (catProducts.length === 0) return null;
 

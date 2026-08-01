@@ -15,41 +15,61 @@ export async function sendAdminOrderEmail({
   paymentMethod,
 }) {
   const transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.resend.com",
+    port: 465,
+    secure: true,
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
+      user: "resend",
+      pass: process.env.RESEND_API_KEY,
     },
   });
 
   const safe = (v) => (v == null ? "" : String(v));
 
-  const itemsHtml = (Array.isArray(items) ? items : [])
-    .map((it, idx) => {
-      const name = safe(it?.name || it?.title || it?.productName || "Item");
-      const qty = Number(it?.qty || 0);
-      const price = Number(it?.price || 0);
-      const color = it?.color ? ` (${safe(it.color)})` : "";
-      return `<tr>
+  const normalizedItems = (Array.isArray(items) ? items : []).map((it) => ({
+    name: safe(it?.name || it?.title || it?.productName || "Item"),
+    color: it?.color ? safe(it.color) : "",
+    qty: Number(it?.qty || 0),
+    price: Number(it?.price || 0),
+  }));
+
+  const itemsHtml = normalizedItems
+    .map(
+      (it, idx) => `<tr>
         <td style="padding:8px;border:1px solid #eee;">${idx + 1}</td>
-        <td style="padding:8px;border:1px solid #eee;">${name}${color}</td>
-        <td style="padding:8px;border:1px solid #eee;text-align:center;">${qty}</td>
-        <td style="padding:8px;border:1px solid #eee;text-align:right;">৳${price}</td>
-        <td style="padding:8px;border:1px solid #eee;text-align:right;">৳${
-          price * qty
+        <td style="padding:8px;border:1px solid #eee;">${it.name}${
+        it.color ? ` (${it.color})` : ""
+      }</td>
+        <td style="padding:8px;border:1px solid #eee;text-align:center;">${
+          it.qty
         }</td>
-      </tr>`;
-    })
+        <td style="padding:8px;border:1px solid #eee;text-align:right;">৳${
+          it.price
+        }</td>
+        <td style="padding:8px;border:1px solid #eee;text-align:right;">৳${
+          it.price * it.qty
+        }</td>
+      </tr>`
+    )
     .join("");
+
+  const itemsText = normalizedItems
+    .map(
+      (it, idx) =>
+        `${idx + 1}. ${it.name}${it.color ? ` (${it.color})` : ""} x${
+          it.qty
+        } - ৳${it.price * it.qty}`
+    )
+    .join("\n");
 
   const html = `
   <div style="font-family:Arial,sans-serif;max-width:700px;margin:auto;border:1px solid #eee;border-radius:10px;padding:16px;">
-    <h2 style="margin:0;color:#db2777;">🛒 New Order Received</h2>
+    <h2 style="margin:0;color:#db2777;">New Order Received</h2>
     <p style="margin:8px 0 0;color:#444;">Order ID: <b>${safe(orderId)}</b></p>
 
     <hr style="border:none;border-top:1px solid #eee;margin:14px 0;" />
 
-    <h3 style="margin:0 0 8px;color:#111;">📌 Customer Info</h3>
+    <h3 style="margin:0 0 8px;color:#111;">Customer Info</h3>
     <p style="margin:4px 0;">Name: <b>${safe(customerName)}</b></p>
     <p style="margin:4px 0;">Phone: <b>${safe(customerPhone)}</b></p>
     <p style="margin:4px 0;">Address: <b>${safe(address)}</b></p>
@@ -57,7 +77,7 @@ export async function sendAdminOrderEmail({
 
     <hr style="border:none;border-top:1px solid #eee;margin:14px 0;" />
 
-    <h3 style="margin:0 0 8px;color:#111;">🧾 Items</h3>
+    <h3 style="margin:0 0 8px;color:#111;">Items</h3>
     <table style="width:100%;border-collapse:collapse;font-size:14px;">
       <thead>
         <tr>
@@ -78,7 +98,7 @@ export async function sendAdminOrderEmail({
 
     <hr style="border:none;border-top:1px solid #eee;margin:14px 0;" />
 
-    <h3 style="margin:0 0 8px;color:#111;">💰 Summary</h3>
+    <h3 style="margin:0 0 8px;color:#111;">Summary</h3>
     <p style="margin:4px 0;">Subtotal: <b>৳${Number(subtotal || 0)}</b></p>
     <p style="margin:4px 0;">Delivery: <b>৳${Number(
       deliveryCharge || 0
@@ -94,10 +114,35 @@ export async function sendAdminOrderEmail({
   </div>
   `;
 
+  const text = `New Order Received
+Order ID: ${safe(orderId)}
+
+Customer Info
+Name: ${safe(customerName)}
+Phone: ${safe(customerPhone)}
+Address: ${safe(address)}
+${note ? `Note: ${safe(note)}\n` : ""}
+Items
+${itemsText || "No items"}
+
+Summary
+Subtotal: ৳${Number(subtotal || 0)}
+Delivery: ৳${Number(deliveryCharge || 0)}
+Discount: ৳${Number(discount || 0)}
+Grand Total: ৳${Number(total || 0)}
+Payment Method: ${safe(paymentMethod)}
+
+This is an automated notification.`;
+
   await transporter.sendMail({
-    from: `"Order Notification" <${process.env.EMAIL_USER}>`,
+    from: `"Order Notification" <${process.env.EMAIL_FROM}>`,
     to,
-    subject: `🛒 New Order: ${orderId}`,
+    replyTo: process.env.EMAIL_FROM,
+    subject: `New Order Received - ${orderId}`,
+    text,
     html,
+    messageId: `<order-${orderId}-${Date.now()}@${process.env.EMAIL_FROM.split(
+      "@"
+    )[1]}>`,
   });
 }

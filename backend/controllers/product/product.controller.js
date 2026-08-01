@@ -172,7 +172,7 @@ const convertAllReqFiles = async (req) => {
 export const getProductsAdmin = async (req, res) => {
   try {
     const products = await Product.find()
-      .populate("category")
+      .populate("categories")
       .sort({ createdAt: -1 });
 
     res.json(products);
@@ -183,7 +183,9 @@ export const getProductsAdmin = async (req, res) => {
 
 export const getProductByIdAdmin = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate("category");
+    const product = await Product.findById(req.params.id).populate(
+      "categories",
+    );
     if (!product) return res.status(404).json({ error: "Product not found" });
     res.json(product);
   } catch (err) {
@@ -207,7 +209,7 @@ export const createProduct = async (req, res) => {
       rating,
       description,
       additionalInfo,
-      category,
+      categories,
       order,
       isActive,
       colors,
@@ -216,9 +218,18 @@ export const createProduct = async (req, res) => {
       cartvanBox,
     } = req.body;
 
-    if (!name || price === undefined || !category) {
+    const categoryIds = categories ? safeJSON(categories, []) : [];
+
+    if (
+      !name ||
+      price === undefined ||
+      !Array.isArray(categoryIds) ||
+      categoryIds.length === 0
+    ) {
       cleanupReqFiles(req);
-      return res.status(400).json({ error: "Name, Price & Category required" });
+      return res
+        .status(400)
+        .json({ error: "Name, Price & at least one Category required" });
     }
 
     const total = await Product.countDocuments();
@@ -332,7 +343,7 @@ export const createProduct = async (req, res) => {
       rating: toNumber(rating, 0),
       description,
       additionalInfo,
-      category,
+      categories: categoryIds,
       image: primaryImage,
       images: galleryImages,
       colors: parsedColors,
@@ -377,7 +388,7 @@ export const updateProduct = async (req, res) => {
       rating,
       description,
       additionalInfo,
-      category,
+      categories,
       order,
       isActive,
       existingImages,
@@ -532,7 +543,17 @@ export const updateProduct = async (req, res) => {
 
     product.description = description ?? product.description;
     product.additionalInfo = additionalInfo ?? product.additionalInfo;
-    product.category = category || product.category;
+
+    if (categories !== undefined) {
+      const categoryIds = safeJSON(categories, []);
+      if (!Array.isArray(categoryIds) || categoryIds.length === 0) {
+        cleanupReqFiles(req);
+        return res
+          .status(400)
+          .json({ error: "At least one category is required" });
+      }
+      product.categories = categoryIds;
+    }
 
     product.isActive =
       isActive !== undefined ? isActive === "true" : product.isActive;

@@ -1,34 +1,19 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import ProductCard from "../../../components/home/ProductCard";
-import ProductGridSkeleton from "../../../components/skeletons/ProductGridSkeleton";
-import { apiFetch } from "../../../utils/api";
+import { serverFetch } from "../../../lib/serverApi";
 
-export default function AllProductsPage() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+async function getAllProducts() {
+  try {
+    const data = await serverFetch("/products");
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    console.error("❌ Product fetch error:", err);
+    return [];
+  }
+}
 
-  useEffect(() => {
-    let mounted = true;
-
-    apiFetch("/products")
-      .then((data) => {
-        if (mounted) setProducts(data || []);
-      })
-      .catch((err) => {
-        console.error("❌ Product fetch error:", err);
-        if (mounted) setProducts([]);
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+export default async function AllProductsPage() {
+  const products = await getAllProducts();
 
   return (
     <main className="bg-pink-50 min-h-screen">
@@ -48,9 +33,7 @@ export default function AllProductsPage() {
         </h1>
 
         {/* Products Section */}
-        {loading ? (
-          <ProductGridSkeleton count={10} />
-        ) : products.length > 0 ? (
+        {products.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             {products.map((p) => (
               <ProductCard key={p._id} product={p} />

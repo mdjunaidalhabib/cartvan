@@ -15,7 +15,7 @@ import FacebookGroupLink from "./FacebookGroupLink";
 
 export default function ProductDetailsClient({
   product,
-  category,
+  categories = [],
   related = [],
   loading = false,
 }) {
@@ -130,7 +130,7 @@ export default function ProductDetailsClient({
 
 return (
   <main className="container mx-auto px-4 sm:px-6 lg:px-8 mt-4 md:py-8">
-    <ProductBreadcrumb product={product} category={category} />
+    <ProductBreadcrumb product={product} categories={categories} />
 
     <section className="bg-pink-50 rounded-2xl grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 overflow-visible">
       {/* Product Gallery */}
@@ -148,7 +148,7 @@ return (
       <div className="lg:col-span-5 flex flex-col md:px-6 md:py-6 bg-pink-50 gap-4">
         <ProductInfo
           product={product}
-          category={category}
+          categories={categories}
           isOutOfStock={isOutOfStock}
           currentStock={currentStock}
           soldCount={soldCount}

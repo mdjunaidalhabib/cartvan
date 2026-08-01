@@ -59,10 +59,13 @@ const productSchema = new mongoose.Schema(
 
     isSoldOut: { type: Boolean, default: false },
 
-    category: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Category",
+    categories: {
+      type: [{ type: mongoose.Schema.Types.ObjectId, ref: "Category" }],
       required: true,
+      validate: {
+        validator: (arr) => Array.isArray(arr) && arr.length > 0,
+        message: "Product must belong to at least one category",
+      },
     },
 
     order: { type: Number, default: 1 },
@@ -76,7 +79,9 @@ const productSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-productSchema.index({ name: "text", category: 1 });
+productSchema.index({ name: "text", categories: 1 });
+productSchema.index({ categories: 1, isActive: 1, createdAt: -1 });
+productSchema.index({ isActive: 1 });
 
 export default mongoose.models.Product ||
   mongoose.model("Product", productSchema);

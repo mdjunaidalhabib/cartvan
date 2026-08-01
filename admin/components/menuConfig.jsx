@@ -69,10 +69,25 @@ export const settingsChildren = [
     label: "About Page",
     href: "/admin/about",
   },
+  {
+    icon: <LayoutDashboard size={16} />,
+    label: "Privacy Policy",
+    href: "/admin/privacy-policy",
+  },
+  {
+    icon: <LayoutDashboard size={16} />,
+    label: "Support Page",
+    href: "/admin/support",
+  },
     {
     icon: <LayoutDashboard size={16} />,
     label: "Action Button",
     href: "/admin/floatingActionButton",
+  },
+  {
+    icon: <LayoutDashboard size={16} />,
+    label: "Homepage Popup",
+    href: "/admin/homepagePopup",
   },
   {
     icon: <LayoutDashboard size={16} />,

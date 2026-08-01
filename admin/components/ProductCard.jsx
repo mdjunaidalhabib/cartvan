@@ -1,7 +1,7 @@
 "use client";
 
 export default function ProductCard({ product, onEdit, onDelete }) {
-  const cat = product?.category;
+  const cats = Array.isArray(product?.categories) ? product.categories : [];
   const isHidden = product?.isActive === false;
 
   // ✅ Total Variants Count (colors)
@@ -141,10 +141,24 @@ export default function ProductCard({ product, onEdit, onDelete }) {
         )}
 
         {/* Category + Rating */}
-        <div className="flex items-center justify-between text-[10px] text-gray-500">
-          <span className="truncate">
-            {cat ? (
-              <span className="font-medium text-gray-700">{cat.name}</span>
+        <div className="flex items-center justify-between gap-1 text-[10px] text-gray-500">
+          <span className="flex flex-wrap items-center gap-1 min-w-0">
+            {cats.length > 0 ? (
+              <>
+                {cats.slice(0, 2).map((c) => (
+                  <span
+                    key={c._id}
+                    className="font-medium text-gray-700 truncate max-w-[5.5rem]"
+                  >
+                    {c.name}
+                  </span>
+                ))}
+                {cats.length > 2 && (
+                  <span className="font-semibold text-gray-500">
+                    +{cats.length - 2}
+                  </span>
+                )}
+              </>
             ) : (
               <span className="text-gray-400">ক্যাটাগরি নেই</span>
             )}

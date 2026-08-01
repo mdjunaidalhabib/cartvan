@@ -93,7 +93,9 @@ export const buildPricedOrderItemsFromDB = async (rawItems) => {
 
     trustedItems.push({
       productId: String(product._id),
-      categoryId: product.category ? String(product.category) : null,
+      categoryIds: Array.isArray(product.categories)
+        ? product.categories.map((c) => String(c))
+        : [],
       name: product.name,
       price,
       qty: item.qty,

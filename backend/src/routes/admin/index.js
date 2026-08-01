@@ -21,6 +21,9 @@ import trashAdminRoutes from "./trash.admin.routes.js";
 import aboutAdminRoutes from "./about.admin.routes.js";
 import paymentsAdminRoutes from "./payments.admin.routes.js";
 import promoAdminRoutes from "./promo.admin.routes.js";
+import homepagePopupAdminRoutes from "./homepagePopup.admin.routes.js";
+import privacyPolicyAdminRoutes from "./privacyPolicy.admin.routes.js";
+import supportAdminRoutes from "./support.admin.routes.js";
 
 
 
@@ -48,6 +51,9 @@ router.use("/trash", trashAdminRoutes);
 router.use("/about", aboutAdminRoutes);
 router.use("/payments", paymentsAdminRoutes);
 router.use("/promos", promoAdminRoutes);
+router.use("/homepage-popup", homepagePopupAdminRoutes);
+router.use("/privacy-policy", privacyPolicyAdminRoutes);
+router.use("/support", supportAdminRoutes);
 
 
 export default router;

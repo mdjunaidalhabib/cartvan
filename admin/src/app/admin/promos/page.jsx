@@ -1126,7 +1126,7 @@ export default function PromoManagementPage() {
                 )}
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="text-xs font-bold text-gray-600">
-                    Minimum order
+                    Minimum order (৳)
                     <input
                       type="number"
                       min="0"
@@ -1139,6 +1139,11 @@ export default function PromoManagementPage() {
                       }
                       className="mt-1 w-full rounded-xl border border-gray-200 p-2.5 outline-none"
                     />
+                    <span className="mt-1 block text-[11px] font-normal text-gray-400">
+                      কার্টের প্রোডাক্ট সাবটোটাল (ডেলিভারি চার্জ বাদে) এই
+                      টাকার কম হলে promo apply হবে না। ০ দিলে কোনো সীমা
+                      থাকবে না।
+                    </span>
                   </label>
                   <label className="text-xs font-bold text-gray-600">
                     Minimum quantity
@@ -1154,6 +1159,10 @@ export default function PromoManagementPage() {
                       }
                       className="mt-1 w-full rounded-xl border border-gray-200 p-2.5 outline-none"
                     />
+                    <span className="mt-1 block text-[11px] font-normal text-gray-400">
+                      কার্টে মোট আইটেমের quantity এর চেয়ে কম হলে promo apply
+                      হবে না।
+                    </span>
                   </label>
                 </div>
               </section>

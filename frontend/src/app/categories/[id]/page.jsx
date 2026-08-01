@@ -1,70 +1,25 @@
-"use client";
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 import Link from "next/link";
 import ProductCard from "../../../../components/home/ProductCard";
-import ProductCardSkeleton from "../../../../components/skeletons/ProductCardSkeleton";
-import { apiFetch } from "../../../../utils/api";
+import { serverFetch } from "../../../../lib/serverApi";
 
-export default function CategoryPage() {
-  const { id } = useParams(); // 🔥 URL থেকে categoryId আসবে
-  const [category, setCategory] = useState(null);
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+async function getCategoryData(id) {
+  const [catRes, prodRes] = await Promise.allSettled([
+    serverFetch(`/categories/${id}`),
+    serverFetch(`/products/category/${id}`),
+  ]);
 
-  // ✅ Fetch category info + products
-  // ⚠️ ফিক্স: apiFetch() নিজে থেকেই "/api" prefix জুড়ে দেয় (দেখুন utils/api.js
-  // -এর baseUrl = "/api")। আগে এখানে apiFetch("/api/categories") এবং
-  // apiFetch("/api/products/category/...") কল করা হচ্ছিল, যেটা আসলে
-  // "/api/api/categories" ও "/api/api/products/category/..." তে গিয়ে হিট
-  // করছিল — ব্যাকএন্ডে এই রুট নেই বলে request fail হয়ে "Category not found ❌"
-  // দেখাচ্ছিল। এখন সঠিক path ব্যবহার করা হয়েছে (অন্য সব জায়গায় যেমন
-  // HomeAllProduct.jsx-এ apiFetch("/categories") ব্যবহার হয়, একই কনভেনশন)।
-  // ব্যাকএন্ডে /categories/:id এবং /products/category/:categoryId রুট
-  // আগে থেকেই আছে, তাই সরাসরি id দিয়ে single category fetch করা যাচ্ছে।
-  useEffect(() => {
-    if (!id) return;
+  return {
+    category: catRes.status === "fulfilled" ? catRes.value : null,
+    products:
+      prodRes.status === "fulfilled" && Array.isArray(prodRes.value)
+        ? prodRes.value
+        : [],
+  };
+}
 
-    const fetchData = async () => {
-      try {
-        const [catRes, prodRes] = await Promise.all([
-          apiFetch(`/categories/${id}`).catch(() => null),
-          apiFetch(`/products/category/${id}`).catch(() => []),
-        ]);
-
-        setCategory(catRes || null);
-        setProducts(Array.isArray(prodRes) ? prodRes : []);
-      } catch (err) {
-        console.error("❌ Failed to fetch category page data:", err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [id]);
-
-  if (loading) {
-    return (
-      <div className="container mx-auto px-6 py-10">
-        {/* ✅ Breadcrumb skeleton */}
-        <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mb-3" />
-
-        {/* ✅ Heading skeleton: ছোট ইমেজ + নাম */}
-        <div className="flex items-center gap-2 mb-6">
-          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg bg-gray-200 animate-pulse" />
-          <div className="h-6 w-56 bg-gray-200 rounded animate-pulse" />
-        </div>
-
-        {/* ✅ Product cards skeleton (একই grid, mobile ২ / desktop ৫) */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 sm:gap-6">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <ProductCardSkeleton key={i} />
-          ))}
-        </div>
-      </div>
-    );
-  }
+export default async function CategoryPage({ params }) {
+  const { id } = await params;
+  const { category, products } = await getCategoryData(id);
 
   if (!category) {
     return (

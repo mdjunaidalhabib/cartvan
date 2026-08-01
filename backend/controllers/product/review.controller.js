@@ -4,13 +4,12 @@ import { normalizeReviews } from "../../utils/product/index.js";
 
 export const addReviewToProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate("category");
+    const product = await Product.findById(req.params.id).populate("categories");
 
-    if (
-      !product ||
-      !product.isActive ||
-      (product.category && !product.category.isActive)
-    ) {
+    const hasActiveCategory =
+      Array.isArray(product?.categories) &&
+      product.categories.some((c) => c && c.isActive);
+    if (!product || !product.isActive || !hasActiveCategory) {
       return res.status(403).json({ error: "Product is hidden or inactive" });
     }
 
@@ -62,13 +61,12 @@ export const updateProductReview = async (req, res) => {
     const { id, reviewId } = req.params;
     const { rating, comment } = req.body;
 
-    const product = await Product.findById(id).populate("category");
+    const product = await Product.findById(id).populate("categories");
 
-    if (
-      !product ||
-      !product.isActive ||
-      (product.category && !product.category.isActive)
-    ) {
+    const hasActiveCategory =
+      Array.isArray(product?.categories) &&
+      product.categories.some((c) => c && c.isActive);
+    if (!product || !product.isActive || !hasActiveCategory) {
       return res.status(403).json({ error: "Product is hidden or inactive" });
     }
 
@@ -121,13 +119,12 @@ export const deleteProductReview = async (req, res) => {
   try {
     const { id, reviewId } = req.params;
 
-    const product = await Product.findById(id).populate("category");
+    const product = await Product.findById(id).populate("categories");
 
-    if (
-      !product ||
-      !product.isActive ||
-      (product.category && !product.category.isActive)
-    ) {
+    const hasActiveCategory =
+      Array.isArray(product?.categories) &&
+      product.categories.some((c) => c && c.isActive);
+    if (!product || !product.isActive || !hasActiveCategory) {
       return res.status(403).json({ error: "Product is hidden or inactive" });
     }
 

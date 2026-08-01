@@ -3,7 +3,7 @@ import Product from "../../src/models/Product.js";
 export const getProductsAdmin = async (req, res) => {
   try {
     const products = await Product.find()
-      .populate("category")
+      .populate("categories")
       .sort({ createdAt: -1 });
     res.json(products);
   } catch (err) {
@@ -13,7 +13,9 @@ export const getProductsAdmin = async (req, res) => {
 
 export const getProductByIdAdmin = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate("category");
+    const product = await Product.findById(req.params.id).populate(
+      "categories"
+    );
     if (!product) return res.status(404).json({ error: "Product not found" });
     res.json(product);
   } catch (err) {

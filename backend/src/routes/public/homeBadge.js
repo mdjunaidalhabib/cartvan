@@ -1,5 +1,6 @@
 import express from "express";
 import HomeBadge from "../../models/HomeBadge.js";
+import { cacheResponse } from "../../middlewares/cacheResponse.js";
 
 const router = express.Router();
 
@@ -7,12 +8,14 @@ const router = express.Router();
  * ✅ Public — শুধুমাত্র active badge গুলো, order অনুযায়ী sorted
  * (হোমপেজে স্লাইডারের নিচে দেখানোর জন্য)
  */
-router.get("/", async (req, res) => {
+router.get("/", cacheResponse(), async (req, res) => {
   try {
-    const badges = await HomeBadge.find({ isActive: true }).sort({
-      order: 1,
-      createdAt: 1,
-    });
+    const badges = await HomeBadge.find({ isActive: true })
+      .sort({
+        order: 1,
+        createdAt: 1,
+      })
+      .lean();
     res.json({ badges });
   } catch (err) {
     console.error("❌ Public HomeBadge fetch error:", err);

@@ -181,14 +181,24 @@ function ProductGrid({ products }) {
 }
 
 // ── MAIN ──────────────────────────────────────────────────
-export default function CategoryTabsSection() {
+export default function CategoryTabsSection({
+  initialProducts,
+  initialCategories,
+  initialBadges,
+}) {
+  // ✅ Home page (Server Component) already fetches this data and passes it
+  // down — skips the client-side fetch + loading skeleton entirely. Falls
+  // back to client-side fetching only if the component is used without
+  // initial data (props undefined).
+  const hasInitialData = initialProducts !== undefined;
+
   const router = useRouter();
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState(initialProducts || []);
+  const [categories, setCategories] = useState(initialCategories || []);
+  const [loading, setLoading] = useState(!hasInitialData);
   const [error, setError] = useState(false);
   const [activeFilter, setActiveFilter] = useState(null);
-  const [badges, setBadges] = useState([]);
+  const [badges, setBadges] = useState(initialBadges || []);
 
   const categoryNavRef = useRef(null);
   const categoryNavDrag = useDragScroll(categoryNavRef);
@@ -488,7 +498,11 @@ export default function CategoryTabsSection() {
             >
               {categories.map((cat) => {
                 const catProducts = products.filter(
-                  (p) => String(p.category?._id) === String(cat._id),
+                  (p) =>
+                    Array.isArray(p.categories) &&
+                    p.categories.some(
+                      (c) => String(c?._id ?? c) === String(cat._id),
+                    ),
                 );
                 if (!catProducts.length) return null;
 

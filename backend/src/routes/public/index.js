@@ -19,6 +19,9 @@ import facebookGroupRoutes from "./facebookGroup.routes.js";
 import aboutRoutes from "./about.routes.js";
 import paymentMethodRoutes from "./paymentMethod.routes.js";
 import promoRoutes from "./promo.routes.js";
+import homepagePopupRoutes from "./homepagePopup.route.js";
+import privacyPolicyRoutes from "./privacyPolicy.routes.js";
+import supportRoutes from "./support.routes.js";
 
 
 
@@ -43,5 +46,8 @@ router.use("/facebook-group", facebookGroupRoutes);
 router.use("/about", aboutRoutes);
 router.use("/payment-methods", paymentMethodRoutes);
 router.use("/promos", promoRoutes);
+router.use("/homepage-popup", homepagePopupRoutes);
+router.use("/privacy-policy", privacyPolicyRoutes);
+router.use("/support", supportRoutes);
 
 export default router;

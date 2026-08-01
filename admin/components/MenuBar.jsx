@@ -89,14 +89,15 @@ export default function MenuBar({
                                 key={cLabel}
                                 href={cHref}
                                 onClick={onItemClick}
-                                className={`flex items-center gap-2 ml-6 px-4 py-2 rounded transition text-sm ${
+                                title={cLabel}
+                                className={`flex items-center gap-2 min-w-0 ml-6 px-4 py-2 rounded transition text-sm ${
                                   active
                                     ? "bg-rose-50 font-semibold text-rose-600"
                                     : "hover:bg-rose-50"
                                 }`}
                               >
                                 {cIcon}
-                                <span>{cLabel}</span>
+                                <span className="truncate">{cLabel}</span>
                               </Link>
                             );
                           }

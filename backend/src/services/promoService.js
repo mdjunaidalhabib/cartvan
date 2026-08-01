@@ -39,10 +39,13 @@ const getEligibleItems = (promo, items) => {
 
   return (Array.isArray(items) ? items : []).filter((item) => {
     const productId = String(item?.productId || "");
-    const categoryId = String(item?.categoryId || "");
+    const itemCategoryIds = Array.isArray(item?.categoryIds)
+      ? item.categoryIds.map((id) => String(id))
+      : [];
     if (excluded.has(productId)) return false;
     if (promo.appliesTo === "products") return products.has(productId);
-    if (promo.appliesTo === "categories") return categories.has(categoryId);
+    if (promo.appliesTo === "categories")
+      return itemCategoryIds.some((id) => categories.has(id));
     return true;
   });
 };

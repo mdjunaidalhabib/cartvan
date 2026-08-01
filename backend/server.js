@@ -4,6 +4,7 @@ import cors from "cors";
 import passport from "passport";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
+import compression from "compression";
 
 import dbConnect from "./src/lib/db.js";
 import { configurePassport } from "./src/auth/passport.js";
@@ -57,6 +58,7 @@ const rateLimit = ({ windowMs = 15 * 60 * 1000, limit = 300 } = {}) => {
 // ✅ trust nginx / proxy for secure cookies
 app.set("trust proxy", 1);
 
+app.use(compression());
 app.use(cookieParser());
 app.use(rateLimit());
 

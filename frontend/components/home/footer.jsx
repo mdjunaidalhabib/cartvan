@@ -37,7 +37,7 @@ const quickLinksData = [
 
 const customerServiceLinks = [
   { label: "Privacy Policy", href: "/privacy-policy" },
-  { label: "Terms & Conditions", href: "/terms" },
+  { label: "Support", href: "/support" },
 ];
 
 const SOCIAL_ICON_MAP = {

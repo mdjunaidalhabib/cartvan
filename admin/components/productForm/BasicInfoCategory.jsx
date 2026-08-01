@@ -10,7 +10,6 @@ export default function BasicInfoCategory({
   setErrors,
 }) {
   const [open, setOpen] = useState(false);
-  const [imgLoaded, setImgLoaded] = useState(false);
   const boxRef = useRef(null);
 
   const handleChange = (field, value) => {
@@ -18,12 +17,17 @@ export default function BasicInfoCategory({
     if (errors[field]) setErrors((p) => ({ ...p, [field]: null }));
   };
 
-  const selectedCategory = categories.find((c) => c._id === form.category);
+  const selectedIds = Array.isArray(form.categories) ? form.categories : [];
+  const selectedCategories = categories.filter((c) =>
+    selectedIds.includes(c._id),
+  );
 
-  // ✅ ক্যাটাগরি বদলালে fade আবার শুরু থেকে হবে
-  useEffect(() => {
-    setImgLoaded(false);
-  }, [form.category]);
+  const toggleCategory = (id) => {
+    const next = selectedIds.includes(id)
+      ? selectedIds.filter((v) => v !== id)
+      : [...selectedIds, id];
+    handleChange("categories", next);
+  };
 
   // ✅ বাইরে ক্লিক করলে dropdown বন্ধ হবে
   useEffect(() => {
@@ -63,7 +67,7 @@ export default function BasicInfoCategory({
           )}
         </div>
 
-        {/* ✅ ক্যাটাগরি সিলেক্ট — কাস্টম ড্রপডাউন, ছবি সহ */}
+        {/* ✅ ক্যাটাগরি মাল্টি-সিলেক্ট — কাস্টম ড্রপডাউন, checkbox + ছবি সহ */}
         <div ref={boxRef} className="relative">
           <label className="font-semibold text-gray-700 text-sm">
             ক্যাটাগরি <span className="text-red-500">*</span>
@@ -73,35 +77,34 @@ export default function BasicInfoCategory({
             type="button"
             onClick={() => setOpen((o) => !o)}
             className={`${inputBase} ${
-              errors.category ? errClass : ok
+              errors.categories ? errClass : ok
             } flex items-center justify-between gap-2 cursor-pointer bg-white text-left`}
           >
-            <span className="flex items-center gap-2.5 min-w-0">
-              {selectedCategory ? (
-                <>
-                  <span className="relative h-7 w-7 rounded-lg overflow-hidden border bg-gray-50 shrink-0">
-                    {selectedCategory.image ? (
-                      <img
-                        key={selectedCategory._id}
-                        src={selectedCategory.image}
-                        alt={selectedCategory.name}
-                        onLoad={() => setImgLoaded(true)}
-                        className={`h-full w-full object-cover transition-opacity duration-500 ease-out ${
-                          imgLoaded ? "opacity-100" : "opacity-0"
-                        }`}
-                      />
-                    ) : (
-                      <span className="flex h-full w-full items-center justify-center text-gray-300">
-                        <ImageOff size={14} />
-                      </span>
-                    )}
+            <span className="flex flex-wrap items-center gap-1.5 min-w-0 py-0.5">
+              {selectedCategories.length > 0 ? (
+                selectedCategories.map((c) => (
+                  <span
+                    key={c._id}
+                    className="flex items-center gap-1.5 rounded-lg bg-indigo-50 pl-1 pr-2 py-0.5 text-xs font-medium text-indigo-700"
+                  >
+                    <span className="relative h-5 w-5 rounded overflow-hidden border bg-gray-50 shrink-0">
+                      {c.image ? (
+                        <img
+                          src={c.image}
+                          alt={c.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="flex h-full w-full items-center justify-center text-gray-300">
+                          <ImageOff size={10} />
+                        </span>
+                      )}
+                    </span>
+                    <span className="truncate max-w-[8rem]">{c.name}</span>
                   </span>
-                  <span className="truncate text-gray-800">
-                    {selectedCategory.name}
-                  </span>
-                </>
+                ))
               ) : (
-                <span className="text-gray-400">Select Category</span>
+                <span className="text-gray-400">Select Categories</span>
               )}
             </span>
             <ChevronDown
@@ -112,13 +115,13 @@ export default function BasicInfoCategory({
             />
           </button>
 
-          {errors.category && (
+          {errors.categories && (
             <p className="text-xs text-red-600 mt-1 font-medium">
-              {errors.category}
+              {errors.categories}
             </p>
           )}
 
-          {/* ✅ Dropdown list — প্রতিটা ক্যাটাগরির থাম্বনেইল সহ */}
+          {/* ✅ Dropdown list — checkbox + প্রতিটা ক্যাটাগরির থাম্বনেইল সহ */}
           {open && (
             <div className="absolute z-30 mt-1 w-full max-h-64 overflow-y-auto rounded-xl border bg-white shadow-lg py-1">
               {categories.length === 0 && (
@@ -128,21 +131,24 @@ export default function BasicInfoCategory({
               )}
 
               {categories.map((c) => {
-                const isSelected = c._id === form.category;
+                const isSelected = selectedIds.includes(c._id);
                 return (
                   <button
                     key={c._id}
                     type="button"
-                    onClick={() => {
-                      handleChange("category", c._id);
-                      setOpen(false);
-                    }}
+                    onClick={() => toggleCategory(c._id)}
                     className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors ${
                       isSelected
                         ? "bg-indigo-50 text-indigo-700 font-semibold"
                         : "text-gray-700 hover:bg-gray-50"
                     }`}
                   >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      readOnly
+                      className="accent-indigo-600 shrink-0"
+                    />
                     <span className="relative h-8 w-8 rounded-lg overflow-hidden border bg-gray-50 shrink-0">
                       {c.image ? (
                         <img

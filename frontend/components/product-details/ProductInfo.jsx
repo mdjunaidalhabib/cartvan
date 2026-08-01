@@ -4,7 +4,7 @@ import ShareProduct from "./ShareProduct";
 
 export default function ProductInfo({
   product,
-  category,
+  categories = [],
   isOutOfStock,
   currentStock,
   soldCount,
@@ -29,7 +29,11 @@ export default function ProductInfo({
       {/* Category */}
       <p className="text-[8px] md:text-sm font-medium text-gray-400 uppercase tracking-wide md:tracking-wider mt-1 md:mt-0 md:mb-2">
         Category:{" "}
-        <span className="text-gray-800">{category?.name || "N/A"}</span>
+        <span className="text-gray-800">
+          {Array.isArray(categories) && categories.length > 0
+            ? categories.map((c) => c.name).join(", ")
+            : "N/A"}
+        </span>
       </p>
 
       {/* Stock + Sold */}

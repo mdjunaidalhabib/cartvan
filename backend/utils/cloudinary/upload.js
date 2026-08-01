@@ -72,4 +72,42 @@ export const sliderUpload = multer({
   },
 });
 
+/* ================== ✅ HOMEPAGE POPUP UPLOAD ==================
+   INPUT : jpeg/png/webp allowed
+   OUTPUT: controller will convert to 800×800 WEBP (1:1) under 200KB
+================================================== */
+export const popupUpload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // ✅ input can be larger
+  fileFilter: (req, file, cb) => {
+    const allowed = ["image/webp", "image/jpeg", "image/png"];
+    if (!allowed.includes(file.mimetype)) {
+      return cb(
+        new Error("Only jpeg/png/webp allowed (Auto convert to 800×800 WEBP)"),
+        false
+      );
+    }
+    cb(null, true);
+  },
+});
+
+/* ================== ✅ SUPPORT TEAM PHOTO UPLOAD ==================
+   INPUT : jpeg/png/webp allowed (client আগে থেকেই WEBP এ convert করে পাঠায়)
+   OUTPUT: 400×400 (1:1) WEBP, ছোট ছবি বলে limit ছোট রাখা হলো
+================================================== */
+export const teamPhotoUpload = multer({
+  storage,
+  limits: { fileSize: 1 * 1024 * 1024 }, // ✅ input can be larger (client already compresses)
+  fileFilter: (req, file, cb) => {
+    const allowed = ["image/webp", "image/jpeg", "image/png"];
+    if (!allowed.includes(file.mimetype)) {
+      return cb(
+        new Error("Only jpeg/png/webp allowed (Auto convert to 400×400 WEBP)"),
+        false
+      );
+    }
+    cb(null, true);
+  },
+});
+
 export default upload;
