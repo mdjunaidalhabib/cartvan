@@ -462,7 +462,7 @@ router.post("/", async (req, res) => {
       if (adminEmail) {
         await sendAdminOrderEmail({
           to: adminEmail,
-          orderId: savedOrder._id,
+          orderId: `#${savedOrder.orderNumber}`,
           customerName: savedOrder?.billing?.name,
           customerPhone: savedOrder?.billing?.phone,
           address: savedOrder?.billing?.address,

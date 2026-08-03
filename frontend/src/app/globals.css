@@ -18,3 +18,71 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ✅ Rich text content — প্রোডাক্ট Description/Additional Info এর জন্য,
+   admin এ যা লেখা হয় ঠিক সেভাবেই (bold/color/list/heading) এখানে দেখাবে,
+   এবং প্যারাগ্রাফের মাঝে সবসময় সমান/নিয়ন্ত্রিত স্পেসিং থাকবে */
+.rich-content {
+  line-height: 1.8;
+  word-break: break-word;
+  /* ✅ বাংলা টেক্সট ব্রাউজারে hyphenate হয় না, তাই justify (word বা character
+     যেভাবেই হোক) কম শব্দের/সংকীর্ণ লাইনে বড় অসম ফাঁকা জায়গা তৈরি করে —
+     এটা এড়াতে left-align রাখা হয়েছে, যেটাই আসলে আধুনিক প্রফেশনাল standard। */
+  text-align: left;
+}
+.rich-content p {
+  margin: 0 0 0.85em;
+}
+.rich-content p:last-child {
+  margin-bottom: 0;
+}
+.rich-content strong,
+.rich-content b {
+  font-weight: 700;
+}
+.rich-content ul,
+.rich-content ol {
+  margin: 0 0 0.85em;
+  padding-left: 1.4rem;
+}
+.rich-content ul:last-child,
+.rich-content ol:last-child {
+  margin-bottom: 0;
+}
+.rich-content ul {
+  list-style: disc;
+}
+.rich-content ol {
+  list-style: decimal;
+}
+.rich-content li {
+  margin: 0.25em 0;
+}
+.rich-content li > p {
+  margin: 0;
+}
+.rich-content h3 {
+  font-size: 1.15em;
+  font-weight: 700;
+  margin: 1em 0 0.5em;
+}
+.rich-content h3:first-child {
+  margin-top: 0;
+}
+.rich-content h4 {
+  font-size: 1.05em;
+  font-weight: 700;
+  margin: 0.9em 0 0.4em;
+}
+.rich-content blockquote {
+  border-left: 3px solid #ec4899;
+  padding-left: 0.9em;
+  margin: 0.85em 0;
+  color: #6b7280;
+  font-style: italic;
+}
+.rich-content a {
+  color: #db2777;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

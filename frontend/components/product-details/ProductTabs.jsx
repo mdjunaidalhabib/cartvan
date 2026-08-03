@@ -7,6 +7,36 @@ import AddReviewForm from "./AddReviewForm";
 import { useUser } from "../../context/UserContext";
 import { apiFetch } from "../../utils/api";
 
+// ✅ পুরনো প্রোডাক্টের description/additionalInfo (rich text editor আসার আগে সেভ করা)
+// প্লেইন টেক্সট হিসেবে DB তে আছে — সেগুলোকে নিরাপদে HTML প্যারাগ্রাফে রূপান্তর করা হয়,
+// নতুন প্রোডাক্টের ক্ষেত্রে ইতিমধ্যে sanitize করা HTML যেমন আছে তেমনই ব্যবহার হবে
+const NBSP_CHAR = String.fromCharCode(160);
+const REGULAR_SPACE = String.fromCharCode(32);
+
+// ✅ TipTap এডিটরে একাধিক স্পেস চাপলে non-breaking space বসে যায়, যেটা সাধারণ
+// স্পেসের চেয়ে চওড়া এবং বড় ফাঁকা তৈরি করে। আগে থেকে সেভ হওয়া প্রোডাক্টেও এটা
+// থাকতে পারে বলে এখানেও normalize করে নেওয়া হয়
+function normalizeSpaces(html) {
+  return html
+    .split(NBSP_CHAR)
+    .join(REGULAR_SPACE)
+    .replace(/&nbsp;/gi, REGULAR_SPACE)
+    .replace(/[\t ]{2,}/g, REGULAR_SPACE);
+}
+
+function toSafeHtml(value) {
+  if (!value) return "";
+  if (/<[a-z][\s\S]*>/i.test(value)) return normalizeSpaces(value);
+  const esc = (s) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return normalizeSpaces(
+    value
+      .split(/\n{2,}/)
+      .map((para) => `<p>${esc(para).replace(/\n/g, "<br>")}</p>`)
+      .join("")
+  );
+}
+
 export default function ProductTabs({ product, tab, setTab }) {
   const { me } = useUser();
 
@@ -101,7 +131,7 @@ export default function ProductTabs({ product, tab, setTab }) {
     <section className="mt-12">
       {/* Tabs Header */}
       <div className="border-b flex border-gray-200">
-        <div className="max-w-6xl mx-auto flex gap-1 md:gap-4 px-2">
+        <div className="max-w-6xl mx-auto flex gap-1 md:gap-4">
           {tabBtn("desc", "Description")}
           {tabBtn("info", "return policy")}
           {tabBtn("reviews", `Reviews (${reviews?.length || 0})`)}
@@ -109,38 +139,34 @@ export default function ProductTabs({ product, tab, setTab }) {
       </div>
 
       {/* Tabs Content */}
-      <div className="max-w-6xl mx-auto px-2 py-8">
+      <div className="max-w-6xl mx-auto py-8">
         {/* Description Tab */}
-        {tab === "desc" && (
-          <div
-            lang="en"
-            className="text-gray-700 leading-7 text-[15px] whitespace-pre-line text-justify hyphens-auto tracking-[0.2px]"
-          >
-            {product?.description ? (
-              product.description
-            ) : (
-              <div className="text-gray-500 text-center">
-                No description available for this product.
-              </div>
-            )}
-          </div>
-        )}
+        {tab === "desc" &&
+          (product?.description ? (
+            <div
+              lang="en"
+              className="rich-content text-gray-700 text-[15px]"
+              dangerouslySetInnerHTML={{ __html: toSafeHtml(product.description) }}
+            />
+          ) : (
+            <div className="text-gray-500 text-center">
+              No description available for this product.
+            </div>
+          ))}
 
         {/* Information Tab */}
-        {tab === "info" && (
-          <div
-            lang="en"
-            className="text-gray-700 leading-7 text-[15px] whitespace-pre-line text-justify hyphens-auto tracking-[0.2px]"
-          >
-            {product?.additionalInfo ? (
-              product.additionalInfo
-            ) : (
-              <div className="text-gray-500 text-center">
-                No additional info available for this product.
-              </div>
-            )}
-          </div>
-        )}
+        {tab === "info" &&
+          (product?.additionalInfo ? (
+            <div
+              lang="en"
+              className="rich-content text-gray-700 text-[15px]"
+              dangerouslySetInnerHTML={{ __html: toSafeHtml(product.additionalInfo) }}
+            />
+          ) : (
+            <div className="text-gray-500 text-center">
+              No additional info available for this product.
+            </div>
+          ))}
 
         {/* Reviews Tab */}
         {tab === "reviews" && (

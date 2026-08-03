@@ -11,7 +11,58 @@ import {
   ChevronDown,
   MessageCircleHeart,
 } from "lucide-react";
+import {
+  FaFacebookF,
+  FaUsers,
+  FaYoutube,
+  FaInstagram,
+  FaTiktok,
+  FaTwitter,
+  FaLinkedinIn,
+  FaPinterest,
+  FaSnapchatGhost,
+  FaWhatsapp,
+  FaTelegram,
+} from "react-icons/fa";
 import cloudinaryLoader from "../../../lib/cloudinaryLoader";
+
+// ✅ ফুটারের সোশ্যাল আইকন ম্যাপের সাথে সামঞ্জস্যপূর্ণ (একই platform key ব্যবহার হয়)
+const SOCIAL_ICON_MAP = {
+  facebook: FaFacebookF,
+  facebook_group: FaUsers,
+  youtube: FaYoutube,
+  instagram: FaInstagram,
+  tiktok: FaTiktok,
+  twitter: FaTwitter,
+  linkedin: FaLinkedinIn,
+  pinterest: FaPinterest,
+  snapchat: FaSnapchatGhost,
+  whatsapp: FaWhatsapp,
+  telegram: FaTelegram,
+};
+
+function SocialLinks({ links, className = "" }) {
+  const valid = (links || []).filter((l) => l?.url && SOCIAL_ICON_MAP[l.platform]);
+  if (valid.length === 0) return null;
+  return (
+    <div className={`flex flex-wrap gap-2.5 ${className}`}>
+      {valid.map((l, idx) => {
+        const Icon = SOCIAL_ICON_MAP[l.platform];
+        return (
+          <a
+            key={idx}
+            href={l.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-9 h-9 rounded-xl bg-pink-500 hover:bg-pink-600 text-white transition-all duration-300 flex items-center justify-center hover:-translate-y-1"
+          >
+            <Icon className="text-base" />
+          </a>
+        );
+      })}
+    </div>
+  );
+}
 
 function SupportSkeleton() {
   return (
@@ -104,6 +155,70 @@ export default function SupportPage() {
 
   return (
     <div className="bg-pink-50 min-h-screen">
+      {/* Founder / CEO spotlight */}
+      {spotlight && (
+        <section className="max-w-5xl mx-auto px-6 pt-10 pb-6">
+          <div className="relative bg-gradient-to-br from-white to-pink-50 rounded-[32px] border border-pink-100 shadow-sm p-8 md:p-12 overflow-hidden">
+            <Quote className="absolute top-6 right-6 text-pink-100" size={80} />
+            <div className="relative grid md:grid-cols-[auto_1fr] gap-8 items-center">
+              <div className="mx-auto md:mx-0 w-32 h-32 md:w-40 md:h-40 rounded-full bg-pink-200 ring-4 ring-white shadow-lg overflow-hidden flex items-center justify-center shrink-0">
+                {spotlight.photo ? (
+                  <Image
+                    loader={cloudinaryLoader}
+                    src={spotlight.photo}
+                    alt={spotlight.name}
+                    width={160}
+                    height={160}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-4xl font-bold text-pink-500">
+                    {spotlight.name?.charAt(0)}
+                  </span>
+                )}
+              </div>
+              <div className="text-center md:text-left">
+                {spotlight.title && (
+                  <span className="inline-block text-xs font-bold tracking-wider uppercase text-pink-600 bg-pink-100 px-3 py-1 rounded-full">
+                    {spotlight.title}
+                  </span>
+                )}
+                <h2 className="mt-3 text-2xl md:text-3xl font-bold text-slate-900">
+                  {spotlight.name}
+                </h2>
+                {spotlight.bio && (
+                  <p className="mt-4 text-slate-600 leading-8">{spotlight.bio}</p>
+                )}
+                {(spotlight.email || spotlight.phone) && (
+                  <div className="mt-5 flex flex-wrap justify-center md:justify-start gap-4 text-sm">
+                    {spotlight.email && (
+                      <a
+                        href={`mailto:${spotlight.email}`}
+                        className="flex items-center gap-1.5 text-slate-600 hover:text-pink-500 transition-colors"
+                      >
+                        <Mail size={15} /> {spotlight.email}
+                      </a>
+                    )}
+                    {spotlight.phone && (
+                      <a
+                        href={`tel:${spotlight.phone}`}
+                        className="flex items-center gap-1.5 text-slate-600 hover:text-pink-500 transition-colors"
+                      >
+                        <Phone size={15} /> {spotlight.phone}
+                      </a>
+                    )}
+                  </div>
+                )}
+                <SocialLinks
+                  links={spotlight.socialLinks}
+                  className="mt-5 justify-center md:justify-start"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-b from-pink-100 via-pink-50 to-transparent">
         <div className="pointer-events-none absolute -top-16 -left-16 w-72 h-72 bg-pink-300/30 rounded-full blur-3xl" />
@@ -183,66 +298,6 @@ export default function SupportPage() {
         </section>
       )}
 
-      {/* Founder / CEO spotlight */}
-      {spotlight && (
-        <section className="max-w-5xl mx-auto px-6 py-16">
-          <div className="relative bg-gradient-to-br from-white to-pink-50 rounded-[32px] border border-pink-100 shadow-sm p-8 md:p-12 overflow-hidden">
-            <Quote className="absolute top-6 right-6 text-pink-100" size={80} />
-            <div className="relative grid md:grid-cols-[auto_1fr] gap-8 items-center">
-              <div className="mx-auto md:mx-0 w-32 h-32 md:w-40 md:h-40 rounded-full bg-pink-200 ring-4 ring-white shadow-lg overflow-hidden flex items-center justify-center shrink-0">
-                {spotlight.photo ? (
-                  <Image
-                    loader={cloudinaryLoader}
-                    src={spotlight.photo}
-                    alt={spotlight.name}
-                    width={160}
-                    height={160}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-4xl font-bold text-pink-500">
-                    {spotlight.name?.charAt(0)}
-                  </span>
-                )}
-              </div>
-              <div className="text-center md:text-left">
-                {spotlight.title && (
-                  <span className="inline-block text-xs font-bold tracking-wider uppercase text-pink-600 bg-pink-100 px-3 py-1 rounded-full">
-                    {spotlight.title}
-                  </span>
-                )}
-                <h2 className="mt-3 text-2xl md:text-3xl font-bold text-slate-900">
-                  {spotlight.name}
-                </h2>
-                {spotlight.bio && (
-                  <p className="mt-4 text-slate-600 leading-8">{spotlight.bio}</p>
-                )}
-                {(spotlight.email || spotlight.phone) && (
-                  <div className="mt-5 flex flex-wrap justify-center md:justify-start gap-4 text-sm">
-                    {spotlight.email && (
-                      <a
-                        href={`mailto:${spotlight.email}`}
-                        className="flex items-center gap-1.5 text-slate-600 hover:text-pink-500 transition-colors"
-                      >
-                        <Mail size={15} /> {spotlight.email}
-                      </a>
-                    )}
-                    {spotlight.phone && (
-                      <a
-                        href={`tel:${spotlight.phone}`}
-                        className="flex items-center gap-1.5 text-slate-600 hover:text-pink-500 transition-colors"
-                      >
-                        <Phone size={15} /> {spotlight.phone}
-                      </a>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* Rest of the team */}
       {restTeam.length > 0 && (
         <section className="max-w-5xl mx-auto px-6 pb-16">
@@ -292,6 +347,7 @@ export default function SupportPage() {
                     )}
                   </div>
                 )}
+                <SocialLinks links={member.socialLinks} className="mt-3 justify-center" />
               </div>
             ))}
           </div>

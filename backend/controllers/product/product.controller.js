@@ -11,6 +11,7 @@ import {
   uploadToCloudinary,
   shiftOrdersForInsert,
   normalizeOrders,
+  sanitizeRichText,
 } from "../../utils/product/index.js";
 
 /* ================== ✅ RULE ================== */
@@ -341,8 +342,8 @@ export const createProduct = async (req, res) => {
       sold: mainSold,
       isSoldOut: isSoldOut === "true" ? true : computedSoldOut,
       rating: toNumber(rating, 0),
-      description,
-      additionalInfo,
+      description: sanitizeRichText(description),
+      additionalInfo: sanitizeRichText(additionalInfo),
       categories: categoryIds,
       image: primaryImage,
       images: galleryImages,
@@ -541,8 +542,10 @@ export const updateProduct = async (req, res) => {
     product.rating =
       rating !== undefined ? toNumber(rating, product.rating) : product.rating;
 
-    product.description = description ?? product.description;
-    product.additionalInfo = additionalInfo ?? product.additionalInfo;
+    product.description =
+      description !== undefined ? sanitizeRichText(description) : product.description;
+    product.additionalInfo =
+      additionalInfo !== undefined ? sanitizeRichText(additionalInfo) : product.additionalInfo;
 
     if (categories !== undefined) {
       const categoryIds = safeJSON(categories, []);

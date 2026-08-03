@@ -7,6 +7,14 @@ import mongoose from "mongoose";
  * About/PrivacyPolicy এর মতোই এটা একটা singleton document (সবসময় ১টাই থাকবে)।
  */
 
+const SocialLinkSchema = new mongoose.Schema(
+  {
+    platform: { type: String, default: "" }, // e.g. "Facebook", "Instagram", "LinkedIn"
+    url: { type: String, default: "" },
+  },
+  { _id: false }
+);
+
 const TeamMemberSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   title: { type: String, default: "" }, // e.g. "Founder & CEO"
@@ -15,6 +23,7 @@ const TeamMemberSchema = new mongoose.Schema({
   bio: { type: String, default: "" },
   email: { type: String, default: "" },
   phone: { type: String, default: "" },
+  socialLinks: { type: [SocialLinkSchema], default: [] },
 });
 
 const SectionSchema = new mongoose.Schema({

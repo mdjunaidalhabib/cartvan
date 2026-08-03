@@ -27,3 +27,75 @@
 .sidebar-scroll:hover::-webkit-scrollbar-thumb {
   background-color: #cbd5e1;
 }
+
+/* ✅ Rich text content — প্রোডাক্ট Description/Additional Info এর জন্য,
+   admin এডিটর এবং frontend প্রিভিউ দুই জায়গাতেই consistent স্পেসিং দেয় */
+.rich-content {
+  line-height: 1.75;
+  word-break: break-word;
+}
+.rich-content p {
+  margin: 0 0 0.85em;
+}
+.rich-content p:last-child {
+  margin-bottom: 0;
+}
+.rich-content strong,
+.rich-content b {
+  font-weight: 700;
+}
+.rich-content ul,
+.rich-content ol {
+  margin: 0 0 0.85em;
+  padding-left: 1.4rem;
+}
+.rich-content ul:last-child,
+.rich-content ol:last-child {
+  margin-bottom: 0;
+}
+.rich-content ul {
+  list-style: disc;
+}
+.rich-content ol {
+  list-style: decimal;
+}
+.rich-content li {
+  margin: 0.25em 0;
+}
+.rich-content li > p {
+  margin: 0;
+}
+.rich-content h3 {
+  font-size: 1.15em;
+  font-weight: 700;
+  margin: 1em 0 0.5em;
+}
+.rich-content h3:first-child {
+  margin-top: 0;
+}
+.rich-content h4 {
+  font-size: 1.05em;
+  font-weight: 700;
+  margin: 0.9em 0 0.4em;
+}
+.rich-content blockquote {
+  border-left: 3px solid #ec4899;
+  padding-left: 0.9em;
+  margin: 0.85em 0;
+  color: #6b7280;
+  font-style: italic;
+}
+.rich-content a {
+  color: #db2777;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* TipTap placeholder */
+.rich-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #9ca3af;
+  pointer-events: none;
+  height: 0;
+}

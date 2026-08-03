@@ -11,6 +11,19 @@ const normalizeCategories = (categories) =>
     ? categories.map((c) => (typeof c === "object" ? c?._id : c)).filter(Boolean)
     : [];
 
+// ✅ পুরনো প্রোডাক্টের description/additionalInfo প্লেইন টেক্সট (HTML ছাড়া) হিসেবে সেভ করা —
+// নতুন rich text editor-এ ঠিকভাবে দেখানোর জন্য একে HTML প্যারাগ্রাফে রূপান্তর করা হয়
+const legacyTextToHtml = (text) => {
+  if (!text) return "";
+  if (/<[a-z][\s\S]*>/i.test(text)) return text; // ইতিমধ্যে HTML হলে যেমন আছে তেমনই থাকবে
+  const esc = (s) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return text
+    .split(/\n{2,}/)
+    .map((para) => `<p>${esc(para).replace(/\n/g, "<br>")}</p>`)
+    .join("");
+};
+
 const EMPTY_DEFAULT_VARIANT = {
   name: "Default Variant",
   price: "",
@@ -210,8 +223,8 @@ export default function ProductForm({
       setForm({
         name: product.name || "",
         categories: normalizeCategories(product.categories),
-        description: product.description || "",
-        additionalInfo: product.additionalInfo || "",
+        description: legacyTextToHtml(product.description || ""),
+        additionalInfo: legacyTextToHtml(product.additionalInfo || ""),
         order: orderValue,
         isActive: product.isActive ?? true,
         freeDelivery: product.freeDelivery ?? false,
@@ -245,8 +258,8 @@ export default function ProductForm({
     setForm({
       name: product.name || "",
       categories: normalizeCategories(product.categories),
-      description: product.description || "",
-      additionalInfo: product.additionalInfo || "",
+      description: legacyTextToHtml(product.description || ""),
+      additionalInfo: legacyTextToHtml(product.additionalInfo || ""),
       order: orderValue,
       isActive: product.isActive ?? true,
       freeDelivery: product.freeDelivery ?? false,

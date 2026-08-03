@@ -53,7 +53,7 @@ export default function OrderSummary({ orderId }) {
       {/* Order Info */}
       <div className="p-3 space-y-0.5">
         <p>
-          <strong>Order ID:</strong> {order._id}
+          <strong>Order ID:</strong> #{order.orderNumber}
         </p>
         <p>
           <strong>Date:</strong> {new Date(order.createdAt).toLocaleString()}

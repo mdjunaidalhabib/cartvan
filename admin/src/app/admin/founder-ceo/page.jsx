@@ -30,6 +30,23 @@ const TEAM_PHOTO_RULE = {
   strictLimit: true,
 };
 
+// ✅ Footer admin panel এর সাথে সামঞ্জস্যপূর্ণ platform তালিকা
+const PLATFORM_META = {
+  facebook: { emoji: "📘", label: "Facebook" },
+  facebook_group: { emoji: "👥", label: "Facebook Group" },
+  youtube: { emoji: "▶️", label: "YouTube" },
+  instagram: { emoji: "📸", label: "Instagram" },
+  tiktok: { emoji: "🎵", label: "TikTok" },
+  twitter: { emoji: "🐦", label: "Twitter / X" },
+  linkedin: { emoji: "💼", label: "LinkedIn" },
+  pinterest: { emoji: "📌", label: "Pinterest" },
+  snapchat: { emoji: "👻", label: "Snapchat" },
+  whatsapp: { emoji: "💬", label: "WhatsApp" },
+  telegram: { emoji: "✈️", label: "Telegram" },
+};
+
+const ALL_PLATFORMS = Object.keys(PLATFORM_META);
+
 function Skeleton() {
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-3">
@@ -89,6 +106,103 @@ function SortableItem({ id, disabled, children }) {
         <GripVertical size={18} />
       </div>
       <div className="pl-6">{children}</div>
+    </div>
+  );
+}
+
+// ✅ Footer admin panel এর মতোই — dropdown থেকে platform বাছাই করে যোগ করা,
+// আগে থেকে যোগ করা platform গুলো dropdown এ আর দেখাবে না (duplicate ঠেকাতে)
+function TeamSocialLinksEditor({
+  teamIndex,
+  socialLinks,
+  isEditMode,
+  cardLocked,
+  fieldDisabled,
+  setActiveField,
+  updateSocialLink,
+  addSocialLink,
+  removeSocialLink,
+}) {
+  const [newPlatform, setNewPlatform] = useState("");
+  const [newUrl, setNewUrl] = useState("");
+
+  const used = socialLinks.map((s) => s.platform);
+  const available = ALL_PLATFORMS.filter((p) => !used.includes(p));
+
+  const handleAdd = () => {
+    if (!newPlatform || !newUrl.trim()) return;
+    addSocialLink(teamIndex, newPlatform, newUrl.trim());
+    setNewPlatform("");
+    setNewUrl("");
+  };
+
+  return (
+    <div>
+      <label className="text-xs font-medium text-gray-600">সোশ্যাল লিংক (ঐচ্ছিক)</label>
+
+      {socialLinks.length > 0 && (
+        <div className="space-y-2 mt-1">
+          {socialLinks.map((sl, si) => {
+            const meta = PLATFORM_META[sl.platform];
+            const urlPath = `team.${teamIndex}.socialLinks.${si}.url`;
+            return (
+              <div key={si} className="flex items-center gap-2">
+                <span className="w-32 sm:w-36 shrink-0 text-xs text-gray-600 flex items-center gap-1.5">
+                  <span>{meta?.emoji || "🔗"}</span> {meta?.label || sl.platform}
+                </span>
+                <input
+                  disabled={fieldDisabled(urlPath)}
+                  onFocus={() => setActiveField(urlPath)}
+                  onBlur={() => setActiveField((cur) => (cur === urlPath ? null : cur))}
+                  placeholder="https://..."
+                  className={`${inputBase} !mt-0 flex-1 ${fieldDisabled(urlPath) ? disabledCls : ""}`}
+                  value={sl.url}
+                  onChange={(e) => updateSocialLink(teamIndex, si, "url", e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => removeSocialLink(teamIndex, si)}
+                  disabled={!isEditMode || cardLocked}
+                  className="text-xs font-semibold px-2.5 py-2 rounded-md border text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  ✖️
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {isEditMode && !cardLocked && available.length > 0 && (
+        <div className="flex flex-col sm:flex-row gap-2 mt-2">
+          <select
+            value={newPlatform}
+            onChange={(e) => setNewPlatform(e.target.value)}
+            className={`${inputBase} !mt-0 sm:w-40`}
+          >
+            <option value="">প্ল্যাটফর্ম বাছাই করুন</option>
+            {available.map((p) => (
+              <option key={p} value={p}>
+                {PLATFORM_META[p].emoji} {PLATFORM_META[p].label}
+              </option>
+            ))}
+          </select>
+          <input
+            value={newUrl}
+            onChange={(e) => setNewUrl(e.target.value)}
+            placeholder="https://..."
+            className={`${inputBase} !mt-0 flex-1`}
+          />
+          <button
+            type="button"
+            onClick={handleAdd}
+            disabled={!newPlatform || !newUrl.trim()}
+            className="text-xs font-semibold px-3 py-2 rounded-md border text-indigo-600 hover:bg-indigo-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            ➕ যোগ করুন
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -171,6 +285,33 @@ export default function SupportAdminPage() {
     setData((prev) => {
       const next = structuredClone(prev);
       next[arrayKey] = next[arrayKey].filter((_, i) => i !== index);
+      return next;
+    });
+  };
+
+  const updateSocialLink = (teamIndex, slIndex, field, value) => {
+    setData((prev) => {
+      const next = structuredClone(prev);
+      next.team[teamIndex].socialLinks[slIndex][field] = value;
+      return next;
+    });
+  };
+
+  const addSocialLink = (teamIndex, platform, url) => {
+    setData((prev) => {
+      const next = structuredClone(prev);
+      const member = next.team[teamIndex];
+      member.socialLinks = [...(member.socialLinks || []), { platform, url }];
+      return next;
+    });
+  };
+
+  const removeSocialLink = (teamIndex, slIndex) => {
+    setData((prev) => {
+      const next = structuredClone(prev);
+      next.team[teamIndex].socialLinks = next.team[teamIndex].socialLinks.filter(
+        (_, i) => i !== slIndex
+      );
       return next;
     });
   };
@@ -384,51 +525,6 @@ export default function SupportAdminPage() {
         </div>
       )}
 
-      {/* Header */}
-      <Section title="🏷️ পেজ শিরোনাম">
-        <Field label="পেজ টাইটেল">
-          <input
-            {...fieldProps("pageTitle")}
-            value={pageTitle}
-            onChange={(e) => update("pageTitle", e.target.value)}
-          />
-        </Field>
-        <Field label="ভূমিকা / Intro">
-          <textarea
-            {...textareaProps("intro")}
-            value={intro}
-            onChange={(e) => update("intro", e.target.value)}
-          />
-        </Field>
-      </Section>
-
-      {/* Contact info */}
-      <Section title="📞 যোগাযোগের তথ্য">
-        <div className="grid sm:grid-cols-2 gap-3">
-          <Field label="সাপোর্ট ইমেইল">
-            <input
-              {...fieldProps("supportEmail")}
-              value={supportEmail}
-              onChange={(e) => update("supportEmail", e.target.value)}
-            />
-          </Field>
-          <Field label="সাপোর্ট ফোন">
-            <input
-              {...fieldProps("supportPhone")}
-              value={supportPhone}
-              onChange={(e) => update("supportPhone", e.target.value)}
-            />
-          </Field>
-        </div>
-        <Field label="কর্মঘণ্টা (যেমন: সকাল ৯টা - রাত ৯টা, ৭ দিন)">
-          <input
-            {...fieldProps("workingHours")}
-            value={workingHours}
-            onChange={(e) => update("workingHours", e.target.value)}
-          />
-        </Field>
-      </Section>
-
       {/* Team / Founder & CEO */}
       <Section title="👤 টিম / Founder & CEO">
         <p className="text-[11px] text-gray-400 -mt-2">
@@ -450,7 +546,11 @@ export default function SupportAdminPage() {
                 const bioPath = `team.${i}.bio`;
                 const emailPath = `team.${i}.email`;
                 const phonePath = `team.${i}.phone`;
-                const cardPaths = [namePath, titlePath, bioPath, emailPath, phonePath];
+                const socialLinks = item.socialLinks || [];
+                const socialPaths = socialLinks.map(
+                  (_, si) => `team.${i}.socialLinks.${si}.url`
+                );
+                const cardPaths = [namePath, titlePath, bioPath, emailPath, phonePath, ...socialPaths];
                 const cardLocked =
                   isEditMode && activeField !== null && !cardPaths.includes(activeField);
                 const uploading = !!photoUploading[item._id];
@@ -563,6 +663,20 @@ export default function SupportAdminPage() {
                           />
                         </Field>
                       </div>
+
+                      {/* সোশ্যাল লিংক */}
+                      <TeamSocialLinksEditor
+                        teamIndex={i}
+                        socialLinks={socialLinks}
+                        isEditMode={isEditMode}
+                        cardLocked={cardLocked}
+                        fieldDisabled={fieldDisabled}
+                        setActiveField={setActiveField}
+                        updateSocialLink={updateSocialLink}
+                        addSocialLink={addSocialLink}
+                        removeSocialLink={removeSocialLink}
+                      />
+
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => removeArrayItem("team", i)}
@@ -589,6 +703,7 @@ export default function SupportAdminPage() {
               bio: "",
               email: "",
               phone: "",
+              socialLinks: [],
             })
           }
           disabled={!isEditMode || activeField !== null}
@@ -596,6 +711,51 @@ export default function SupportAdminPage() {
         >
           ➕ নতুন টিম মেম্বার যুক্ত করুন
         </button>
+      </Section>
+
+      {/* Header */}
+      <Section title="🏷️ পেজ শিরোনাম">
+        <Field label="পেজ টাইটেল">
+          <input
+            {...fieldProps("pageTitle")}
+            value={pageTitle}
+            onChange={(e) => update("pageTitle", e.target.value)}
+          />
+        </Field>
+        <Field label="ভূমিকা / Intro">
+          <textarea
+            {...textareaProps("intro")}
+            value={intro}
+            onChange={(e) => update("intro", e.target.value)}
+          />
+        </Field>
+      </Section>
+
+      {/* Contact info */}
+      <Section title="📞 যোগাযোগের তথ্য">
+        <div className="grid sm:grid-cols-2 gap-3">
+          <Field label="সাপোর্ট ইমেইল">
+            <input
+              {...fieldProps("supportEmail")}
+              value={supportEmail}
+              onChange={(e) => update("supportEmail", e.target.value)}
+            />
+          </Field>
+          <Field label="সাপোর্ট ফোন">
+            <input
+              {...fieldProps("supportPhone")}
+              value={supportPhone}
+              onChange={(e) => update("supportPhone", e.target.value)}
+            />
+          </Field>
+        </div>
+        <Field label="কর্মঘণ্টা (যেমন: সকাল ৯টা - রাত ৯টা, ৭ দিন)">
+          <input
+            {...fieldProps("workingHours")}
+            value={workingHours}
+            onChange={(e) => update("workingHours", e.target.value)}
+          />
+        </Field>
       </Section>
 
       {/* Sections */}

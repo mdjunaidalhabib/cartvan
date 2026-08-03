@@ -76,10 +76,10 @@ export const settingsChildren = [
   },
   {
     icon: <LayoutDashboard size={16} />,
-    label: "Support Page",
-    href: "/admin/support",
+    label: "Founder & CEO",
+    href: "/admin/founder-ceo",
   },
-    {
+  {
     icon: <LayoutDashboard size={16} />,
     label: "Action Button",
     href: "/admin/floatingActionButton",

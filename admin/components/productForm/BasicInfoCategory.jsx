@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ImageOff } from "lucide-react";
+import RichTextEditor from "../RichTextEditor";
 
 export default function BasicInfoCategory({
   form,
@@ -175,26 +176,31 @@ export default function BasicInfoCategory({
         <label className="font-semibold text-gray-700 text-sm">
           Description
         </label>
-        <textarea
-          rows={6}
-          value={form.description}
-          onChange={(e) => handleChange("description", e.target.value)}
-          className={`${inputBase} ${ok} resize-y min-h-[140px] leading-relaxed`}
-          placeholder="বিস্তারিত বিবরণ..."
-        />
+        <div className="mt-1">
+          <RichTextEditor
+            value={form.description}
+            onChange={(html) => handleChange("description", html)}
+            placeholder="বিস্তারিত বিবরণ..."
+            minHeight={140}
+          />
+        </div>
       </div>
 
       <div>
         <label className="font-semibold text-gray-700 text-sm">
-          Additional Info
+          Additional Info{" "}
+          <span className="font-normal text-gray-400">
+            (ওয়ারেন্টি, রিটার্ন পলিসি ইত্যাদি)
+          </span>
         </label>
-        <textarea
-          rows={12}
-          value={form.additionalInfo}
-          onChange={(e) => handleChange("additionalInfo", e.target.value)}
-          className={`${inputBase} ${ok} resize-y min-h-[260px] leading-relaxed whitespace-pre-wrap`}
-          placeholder="অতিরিক্ত তথ্য (বক্স কন্টেন্ট, ওয়ারেন্টি, রিটার্ন পলিসি ইত্যাদি)..."
-        />
+        <div className="mt-1">
+          <RichTextEditor
+            value={form.additionalInfo}
+            onChange={(html) => handleChange("additionalInfo", html)}
+            placeholder="অতিরিক্ত তথ্য (বক্স কন্টেন্ট, ওয়ারেন্টি, রিটার্ন পলিসি ইত্যাদি)..."
+            minHeight={260}
+          />
+        </div>
       </div>
     </section>
   );

@@ -31,7 +31,7 @@ const HomepagePopup = () => {
       onClick={() => setVisible(false)}
     >
       <div
-        className="relative w-full max-w-sm"
+        className="relative w-full max-w-sm md:max-w-lg lg:max-w-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -59,7 +59,7 @@ const HomepagePopup = () => {
             src={config.image}
             alt="Promotion"
             fill
-            sizes="(max-width: 480px) 100vw, 384px"
+            sizes="(max-width: 480px) 100vw, (max-width: 1024px) 512px, 576px"
             className="object-cover"
             priority
           />
