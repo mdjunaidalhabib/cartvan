@@ -54,7 +54,7 @@ function SocialLinks({ links, className = "" }) {
             href={l.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-9 h-9 rounded-xl bg-pink-500 hover:bg-pink-600 text-white transition-all duration-300 flex items-center justify-center hover:-translate-y-1"
+            className="w-9 h-9 rounded-xl bg-pink-500 hover:bg-pink-600 text-white transition-colors duration-200 flex items-center justify-center"
           >
             <Icon className="text-base" />
           </a>
@@ -79,8 +79,8 @@ function SupportSkeleton() {
 function AccordionItem({ heading, content, isOpen, onToggle }) {
   return (
     <div
-      className={`rounded-2xl border bg-white shadow-sm transition-all overflow-hidden ${
-        isOpen ? "border-pink-300 shadow-md" : "border-slate-100"
+      className={`rounded-2xl border bg-pink-50 shadow-md shadow-pink-200/30 transition-all overflow-hidden ${
+        isOpen ? "border-pink-300 shadow-lg shadow-pink-200/50" : "border-pink-100"
       }`}
     >
       <button
@@ -158,28 +158,33 @@ export default function SupportPage() {
       {/* Founder / CEO spotlight */}
       {spotlight && (
         <section className="max-w-5xl mx-auto px-6 pt-10 pb-6">
-          <div className="relative bg-gradient-to-br from-white to-pink-50 rounded-[32px] border border-pink-100 shadow-sm p-8 md:p-12 overflow-hidden">
-            <Quote className="absolute top-6 right-6 text-pink-100" size={80} />
-            <div className="relative grid md:grid-cols-[auto_1fr] gap-8 items-center">
-              <div className="mx-auto md:mx-0 w-32 h-32 md:w-40 md:h-40 rounded-full bg-pink-200 ring-4 ring-white shadow-lg overflow-hidden flex items-center justify-center shrink-0">
-                {spotlight.photo ? (
-                  <Image
-                    loader={cloudinaryLoader}
-                    src={spotlight.photo}
-                    alt={spotlight.name}
-                    width={160}
-                    height={160}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-4xl font-bold text-pink-500">
-                    {spotlight.name?.charAt(0)}
-                  </span>
-                )}
+          <div className="relative bg-gradient-to-br from-pink-50 via-white to-pink-100/60 rounded-3xl border border-pink-100 shadow-xl shadow-pink-200/50 p-8 md:p-12 overflow-hidden">
+            <div className="pointer-events-none absolute -top-20 -right-20 w-64 h-64 bg-pink-300/25 rounded-full blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-24 -left-16 w-56 h-56 bg-rose-200/30 rounded-full blur-3xl" />
+
+            <div className="relative grid md:grid-cols-[auto_1fr] gap-8 md:gap-10 items-center">
+              <div className="relative mx-auto md:mx-0 shrink-0">
+                <div className="absolute -inset-1.5 rounded-[28px] bg-gradient-to-br from-pink-400 to-rose-300 opacity-70 blur-sm" />
+                <div className="relative w-28 h-28 md:w-36 md:h-36 rounded-3xl bg-pink-100 ring-4 ring-white overflow-hidden flex items-center justify-center">
+                  {spotlight.photo ? (
+                    <Image
+                      loader={cloudinaryLoader}
+                      src={spotlight.photo}
+                      alt={spotlight.name}
+                      width={144}
+                      height={144}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-4xl font-bold text-pink-500">
+                      {spotlight.name?.charAt(0)}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="text-center md:text-left">
                 {spotlight.title && (
-                  <span className="inline-block text-xs font-bold tracking-wider uppercase text-pink-600 bg-pink-100 px-3 py-1 rounded-full">
+                  <span className="inline-block text-xs font-bold tracking-wider uppercase text-white bg-gradient-to-r from-pink-500 to-rose-500 px-3 py-1 rounded-full shadow-sm shadow-pink-300/50">
                     {spotlight.title}
                   </span>
                 )}
@@ -187,14 +192,17 @@ export default function SupportPage() {
                   {spotlight.name}
                 </h2>
                 {spotlight.bio && (
-                  <p className="mt-4 text-slate-600 leading-8">{spotlight.bio}</p>
+                  <div className="relative mt-4">
+                    <Quote className="hidden md:block absolute -left-8 top-0.5 text-pink-300" size={22} />
+                    <p className="text-slate-600 leading-8">{spotlight.bio}</p>
+                  </div>
                 )}
-                {(spotlight.email || spotlight.phone) && (
-                  <div className="mt-5 flex flex-wrap justify-center md:justify-start gap-4 text-sm">
+                {(spotlight.email || spotlight.phone || (spotlight.socialLinks || []).length > 0) && (
+                  <div className="mt-6 pt-5 border-t border-pink-200/70 flex flex-wrap items-center justify-center md:justify-start gap-x-5 gap-y-3">
                     {spotlight.email && (
                       <a
                         href={`mailto:${spotlight.email}`}
-                        className="flex items-center gap-1.5 text-slate-600 hover:text-pink-500 transition-colors"
+                        className="flex items-center gap-1.5 text-sm text-slate-600 hover:text-pink-600 transition-colors"
                       >
                         <Mail size={15} /> {spotlight.email}
                       </a>
@@ -202,17 +210,14 @@ export default function SupportPage() {
                     {spotlight.phone && (
                       <a
                         href={`tel:${spotlight.phone}`}
-                        className="flex items-center gap-1.5 text-slate-600 hover:text-pink-500 transition-colors"
+                        className="flex items-center gap-1.5 text-sm text-slate-600 hover:text-pink-600 transition-colors"
                       >
                         <Phone size={15} /> {spotlight.phone}
                       </a>
                     )}
+                    <SocialLinks links={spotlight.socialLinks} />
                   </div>
                 )}
-                <SocialLinks
-                  links={spotlight.socialLinks}
-                  className="mt-5 justify-center md:justify-start"
-                />
               </div>
             </div>
           </div>
@@ -220,19 +225,18 @@ export default function SupportPage() {
       )}
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-pink-100 via-pink-50 to-transparent">
-        <div className="pointer-events-none absolute -top-16 -left-16 w-72 h-72 bg-pink-300/30 rounded-full blur-3xl" />
-        <div className="pointer-events-none absolute -top-10 -right-10 w-80 h-80 bg-rose-300/30 rounded-full blur-3xl" />
+      <section className="relative overflow-hidden">
+        <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-[36rem] h-56 bg-pink-200/25 rounded-full blur-3xl" />
 
-        <div className="relative max-w-5xl mx-auto px-6 py-20 text-center">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-white shadow-lg shadow-pink-200 flex items-center justify-center">
-            <LifeBuoy className="text-pink-500" size={28} />
+        <div className="relative max-w-5xl mx-auto px-6 py-16 text-center">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-pink-50 border border-pink-100 shadow-md shadow-pink-200/40 flex items-center justify-center">
+            <LifeBuoy className="text-pink-500" size={24} />
           </div>
-          <h1 className="mt-6 text-3xl md:text-5xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="mt-6 text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">
             {pageTitle}
           </h1>
           {intro && (
-            <p className="mt-5 text-slate-600 leading-8 max-w-2xl mx-auto text-base md:text-lg">
+            <p className="mt-4 text-slate-600 leading-7 max-w-2xl mx-auto text-base">
               {intro}
             </p>
           )}
@@ -241,14 +245,14 @@ export default function SupportPage() {
 
       {/* Quick contact strip */}
       {(supportEmail || supportPhone || workingHours) && (
-        <section className="max-w-5xl mx-auto px-6 -mt-6 relative z-10">
+        <section className="max-w-5xl mx-auto px-6 pb-16">
           <div className="grid sm:grid-cols-3 gap-4">
             {supportEmail && (
               <a
                 href={`mailto:${supportEmail}`}
-                className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col items-center text-center gap-3"
+                className="group bg-pink-50 rounded-2xl border border-pink-100 hover:border-pink-200 shadow-md shadow-pink-200/40 hover:shadow-lg hover:shadow-pink-200/50 transition-all duration-200 p-6 flex flex-col items-center text-center gap-3"
               >
-                <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center group-hover:bg-pink-500 transition-colors">
+                <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center group-hover:bg-pink-500 transition-colors">
                   <Mail className="text-pink-500 group-hover:text-white transition-colors" size={20} />
                 </div>
                 <div>
@@ -264,9 +268,9 @@ export default function SupportPage() {
             {supportPhone && (
               <a
                 href={`tel:${supportPhone}`}
-                className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col items-center text-center gap-3"
+                className="group bg-pink-50 rounded-2xl border border-pink-100 hover:border-pink-200 shadow-md shadow-pink-200/40 hover:shadow-lg hover:shadow-pink-200/50 transition-all duration-200 p-6 flex flex-col items-center text-center gap-3"
               >
-                <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center group-hover:bg-pink-500 transition-colors">
+                <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center group-hover:bg-pink-500 transition-colors">
                   <Phone className="text-pink-500 group-hover:text-white transition-colors" size={20} />
                 </div>
                 <div>
@@ -280,8 +284,8 @@ export default function SupportPage() {
               </a>
             )}
             {workingHours && (
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col items-center text-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center">
+              <div className="bg-pink-50 rounded-2xl border border-pink-100 shadow-md shadow-pink-200/40 p-6 flex flex-col items-center text-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center">
                   <Clock className="text-pink-500" size={20} />
                 </div>
                 <div>
@@ -308,9 +312,9 @@ export default function SupportPage() {
             {restTeam.map((member, index) => (
               <div
                 key={index}
-                className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-6 text-center"
+                className="bg-pink-50 rounded-2xl border border-pink-100 hover:border-pink-200 shadow-md shadow-pink-200/40 hover:shadow-lg hover:shadow-pink-200/50 transition-all duration-200 p-6 text-center"
               >
-                <div className="w-24 h-24 mx-auto rounded-full bg-pink-200 overflow-hidden flex items-center justify-center ring-4 ring-pink-50">
+                <div className="w-24 h-24 mx-auto rounded-full bg-white shadow-sm overflow-hidden flex items-center justify-center ring-1 ring-pink-100">
                   {member.photo ? (
                     <Image
                       loader={cloudinaryLoader}
@@ -356,7 +360,7 @@ export default function SupportPage() {
 
       {/* Sections — accordion */}
       {sections.length > 0 && (
-        <section className="max-w-3xl mx-auto px-6 pb-16">
+        <section className="max-w-3xl mx-auto px-6 pt-16 pb-16">
           <h2 className="text-xl md:text-2xl font-bold text-slate-900 text-center mb-8">
             সচরাচর জিজ্ঞাসা
           </h2>
@@ -376,9 +380,9 @@ export default function SupportPage() {
 
       {/* Bottom CTA */}
       <section className="px-6 pb-20">
-        <div className="max-w-4xl mx-auto rounded-[32px] bg-white border border-pink-100 p-10 md:p-14 text-center shadow-sm">
-          <div className="w-14 h-14 mx-auto rounded-2xl bg-pink-100 flex items-center justify-center">
-            <MessageCircleHeart className="text-pink-500" size={26} />
+        <div className="max-w-4xl mx-auto rounded-3xl bg-pink-50 border border-pink-100 p-10 md:p-14 text-center shadow-xl shadow-pink-200/40">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-white shadow-sm flex items-center justify-center">
+            <MessageCircleHeart className="text-pink-500" size={24} />
           </div>
           <h2 className="mt-5 text-2xl md:text-3xl font-bold text-slate-900">
             আরও সাহায্য দরকার?
@@ -389,7 +393,7 @@ export default function SupportPage() {
           {supportEmail && (
             <a
               href={`mailto:${supportEmail}`}
-              className="inline-block mt-7 bg-pink-500 text-white px-8 py-3.5 rounded-xl font-semibold shadow-sm hover:bg-pink-600 transition-colors duration-300"
+              className="inline-block mt-7 bg-pink-500 text-white px-8 py-3.5 rounded-xl font-semibold shadow-sm hover:bg-pink-600 transition-colors duration-200"
             >
               যোগাযোগ করুন
             </a>
