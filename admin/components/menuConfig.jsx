@@ -12,6 +12,7 @@ import {
   Trash2,
   Wallet,
   BadgePercent,
+  Hash,
 } from "lucide-react";
 
 export const navItems = [
@@ -98,6 +99,11 @@ export const settingsChildren = [
     icon: <LayoutDashboard size={16} />,
     label: "Delivery Charge",
     href: "/admin/deliveryCharge",
+  },
+  {
+    icon: <Hash size={16} />,
+    label: "Order Number",
+    href: "/admin/orderCounter",
   },
   {
     icon: <LayoutDashboard size={16} />,
